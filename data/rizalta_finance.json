@@ -1,0 +1,207 @@
+{
+  "project": "RIZALTA Resort Belokurikha",
+  "completion_year": 2027,
+  "completion_quarter": "Q4 2027",
+
+  "min_lot": {
+    "unit_code": "A209",
+    "price_rub": 15251250,
+    "real_price_rub": 15101250,
+    "area_m2": 24.5,
+    "entry_point_rub": 5766000,
+    "description": "Минимальный инвестиционный лот в проекте RIZALTA. Цена для расчётов фиксируется на уровне 15 251 250 ₽, при этом в стоимость уже включены 150 000 ₽ сервисных платежей (бронь и юр.сопровождение)."
+  },
+
+  "investment_scenarios": [
+    {
+      "id": "short_term_1y",
+      "name": "Краткосрок: точка входа + рассрочка на 1 год",
+      "unit_code": "A209",
+      "entry_point_rub": 5766000,
+      "year1_monthly_payment_rub": 262000,
+      "year1_months": 12,
+      "remaining_share_after_year1_pct": 40,
+      "first_year_roi_pct": 70,
+      "payback_years": 4,
+      "comment": "Точка входа 5,766 млн ₽, далее платежи по 262 000 ₽ в месяц в течение 1 года и закрытие остатка 40%. Ожидаемая доходность в первый год около 70% годовых и полная окупаемость вложений примерно за 4 года."
+    },
+    {
+      "id": "long_term_2y",
+      "name": "Долгосрок: ПВ 30% + рассрочка на 2 года",
+      "unit_code": "A209",
+      "first_payment_pct": 30,
+      "first_payment_rub": 4324500,
+      "monthly_payment_rub": 470000,
+      "months": 24,
+      "payback_years": 4,
+      "comment": "Сценарий для более плавной нагрузки: первоначальный взнос 30% и фиксированные платежи по 470 000 ₽ в течение 2 лет."
+    }
+  ],
+
+  "installment_programs": [
+    {
+      "id": "12m_30pct",
+      "name": "Рассрочка 12 мес, ПВ 30%",
+      "first_payment_pct": 30,
+      "months": 12,
+      "rate_pct": 0,
+      "payment_type": "equal",
+      "comment": "Остаток равными ежемесячными платежами"
+    },
+    {
+      "id": "12m_40pct",
+      "name": "Рассрочка 12 мес, ПВ 40%",
+      "first_payment_pct": 40,
+      "months": 12,
+      "rate_pct": 0,
+      "payment_type": "fixed_200k",
+      "fixed_monthly_rub": 200000,
+      "comment": "11 месяцев по 200 000 ₽, остаток на 12-й месяц"
+    },
+    {
+      "id": "12m_50pct",
+      "name": "Рассрочка 12 мес, ПВ 50%",
+      "first_payment_pct": 50,
+      "months": 12,
+      "rate_pct": 0,
+      "payment_type": "fixed_100k",
+      "fixed_monthly_rub": 100000,
+      "comment": "11 месяцев по 100 000 ₽, остаток на 12-й месяц"
+    },
+    {
+      "id": "24m_30pct",
+      "name": "Рассрочка 24 мес, ПВ 30%",
+      "first_payment_pct": 30,
+      "months": 24,
+      "rate_pct": 6,
+      "payment_type": "equal",
+      "comment": "Удорожание 6% годовых, остаток равными ежемесячными платежами"
+    },
+    {
+      "id": "24m_40pct",
+      "name": "Рассрочка 24 мес, ПВ 40%",
+      "first_payment_pct": 40,
+      "months": 24,
+      "rate_pct": 4.5,
+      "payment_type": "fixed_250k_balloon",
+      "fixed_monthly_rub": 250000,
+      "balloon_12_pct": 10,
+      "comment": "Удорожание 4,5% годовых: 1-11 и 13-23 мес по 250 000 ₽, 10% стоимости на 12-й мес, остаток на 24-й мес"
+    },
+    {
+      "id": "24m_50pct",
+      "name": "Рассрочка 24 мес, ПВ 50%",
+      "first_payment_pct": 50,
+      "months": 24,
+      "rate_pct": 3,
+      "payment_type": "fixed_150k_balloon",
+      "fixed_monthly_rub": 150000,
+      "balloon_12_pct": 10,
+      "comment": "Удорожание 3% годовых: 1-11 и 13-23 мес по 150 000 ₽, 10% стоимости на 12-й мес, остаток на 24-й мес"
+    }
+  ],
+
+  "installment_notes": {
+    "quarterly_option": "При первоначальном взносе от 50% возможно установление ежеквартальных, а не ежемесячных платежей по всем программам.",
+    "full_payment_discount": "5% специальная скидка — действует только при полной оплате стоимости гостиничного номера."
+  },
+
+  "mortgage_programs": [
+    {
+      "id": "promo_grace_1y",
+      "name": "Ипотека с льготным платежом 1 год",
+      "object_price_rub": 15117288,
+      "first_payment_rub": 4309200,
+      "first_payment_pct": 28.51,
+      "credit_amount_rub": 10808088,
+      "term_months": 360,
+      "grace_period_months": 12,
+      "reduced_payment_rub": 54040.44,
+      "normal_payment_rub": 192039.35,
+      "base_rate_pct": 21.49,
+      "promo_rate_pct": 4.4,
+      "comment": "В течение льготного периода действует сниженный платёж, далее — стандартный аннуитетный платёж по ипотеке."
+    }
+  ],
+
+  "defaults": {
+    "daily_rate_rub": 15000,
+    "occupancy_pct": 60,
+    "expenses_pct": 50
+  },
+
+  "units": [
+    {
+      "unit_code": "A209",
+      "title": "Студия A209",
+      "area_m2": 24.5,
+      "price_rub": 15251250,
+      "daily_rate_rub": 15000,
+      "occupancy_pct": 60,
+      "expenses_pct": 50,
+      "capitalization_projection": {
+        "comment": "Прогноз совокупной доходности (рост стоимости + аренда) по методике из инвестиционного расчёта.",
+        "base_year": 2025,
+        "price_2027_rub": 23487000,
+        "price_2029_rub": 28419000,
+        "total_return_pct_by_year": [
+          { "year": 2025, "total_return_pct": 3.39 },
+          { "year": 2026, "total_return_pct": 23.73 },
+          { "year": 2027, "total_return_pct": 54.24 },
+          { "year": 2028, "total_return_pct": 75.69 },
+          { "year": 2029, "total_return_pct": 84.65 }
+        ]
+      }
+    },
+    {
+      "unit_code": "В210",
+      "title": "Стандарт B210",
+      "area_m2": 31.6,
+      "price_rub": 19671000,
+      "daily_rate_rub": 17000,
+      "occupancy_pct": 60,
+      "expenses_pct": 50,
+      "capitalization_projection": {
+        "comment": "Используем ту же модель роста и доходности, что и для A209, но в абсолютных цифрах сумма дохода выше за счёт большей площади и ставки аренды.",
+        "base_year": 2025,
+        "price_2027_rub": 30293000,
+        "price_2029_rub": 36655000,
+        "total_return_pct_by_year": [
+          { "year": 2025, "total_return_pct": 3.39 },
+          { "year": 2026, "total_return_pct": 23.73 },
+          { "year": 2027, "total_return_pct": 54.24 },
+          { "year": 2028, "total_return_pct": 75.69 },
+          { "year": 2029, "total_return_pct": 84.65 }
+        ]
+      }
+    },
+    {
+      "unit_code": "A305",
+      "title": "Люкс A305",
+      "area_m2": 38.8,
+      "price_rub": 23741720,
+      "daily_rate_rub": 21000,
+      "occupancy_pct": 60,
+      "expenses_pct": 50,
+      "capitalization_projection": {
+        "comment": "Та же модель доходности, но максимальный потенциальный денежный поток за счёт самой высокой ставки аренды.",
+        "base_year": 2025,
+        "price_2027_rub": 36562000,
+        "price_2029_rub": 44240000,
+        "total_return_pct_by_year": [
+          { "year": 2025, "total_return_pct": 3.39 },
+          { "year": 2026, "total_return_pct": 23.73 },
+          { "year": 2027, "total_return_pct": 54.24 },
+          { "year": 2028, "total_return_pct": 75.69 },
+          { "year": 2029, "total_return_pct": 84.65 }
+        ]
+      }
+    }
+  ],
+
+  "extra_notes": {
+    "included_fees_note": "В стоимость апартамента уже входят: 50 000 ₽ за бронь и 100 000 ₽ за договор с ООО «Ризалта» (юридическое сопровождение и запуск отеля). По факту реальная стоимость для инвестора на 150 000 ₽ выгоднее, чем у проектов, где эти платежи берут отдельно.",
+    "first_year_roi_summary": "За первый год по сценарию с точкой входа 5,766 млн ₽ и ежемесячными платежами вы можете выйти на доходность порядка 70% годовых и полностью окупить вложения примерно за 4 года.",
+    "guaranteed_income": "Работает «котловая система»: доход всего отеля суммируется и распределяется между собственниками. Условия о гарантированных выплатах фиксируются в договоре с Управляющей Компанией."
+  }
+}

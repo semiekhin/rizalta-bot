@@ -1,0 +1,20 @@
+[
+  {
+    "id": "rizalta_mortgage_30_grace12",
+    "name": "Ипотека с ПВ 30% и льготным периодом 12 месяцев",
+    "description": "Пример ипотечной программы: первоначальный взнос 30%, льготный платёж первый год, далее стандартный платёж на весь срок кредита.",
+    "term_months": 360,
+    "grace_period_months": 12,
+    "min_down_payment_pct": 30,
+    "rates": {
+      "nominal_rate_annual_pct": 15.99,
+      "effective_rate_annual_pct": 21.49,
+      "grace_rate_annual_pct": 4.4
+    },
+    "payment_coefficients": {
+      "grace_payment_per_credit_pct_monthly": 0.005,
+      "standard_payment_per_credit_pct_monthly": 0.01777
+    },
+    "notes": "Коэффициенты платежей оценены по расчётам из файла: льготный платёж ~0,5% от суммы кредита в месяц, стандартный платёж ~1,78%."
+  }
+]

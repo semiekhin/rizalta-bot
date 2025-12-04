@@ -1,0 +1,15 @@
+[
+  {
+    "id": "rizalta_base",
+    "name": "Базовый сценарий",
+    "description": "Среднесрочный сценарий доходности при умеренной загрузке и стандартных расходах.",
+    "assumptions": {
+      "daily_rate_rub": 15000,
+      "occupancy_pct": 60,
+      "expenses_pct": 50,
+      "price_growth_pct": 20,
+      "horizon_years": 7
+    },
+    "notes": "Чистый доход = выручка * (1 - expenses_pct). Выручка = daily_rate * 365 * (occupancy_pct/100). Реальный результат зависит от сезона, сервиса и рынка."
+  }
+]
