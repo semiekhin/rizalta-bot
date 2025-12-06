@@ -24,19 +24,7 @@ async def send_message(
     buttons: Optional[List[List[Any]]] = None,
     parse_mode: str = "HTML",
 ) -> bool:
-    """
-    Отправляет сообщение в Telegram.
-    
-    Args:
-        chat_id: ID чата
-        text: Текст сообщения
-        with_keyboard: Добавить reply keyboard
-        buttons: Кнопки клавиатуры (простые строки или dict с параметрами)
-        parse_mode: HTML или Markdown
-    
-    Returns:
-        True если отправлено успешно
-    """
+    """Отправляет сообщение в Telegram."""
     token = get_token()
     if not token:
         print("⚠️ TELEGRAM_BOT_TOKEN не задан")
@@ -50,7 +38,6 @@ async def send_message(
         "parse_mode": parse_mode,
     }
     
-    # Добавляем клавиатуру
     if with_keyboard and buttons:
         reply_markup: Dict[str, Any] = {"resize_keyboard": True}
         
@@ -59,17 +46,14 @@ async def send_message(
             keyboard_row = []
             for button in row:
                 if isinstance(button, dict):
-                    # Уже словарь (например, с request_contact)
                     keyboard_row.append(button)
                 else:
-                    # Простая строка
                     keyboard_row.append({"text": button})
             keyboard_rows.append(keyboard_row)
         
         reply_markup["keyboard"] = keyboard_rows
         payload["reply_markup"] = json.dumps(reply_markup)
     elif with_keyboard:
-        # Пустая клавиатура — показываем дефолтную
         payload["reply_markup"] = json.dumps({"resize_keyboard": True})
     
     try:
@@ -96,18 +80,7 @@ async def send_message_inline(
     inline_buttons: Optional[List[List[Dict[str, str]]]] = None,
     parse_mode: str = "HTML",
 ) -> bool:
-    """
-    Отправляет сообщение с inline-кнопками.
-    
-    Args:
-        chat_id: ID чата
-        text: Текст сообщения
-        inline_buttons: Inline-кнопки [
-            [{"text": "Текст", "callback_data": "action"}],
-            ...
-        ]
-        parse_mode: HTML или Markdown
-    """
+    """Отправляет сообщение с inline-кнопками."""
     token = get_token()
     if not token:
         print("⚠️ TELEGRAM_BOT_TOKEN не задан")
@@ -148,14 +121,7 @@ async def send_document(
     filepath: str,
     caption: Optional[str] = None,
 ) -> bool:
-    """
-    Отправляет документ (PDF и т.д.).
-    
-    Args:
-        chat_id: ID чата
-        filepath: Путь к файлу
-        caption: Подпись (опционально)
-    """
+    """Отправляет документ (PDF и т.д.)."""
     token = get_token()
     if not token:
         print("⚠️ TELEGRAM_BOT_TOKEN не задан")
@@ -177,12 +143,13 @@ async def send_document(
                     data = {"chat_id": chat_id}
                     if caption:
                         data["caption"] = caption
+                        data["parse_mode"] = "HTML"
                     
                     r = requests.post(
                         url,
                         data=data,
                         files={"document": (filename, f, "application/pdf")},
-                        timeout=60,
+                        timeout=120,
                     )
                     r.raise_for_status()
                     print(f"[TG] sendDocument {filename} status={r.status_code}")
@@ -198,13 +165,7 @@ async def send_document(
 
 
 async def answer_callback_query(callback_id: str, text: Optional[str] = None) -> bool:
-    """
-    Отвечает на callback query (убирает часики на кнопке).
-    
-    Args:
-        callback_id: ID callback query
-        text: Текст уведомления (опционально)
-    """
+    """Отвечает на callback query (убирает часики на кнопке)."""
     token = get_token()
     if not token:
         return False
@@ -236,14 +197,7 @@ async def send_photo(
     filepath: str,
     caption: Optional[str] = None,
 ) -> bool:
-    """
-    Отправляет фото (JPG/PNG).
-    
-    Args:
-        chat_id: ID чата
-        filepath: Путь к файлу
-        caption: Подпись (опционально)
-    """
+    """Отправляет фото (JPG/PNG)."""
     token = get_token()
     if not token:
         print("⚠️ TELEGRAM_BOT_TOKEN не задан")
@@ -290,14 +244,7 @@ async def send_media_group(
     filepaths: List[str],
     caption: Optional[str] = None,
 ) -> bool:
-    """
-    Отправляет альбом фото (до 10 штук).
-    
-    Args:
-        chat_id: ID чата
-        filepaths: Список путей к файлам
-        caption: Подпись к первому фото (опционально)
-    """
+    """Отправляет альбом фото (до 10 штук)."""
     token = get_token()
     if not token:
         print("⚠️ TELEGRAM_BOT_TOKEN не задан")
@@ -306,7 +253,6 @@ async def send_media_group(
     if not filepaths:
         return False
     
-    # Telegram ограничивает альбом до 10 фото
     filepaths = filepaths[:10]
     
     url = f"https://api.telegram.org/bot{token}/sendMediaGroup"
@@ -332,7 +278,6 @@ async def send_media_group(
                         "media": f"attach://{attach_name}",
                     }
                     
-                    # Подпись только к первому фото
                     if i == 0 and caption:
                         item["caption"] = caption
                         item["parse_mode"] = "HTML"
@@ -349,7 +294,6 @@ async def send_media_group(
                 
                 r = requests.post(url, data=data, files=files, timeout=120)
                 
-                # Закрываем файлы
                 for f in files.values():
                     f.close()
                 
@@ -364,42 +308,4 @@ async def send_media_group(
         return await loop.run_in_executor(None, _post)
     except Exception as e:
         print(f"⚠️ Общая ошибка в send_media_group: {e}")
-        return False
-
-
-# ====== Алиасы для совместимости ======
-
-# Короткие имена для удобства использования в handlers
-_send_tg = send_message
-_send_tg_inline = send_message_inline
-
-
-async def send_document(chat_id: int, filepath: str, caption: str = "") -> bool:
-    """Отправляет документ (PDF) в чат."""
-    import os
-    
-    if not os.path.exists(filepath):
-        print(f"[TG] Document not found: {filepath}")
-        return False
-    
-    url = f"{TG_API}/sendDocument"
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            with open(filepath, 'rb') as f:
-                data = aiohttp.FormData()
-                data.add_field('chat_id', str(chat_id))
-                data.add_field('document', f, filename=os.path.basename(filepath))
-                if caption:
-                    data.add_field('caption', caption)
-                    data.add_field('parse_mode', 'HTML')
-                
-                async with session.post(url, data=data) as resp:
-                    result = await resp.json()
-                    if not result.get("ok"):
-                        print(f"[TG] sendDocument error: {result}")
-                        return False
-                    return True
-    except Exception as e:
-        print(f"[TG] sendDocument exception: {e}")
         return False

@@ -20,6 +20,9 @@ AI-консультант для инвестиционного проекта *
 - 🔥 Запись на онлайн-показ
 - 📧 Email и Telegram уведомления менеджерам
 - 📎 Отправка планировок (PDF)
+- 📌 Фиксация клиента (внешняя ссылка)
+- 🏠 Шахматка (внешняя ссылка)
+- 🎬 Медиа-материалы (презентации, видео)
 
 ---
 
@@ -58,7 +61,10 @@ ssh root@72.56.64.91
 │   ├── __init__.py
 │   ├── ai_chat.py            # AI-консультант + Function Calling
 │   ├── booking.py            # Запись на показ
-│   ├── kp.py                 # Коммерческие предложения (NEW!)
+│   ├── calc_dynamic.py       # Динамические расчёты ROI/рассрочка
+│   ├── docs.py               # Договоры (ДДУ, аренда)
+│   ├── kp.py                 # Коммерческие предложения
+│   ├── media.py              # Медиа-материалы (NEW v1.4)
 │   ├── menu.py               # Меню и навигация
 │   └── units.py              # Расчёты ROI, рассрочка
 │
@@ -67,7 +73,7 @@ ssh root@72.56.64.91
 │   ├── ai_chat.py            # OpenAI клиент
 │   ├── calculations.py       # Финансовые расчёты (1195 строк)
 │   ├── data_loader.py        # Загрузка JSON/TXT
-│   ├── kp_search.py          # Поиск КП файлов (NEW!)
+│   ├── kp_search.py          # Поиск КП файлов
 │   ├── notifications.py      # Email уведомления
 │   └── telegram.py           # Telegram API (send_photo, send_media_group)
 │
@@ -76,12 +82,11 @@ ssh root@72.56.64.91
 │
 ├── data/
 │   ├── rizalta_finance.json  # Финансовые сценарии
-│   ├── units.json            # 3 базовых юнита
+│   ├── units.json            # 69 лотов
 │   ├── rizalta_knowledge_base.txt
 │   ├── text_why_rizalta.md
 │   ├── text_why_belokuricha.md
-│   ├── text_architect.md
-│   └── layouts/              # PDF планировки
+│   └── text_architect.md
 │
 ├── kp_all/                   # 69 JPG коммерческих предложений
 │   ├── kp_24.5m_business_А209.jpg
@@ -89,9 +94,37 @@ ssh root@72.56.64.91
 │   └── ...
 │
 ├── docs/                     # Документы (66 MB)
-├── kp_generator.py           # Генератор HTML→JPG КП
-└── header_image_base64.txt   # Картинка для шапки КП
+│   ├── ddu.pdf               # Договор ДДУ
+│   └── arenda.pdf            # Договор аренды
+│
+├── media/                    # Медиа-материалы (NEW v1.4)
+│   └── presentation_rizalta.pdf
+│
+└── kp_generator.py           # Генератор HTML→JPG КП
 ```
+
+---
+
+## 📱 Главное меню (v1.4.0)
+
+```
+┌─────────────────┬─────────────────┐
+│  📖 О проекте   │   💰 Расчёты    │
+├─────────────────┼─────────────────┤
+│  📋 КП (JPG)    │  📄 Договоры    │
+├─────────────────┼─────────────────┤
+│📌 Фиксация      │  🏠 Шахматка    │
+│   клиента       │                 │
+├─────────────────┴─────────────────┤
+│           🎬 Медиа                │
+├───────────────────────────────────┤
+│  🔥 Записаться на онлайн-показ    │
+└───────────────────────────────────┘
+```
+
+### Внешние ссылки:
+- 📌 Фиксация клиента → https://ri.rclick.ru/notice/
+- 🏠 Шахматка → https://ri.rclick.ru/
 
 ---
 
@@ -123,35 +156,36 @@ SMTP_PASSWORD=...
 
 ### Проверить статус:
 ```bash
-ps aux | grep "python app.py"
+ps aux | grep uvicorn
 ```
 
 ### Запустить:
 ```bash
 cd /opt/bot
-source venv/bin/activate
-nohup python app.py > bot.log 2>&1 &
+nohup /opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > /var/log/rizalta-bot.log 2>&1 &
 ```
 
 ### Остановить:
 ```bash
-pkill -f "python app.py"
-# или если порт занят:
-fuser -k 8000/tcp
+pkill -9 -f "uvicorn.*8000"
 ```
 
 ### Посмотреть логи:
 ```bash
-tail -50 /opt/bot/bot.log
+tail -50 /var/log/rizalta-bot.log
 ```
 
 ### Перезапустить:
 ```bash
-cd /opt/bot
-pkill -f "python app.py"
+pkill -9 -f "uvicorn.*8000"
 sleep 2
-source venv/bin/activate
-nohup python app.py > bot.log 2>&1 &
+cd /opt/bot
+nohup /opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > /var/log/rizalta-bot.log 2>&1 &
+```
+
+### Если порт занят:
+```bash
+fuser -k 8000/tcp
 ```
 
 ---
@@ -168,17 +202,16 @@ scp rizalta_vX.X.tar.gz root@72.56.64.91:/tmp/
 cd /opt/bot
 
 # Остановить
-pkill -f "python app.py"
+pkill -9 -f "uvicorn.*8000"
 
 # Бэкап (опционально)
-tar -czvf /tmp/backup_$(date +%Y%m%d).tar.gz --exclude='venv' --exclude='kp_all' --exclude='docs' .
+tar -czvf /tmp/backup_$(date +%Y%m%d).tar.gz --exclude='venv' --exclude='kp_all' --exclude='docs' --exclude='media' .
 
 # Распаковать (без перезаписи .env)
 tar -xzf /tmp/rizalta_vX.X.tar.gz --exclude='.env'
 
 # Запустить
-source venv/bin/activate
-nohup python app.py > bot.log 2>&1 &
+nohup /opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > /var/log/rizalta-bot.log 2>&1 &
 ```
 
 ---
@@ -213,11 +246,11 @@ sqlite3 properties.db "SELECT code, area_m2, price_rub FROM units WHERE area_m2 
 ### UX Flow:
 
 ```
-📋 Коммерческие предложения
+📋 КП (JPG)
     ↓
 ├── 📐 По площади
-│   ├── 22-25 м² | 26-30 м² | 31-35 м²
-│   └── 36-40 м² | 41-45 м² | 46+ м²
+│   ├── 22-30 м² | 31-40 м² | 41-50 м²
+│   └── 51-70 м² | 71-90 м² | 90+ м²
 │       ↓
 │   [А101 — 24.4 м² — 15.2 млн]  ← кнопка
 │   [А209 — 24.5 м² — 15.3 млн]  ← кнопка
@@ -245,6 +278,22 @@ sqlite3 properties.db "SELECT code, area_m2, price_rub FROM units WHERE area_m2 
 
 ---
 
+## 🎬 Фича: Медиа-материалы (NEW v1.4)
+
+### UX Flow:
+```
+🎬 Медиа
+    ↓
+├── 📊 Презентация проекта → PDF (25 MB)
+└── 🔙 Назад в меню
+```
+
+### Файлы:
+- `handlers/media.py` — обработчик
+- `/opt/bot/media/presentation_rizalta.pdf` — презентация
+
+---
+
 ## 🔧 AI Function Calling
 
 **Файл:** `services/ai_chat.py`
@@ -255,42 +304,7 @@ sqlite3 properties.db "SELECT code, area_m2, price_rub FROM units WHERE area_m2 
 - `show_installment` — рассрочка/ипотека
 - `book_showing` — запись на показ
 - `show_layouts` — планировки
-- `get_commercial_proposal` — КП (NEW!)
-
----
-
-## 📂 Архивы (версии)
-
-| Файл | Описание |
-|------|----------|
-| `rizalta_v1.0_stable.tar.gz` | Рабочая версия без КП |
-| `rizalta_v1.1_with_kp.tar.gz` | + КП через текстовый ввод |
-| `rizalta_v1.2_kp_buttons.tar.gz` | + КП через кнопки (текущая) |
-| `rizalta_v1.0_media.tar.gz` | JPG + docs (77 MB) |
-
----
-
-## 🔗 Ссылки
-
-- **GitHub:** https://github.com/semiekhin/rizalta-bot
-- **Сервер:** 72.56.64.91
-- **Telegram Bot:** @rizaboris_bot
-
----
-
-## 📝 История изменений
-
-### v1.2 (04.12.2024)
-- Добавлена фича КП с кнопками (по площади / по бюджету)
-- Inline-кнопки для выбора конкретного лота
-- Кнопка "Отправить все" для альбома
-
-### v1.1 (04.12.2024)
-- Первая версия КП через текстовый ввод
-- Добавлены `send_photo()`, `send_media_group()`
-
-### v1.0 (ноябрь 2024)
-- Базовый функционал: AI-консультант, ROI, рассрочка, запись на показ
+- `get_commercial_proposal` — КП
 
 ---
 
@@ -342,35 +356,6 @@ Callback: kp_send_247 (площадь × 10)
 
 ---
 
-## 🚀 Запуск (uvicorn)
-
-### Проверить статус:
-```bash
-ps aux | grep "uvicorn.*8000" | grep -v grep
-```
-
-### Запустить:
-```bash
-cd /opt/bot
-source venv/bin/activate
-nohup /opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > /var/log/rizalta-bot.log 2>&1 &
-```
-
-### Перезапустить:
-```bash
-pkill -9 -f "uvicorn.*8000"
-sleep 2
-cd /opt/bot
-nohup /opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > /var/log/rizalta-bot.log 2>&1 &
-```
-
-### Логи:
-```bash
-tail -50 /var/log/rizalta-bot.log
-```
-
----
-
 ## 📊 Данные о лотах
 
 | Источник | Количество | Назначение |
@@ -384,12 +369,45 @@ tail -50 /var/log/rizalta-bot.log
 
 ---
 
+## 🔗 Ссылки
+
+- **GitHub:** https://github.com/semiekhin/rizalta-bot
+- **Сервер:** 72.56.64.91
+- **Telegram Bot:** @rizaboris_bot
+- **Фиксация клиента:** https://ri.rclick.ru/notice/
+- **Шахматка:** https://ri.rclick.ru/
+
+---
+
+## 📝 История изменений
+
+### v1.4.0 (06.12.2024)
+- Обновлено главное меню — кнопки по 2 в ряд
+- Добавлена кнопка "📌 Фиксация клиента" (внешняя ссылка)
+- Добавлена кнопка "🏠 Шахматка" (внешняя ссылка)
+- Добавлен раздел "🎬 Медиа" с презентацией
+- Новый handler: `handlers/media.py`
+- Исправлен баг с дубликатом `send_document` в telegram.py
+- Обсуждена интеграция с Cal.com (в планах)
+
 ### v1.3.2 (05.12.2024)
 - Исправлена проблема дубликатов лотов (А204, В904, А202)
-- Переход на площадь как единственный ключ связи
+- Переход на площадь как единственный ключ
 - Сгенерирован units.json из 69 КП файлов
 - AI использует актуальные данные (69 лотов)
 - Добавлены договоры (ДДУ, аренда)
 - Обновлены диапазоны площадей (51-70, 71-90, 90+)
 - Запуск через uvicorn вместо python app.py
 - Замена "апартаменты" → "гостиничные номера"
+
+### v1.2 (04.12.2024)
+- Добавлена фича КП с кнопками (по площади / по бюджету)
+- Inline-кнопки для выбора конкретного лота
+- Кнопка "Отправить все" для альбома
+
+### v1.1 (04.12.2024)
+- Первая версия КП через текстовый ввод
+- Добавлены `send_photo()`, `send_media_group()`
+
+### v1.0 (ноябрь 2024)
+- Базовый функционал: AI-консультант, ROI, рассрочка, запись на показ

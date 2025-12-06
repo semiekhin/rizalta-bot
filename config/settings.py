@@ -17,6 +17,7 @@ BASE_DIR = os.getenv("BOT_BASE_DIR", _PROJECT_ROOT)
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
+MEDIA_DIR = os.path.join(BASE_DIR, "media")
 
 # Файлы данных
 UNITS_PATH = os.path.join(DATA_DIR, "units.json")
@@ -55,10 +56,17 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "").strip()
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
 
+# ====== Внешние ссылки ======
+LINK_FIXATION = "https://ri.rclick.ru/notice/"
+LINK_SHAHMATKA = "https://ri.rclick.ru/"
+
 # ====== Клавиатуры ======
+# Главное меню: кнопки по 2 в ряд, последняя на весь ряд
 MAIN_MENU_BUTTONS = [
     ["📖 О проекте", "💰 Расчёты"],
     ["📋 КП (JPG)", "📄 Договоры"],
+    ["📌 Фиксация клиента", "🏠 Шахматка"],
+    ["🎬 Медиа"],
     ["🔥 Записаться на онлайн-показ"],
 ]
 
@@ -78,12 +86,20 @@ UNIT_SELECT_BUTTONS = [
     ["🔙 Назад"],
 ]
 
+MEDIA_BUTTONS = [
+    ["📊 Презентация"],
+    ["🔙 Назад"],
+]
+
 # Кнопки, при нажатии на которые сбрасывается состояние диалога
 MAIN_MENU_TRIGGER_TEXTS = [
     "📖 О проекте",
     "💰 Расчёты",
     "📋 КП (JPG)",
     "📄 Договоры",
+    "📌 Фиксация клиента",
+    "🏠 Шахматка",
+    "🎬 Медиа",
     "🔥 Записаться на онлайн-показ",
     "🔙 Назад",
 ]
