@@ -388,7 +388,7 @@ def format_lot_recommendation(budget_rub: int, preferred_format: str) -> str:
     else:
         lines.append("🎯 <b>Ваш бюджет выше 30 млн ₽</b>")
         lines.append(
-            "Это уже уровень, где можно собирать полноценный мини-портфель из нескольких апартаментов, "
+            "Это уже уровень, где можно собирать полноценный мини-портфель из нескольких гостиничных номеров, "
             "комбинируя разные корпусы и типы лотов."
         )
     
@@ -414,7 +414,7 @@ def generate_finance_text(unit_code: str, finance: dict) -> str:
     if not unit:
         return f"⚠️ Юнит {unit_code} не найден в конфигурации."
     
-    title = unit.get("title", f"Апартамент {unit_code}")
+    title = unit.get("title", f"Гостиничный номер {unit_code}")
     area = unit.get("area_m2", "?")
     price = float(unit.get("price_rub", 0))
     
@@ -797,7 +797,7 @@ def generate_investment_pdf(budget_rub: int, chat_id: int, username: str = "") -
     next_line(6)
     
     num_units = best['num_units']
-    units_word = "апартамент" if num_units == 1 else "апартамента" if num_units in [2,3,4] else "апартаментов"
+    units_word = "гостиничный номер" if num_units == 1 else "гостиничный номера" if num_units in [2,3,4] else "гостиничных номеров"
     draw_text(f"{num_units} {units_word} │ Использовано {best['usage_pct']:.0f}% бюджета", 20, 10)
     next_line(10)
     
@@ -990,7 +990,7 @@ def generate_investment_plan(budget_rub: int, pay_format: str = "") -> str:
             
             units_info[code] = {
                 "code": code,
-                "title": u.get("title", f"Апартамент {code}"),
+                "title": u.get("title", f"Гостиничный номер {code}"),
                 "area": u.get("area_m2", 0),
                 "price": price,
                 "entry": entry,
@@ -1000,7 +1000,7 @@ def generate_investment_plan(budget_rub: int, pay_format: str = "") -> str:
             }
     
     if not units_info:
-        return "Данные по апартаментам не найдены."
+        return "Данные по гостиничный номерам не найдены."
     
     # Генерируем все возможные комбинации портфелей
     portfolios = []
@@ -1083,11 +1083,11 @@ def generate_investment_plan(budget_rub: int, pay_format: str = "") -> str:
     # Рекомендуемый портфель
     num_units = best['num_units']
     if num_units == 1:
-        units_word = "апартамент"
+        units_word = "гостиничный номер"
     elif num_units in [2, 3, 4]:
-        units_word = "апартамента"
+        units_word = "гостиничный номера"
     else:
-        units_word = "апартаментов"
+        units_word = "гостиничных номеров"
     
     lines.append(f"📦 <b>Рекомендуемый портфель: {best['label']}</b>")
     lines.append(f"{num_units} {units_word} │ Использовано {best['usage_pct']:.0f}% бюджета")

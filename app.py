@@ -176,7 +176,7 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_choose_unit_for_roi(chat_id)
     
     elif data == "get_layouts":
-        await handle_choose_unit_for_layout(chat_id)
+        from handlers.docs import handle_documents_menu; await handle_documents_menu(chat_id)
     
     elif data.startswith("roi_"):
         unit_code = data[4:]
@@ -219,10 +219,11 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_kp_budget_range(chat_id, min_budget, max_budget)
     
     elif data.startswith("kp_send_"):
-        # kp_send_А209 -> отправить КП
+        # kp_send_273 -> отправить КП (273 = area * 10)
         from handlers.kp import handle_kp_send_one
-        unit_code = data.replace("kp_send_", "")
-        await handle_kp_send_one(chat_id, unit_code)
+        area_str = data.replace("kp_send_", "")
+        area = int(area_str) / 10.0 if area_str.isdigit() else 0
+        await handle_kp_send_one(chat_id, area=area)
     
     elif data.startswith("kp_all_area_"):
         # kp_all_area_22_25 -> отправить все по площади
@@ -238,6 +239,24 @@ async def process_callback(callback: Dict[str, Any]):
         min_budget, max_budget = int(parts[0]), int(parts[1])
         await handle_kp_send_all_budget(chat_id, min_budget, max_budget)
 
+
+    # ===== Документы =====
+
+    elif data == "doc_menu":
+        from handlers.docs import handle_documents_menu
+        await handle_documents_menu(chat_id)
+
+    elif data == "doc_ddu":
+        from handlers.docs import handle_send_ddu
+        await handle_send_ddu(chat_id)
+
+    elif data == "doc_arenda":
+        from handlers.docs import handle_send_arenda
+        await handle_send_arenda(chat_id)
+
+    elif data == "doc_all":
+        from handlers.docs import handle_send_all_docs
+        await handle_send_all_docs(chat_id)
     # ===== Динамические расчёты =====
 
     elif data == "calc_main_menu":
@@ -282,13 +301,13 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_calc_finance_budget_range(chat_id, min_budget, max_budget)
 
     elif data.startswith("calc_roi_lot_"):
-        unit_code = data.replace("calc_roi_lot_", "")
-        await handle_calc_roi_lot(chat_id, unit_code)
-
+        area_str = data.replace("calc_roi_lot_", "")
+        area = int(area_str) / 10.0 if area_str.isdigit() else 0
+        await handle_calc_roi_lot(chat_id, area)
     elif data.startswith("calc_finance_lot_"):
-        unit_code = data.replace("calc_finance_lot_", "")
-        await handle_calc_finance_lot(chat_id, unit_code)
-
+        area_str = data.replace("calc_finance_lot_", "")
+        area = int(area_str) / 10.0 if area_str.isdigit() else 0
+        await handle_calc_finance_lot(chat_id, area)
 
 async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     """Главный роутер текстовых сообщений."""
@@ -379,7 +398,7 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
         await handle_calculations_menu_new(chat_id)
         return
     
-    if "📋 Коммерческие предложения" in text:
+    if "📋 КП (JPG)" in text:
         await handle_kp_menu(chat_id)
         return
     
@@ -391,8 +410,8 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
         await handle_online_show_start(chat_id)
         return
     
-    if "📎 Получить планировки" in text:
-        await handle_choose_unit_for_layout(chat_id)
+    if "📄 Договоры" in text:
+        from handlers.docs import handle_documents_menu; await handle_documents_menu(chat_id)
         return
     
     # ===== Подменю "О проекте" =====

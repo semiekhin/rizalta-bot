@@ -61,15 +61,40 @@ def get_all_kp_files() -> Dict[str, str]:
     return result
 
 
-def find_kp_by_code(unit_code: str) -> Optional[str]:
+def find_kp_by_code(unit_code: str, area: float = 0) -> Optional[str]:
     """
-    Ищет КП по коду лота.
+    Ищет КП по коду лота и площади.
     Возвращает путь к JPG или None.
     """
     normalized = normalize_unit_code(unit_code)
-    all_kp = get_all_kp_files()
     
-    return all_kp.get(normalized)
+    if not os.path.exists(KP_DIR):
+        return None
+    
+    candidates = []
+    for filename in os.listdir(KP_DIR):
+        if not filename.endswith(".jpg"):
+            continue
+        
+        # Паттерн: kp_{площадь}m_{тип}_{код}.jpg
+        match = re.match(r"kp_([\d.]+)m_\w+_(.+)\.jpg", filename)
+        if match:
+            file_area = float(match.group(1))
+            raw_code = match.group(2)
+            if normalize_unit_code(raw_code) == normalized:
+                candidates.append((os.path.join(KP_DIR, filename), file_area))
+    
+    if not candidates:
+        return None
+    
+    # Если передана площадь - ищем точное совпадение
+    if area > 0:
+        for filepath, file_area in candidates:
+            if abs(file_area - area) < 0.5:
+                return filepath
+    
+    # Иначе возвращаем первый найденный
+    return candidates[0][0]
 
 
 def find_kp_by_area(area: float, tolerance: float = 0.5) -> List[str]:

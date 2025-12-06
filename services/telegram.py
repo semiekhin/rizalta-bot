@@ -372,3 +372,34 @@ async def send_media_group(
 # Короткие имена для удобства использования в handlers
 _send_tg = send_message
 _send_tg_inline = send_message_inline
+
+
+async def send_document(chat_id: int, filepath: str, caption: str = "") -> bool:
+    """Отправляет документ (PDF) в чат."""
+    import os
+    
+    if not os.path.exists(filepath):
+        print(f"[TG] Document not found: {filepath}")
+        return False
+    
+    url = f"{TG_API}/sendDocument"
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            with open(filepath, 'rb') as f:
+                data = aiohttp.FormData()
+                data.add_field('chat_id', str(chat_id))
+                data.add_field('document', f, filename=os.path.basename(filepath))
+                if caption:
+                    data.add_field('caption', caption)
+                    data.add_field('parse_mode', 'HTML')
+                
+                async with session.post(url, data=data) as resp:
+                    result = await resp.json()
+                    if not result.get("ok"):
+                        print(f"[TG] sendDocument error: {result}")
+                        return False
+                    return True
+    except Exception as e:
+        print(f"[TG] sendDocument exception: {e}")
+        return False

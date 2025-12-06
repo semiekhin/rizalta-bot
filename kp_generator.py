@@ -420,7 +420,7 @@ def generate_html(units: list, title: str, subtitle: str, output_path: str, extr
         portfolio_html = f'''
     <div class="total-block">
         <div class="total-title">Инвестиционный портфель</div>
-        <div style="color: #a7f3d0; margin-bottom: 20px;">{len(units)} апартаментов</div>
+        <div style="color: #a7f3d0; margin-bottom: 20px;">{len(units)} гостиничных номеров</div>
         <div class="total-price-large">{format_price(portfolio['total_price'])}</div>
 
         <h3 style="color:#fff; margin-bottom:25px; text-transform:uppercase; font-size:1rem; letter-spacing:1px;">Рассрочка 12 месяцев (0%)</h3>
@@ -475,7 +475,7 @@ def generate_html(units: list, title: str, subtitle: str, output_path: str, extr
         portfolio_html = f'''
     <div class="total-block">
         <div class="total-title">Инвестиционный портфель</div>
-        <div style="color: #a7f3d0; margin-bottom: 20px;">{len(units)} апартаментов</div>
+        <div style="color: #a7f3d0; margin-bottom: 20px;">{len(units)} гостиничных номеров</div>
         <div class="total-price-large">{format_price(portfolio['total_price'])}</div>
 
         <h3 style="color:#fff; margin-bottom:25px; text-transform:uppercase; font-size:1rem; letter-spacing:1px;">Варианты входа в сделку</h3>
@@ -688,7 +688,7 @@ def generate_kp_by_codes(codes: list, output_name: str = "kp_custom.html"):
     return generate_html(
         units,
         title=f"КП RIZALTA — {len(units)} лотов",
-        subtitle=f"Подборка • {len(units)} апартаментов",
+        subtitle=f"Подборка • {len(units)} гостиничных номеров",
         output_path=output_name
     )
 

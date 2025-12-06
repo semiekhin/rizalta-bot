@@ -27,7 +27,7 @@ def format_finance_unit_answer(finance: dict, unit_code: str) -> str:
             "Лучше подключить менеджера проекта и посчитать сценарий под ваш бюджет. 💬"
         )
     
-    title = u.get("title") or f"Апартамент {unit_code}"
+    title = u.get("title") or f"Гостиничный номер {unit_code}"
     area = u.get("area_m2")
     price = float(u.get("price_rub", 0) or 0)
     defaults = get_finance_defaults(finance)
@@ -39,7 +39,7 @@ def format_finance_unit_answer(finance: dict, unit_code: str) -> str:
     price_2029 = cap.get("price_2029_rub", 0)
     
     lines = []
-    lines.append(f"📊 Расчёт доходности по апартаменту {unit_code}")
+    lines.append(f"📊 Расчёт доходности по гостиничному номеру {unit_code}")
     lines.append("")
     lines.append("🏡 <b>Объект</b>")
     lines.append(f"• {title}")
@@ -156,7 +156,7 @@ async def handle_free_text(chat_id: int, text: str):
             ]
             await send_message_inline(
                 chat_id,
-                "💳 <b>Рассрочка и ипотека</b>\n\nВыберите апартамент для расчёта:",
+                "💳 <b>Рассрочка и ипотека</b>\n\nВыберите гостиничный номер для расчёта:",
                 inline_buttons
             )
             return
@@ -190,7 +190,7 @@ async def handle_free_text(chat_id: int, text: str):
             ]
             await send_message_inline(
                 chat_id,
-                "📐 <b>Планировки апартаментов</b>\n\nВыберите апартамент:",
+                "📐 <b>Планировки гостиничных номеров</b>\n\nВыберите гостиничный номер:",
                 inline_buttons
             )
             return
@@ -253,6 +253,7 @@ async def handle_free_text(chat_id: int, text: str):
         return
     
     # === ОБЫЧНЫЙ ТЕКСТОВЫЙ ОТВЕТ ===
+    response_text = result.get("response")
     response_text = result.get("response")
     if not response_text:
         # Fallback — обычный запрос к AI

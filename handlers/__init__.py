@@ -76,3 +76,11 @@ from .calc_dynamic import (
     handle_calc_finance_budget_range,
     handle_calc_finance_lot,
 )
+
+# Документы
+from handlers.docs import (
+    handle_documents_menu,
+    handle_send_ddu,
+    handle_send_arenda,
+    handle_send_all_docs,
+)

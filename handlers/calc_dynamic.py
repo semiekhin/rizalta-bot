@@ -36,12 +36,12 @@ async def handle_calc_roi_menu(chat_id: int):
 async def handle_calc_roi_by_area_menu(chat_id: int):
     text = "📐 <b>Выберите диапазон площади:</b>"
     inline_buttons = [
-        [{"text": "22-25 м²", "callback_data": "calc_roi_area_22_25"},
-         {"text": "26-30 м²", "callback_data": "calc_roi_area_26_30"},
-         {"text": "31-35 м²", "callback_data": "calc_roi_area_31_35"}],
-        [{"text": "36-40 м²", "callback_data": "calc_roi_area_36_40"},
-         {"text": "41-50 м²", "callback_data": "calc_roi_area_41_50"},
-         {"text": "51+ м²", "callback_data": "calc_roi_area_51_999"}],
+        [{"text": "22-30 м²", "callback_data": "calc_roi_area_22_30"},
+         {"text": "31-40 м²", "callback_data": "calc_roi_area_31_40"},
+         {"text": "41-50 м²", "callback_data": "calc_roi_area_41_50"}],
+        [{"text": "51-70 м²", "callback_data": "calc_roi_area_51_70"},
+         {"text": "71-90 м²", "callback_data": "calc_roi_area_71_90"},
+         {"text": "90+ м²", "callback_data": "calc_roi_area_90_999"}],
         [{"text": "🔙 Назад", "callback_data": "calc_roi_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -72,8 +72,8 @@ async def handle_calc_roi_area_range(chat_id: int, min_area: float, max_area: fl
     text = f"📊 <b>ROI для {area_text} м²</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
-        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{lot['code']}"}])
+        btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_roi_by_area"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
@@ -89,18 +89,17 @@ async def handle_calc_roi_budget_range(chat_id: int, min_budget: int, max_budget
     text = f"📊 <b>ROI для {budget_text} млн</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
-        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{lot['code']}"}])
+        btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_roi_by_budget"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_calc_roi_lot(chat_id: int, unit_code: str):
+async def handle_calc_roi_lot(chat_id: int, area: float):
     lots = get_lots_by_area_range(0, 9999)
-    normalized = normalize_code(unit_code)
     lot = None
     for l in lots:
-        if normalize_code(l['code']) == normalized:
+        if abs(l['area'] - area) < 0.05:
             lot = l
             break
     if not lot:
@@ -109,8 +108,8 @@ async def handle_calc_roi_lot(chat_id: int, unit_code: str):
     calc = calculate_roi_for_lot(lot['price'], lot['area'], lot['code'])
     text = format_roi_text(calc)
     inline_buttons = [
-        [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{lot['code']}"},
-         {"text": "📋 Получить КП", "callback_data": f"kp_send_{lot['code']}"}],
+        [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"},
+         {"text": "📋 Получить КП", "callback_data": f"kp_send_{int(lot['area']*10)}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
     ]
@@ -166,8 +165,8 @@ async def handle_calc_finance_area_range(chat_id: int, min_area: float, max_area
     text = f"💳 <b>Рассрочка для {area_text} м²</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
-        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{lot['code']}"}])
+        btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_finance_by_area"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
@@ -183,18 +182,17 @@ async def handle_calc_finance_budget_range(chat_id: int, min_budget: int, max_bu
     text = f"💳 <b>Рассрочка для {budget_text} млн</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
-        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{lot['code']}"}])
+        btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_finance_by_budget"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_calc_finance_lot(chat_id: int, unit_code: str):
+async def handle_calc_finance_lot(chat_id: int, area: float):
     lots = get_lots_by_area_range(0, 9999)
-    normalized = normalize_code(unit_code)
     lot = None
     for l in lots:
-        if normalize_code(l['code']) == normalized:
+        if abs(l['area'] - area) < 0.05:
             lot = l
             break
     if not lot:
@@ -203,8 +201,8 @@ async def handle_calc_finance_lot(chat_id: int, unit_code: str):
     calc = calculate_installment_for_lot(lot['price'], lot['area'], lot['code'])
     text = format_installment_text(calc)
     inline_buttons = [
-        [{"text": "📊 Доходность", "callback_data": f"calc_roi_lot_{lot['code']}"},
-         {"text": "📋 Получить КП", "callback_data": f"kp_send_{lot['code']}"}],
+        [{"text": "📊 Доходность", "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"},
+         {"text": "📋 Получить КП", "callback_data": f"kp_send_{int(lot['area']*10)}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_finance_menu"}],
     ]
