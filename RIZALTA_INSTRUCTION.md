@@ -6,7 +6,59 @@
 
 - Telegram: @RealtMeAI_bot
 - Сервер: 72.56.64.91 (Timeweb, Ubuntu 24.04)
-- GitHub: https://github.com/semukhin/RIZALTA_BOT
+- GitHub: https://github.com/semiekhin/rizalta-bot
+
+---
+
+## Ссылки на все файлы (GitHub)
+
+### Документация
+- [RIZALTA_PROJECT.md](https://github.com/semiekhin/rizalta-bot/blob/main/RIZALTA_PROJECT.md) — описание проекта
+- [RIZALTA_CURRENT_TASK.md](https://github.com/semiekhin/rizalta-bot/blob/main/RIZALTA_CURRENT_TASK.md) — текущие задачи
+- [RIZALTA_KNOWLEDGE.md](https://github.com/semiekhin/rizalta-bot/blob/main/RIZALTA_KNOWLEDGE.md) — техническая база
+- [RIZALTA_INSTRUCTION.md](https://github.com/semiekhin/rizalta-bot/blob/main/RIZALTA_INSTRUCTION.md) — эта инструкция
+- [README.md](https://github.com/semiekhin/rizalta-bot/blob/main/README.md)
+
+### Главные файлы
+- [app.py](https://github.com/semiekhin/rizalta-bot/blob/main/app.py) — главный файл, webhook, роутинг
+- [requirements.txt](https://github.com/semiekhin/rizalta-bot/blob/main/requirements.txt) — зависимости
+- [.env.example](https://github.com/semiekhin/rizalta-bot/blob/main/.env.example) — пример конфигурации
+
+### config/
+- [config/settings.py](https://github.com/semiekhin/rizalta-bot/blob/main/config/settings.py) — настройки
+
+### handlers/
+- [handlers/__init__.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/__init__.py) — экспорт обработчиков
+- [handlers/menu.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/menu.py) — главное меню
+- [handlers/ai_chat.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/ai_chat.py) — AI консультант
+- [handlers/booking.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/booking.py) — старая запись
+- [handlers/booking_calendar.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/booking_calendar.py) — календарь бронирования
+- [handlers/calc_dynamic.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/calc_dynamic.py) — расчёты ROI/рассрочки
+- [handlers/docs.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/docs.py) — документы
+- [handlers/kp.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/kp.py) — коммерческие предложения
+- [handlers/media.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/media.py) — медиа-материалы
+- [handlers/units.py](https://github.com/semiekhin/rizalta-bot/blob/main/handlers/units.py) — работа с лотами
+
+### services/
+- [services/telegram.py](https://github.com/semiekhin/rizalta-bot/blob/main/services/telegram.py) — Telegram API
+- [services/ai_chat.py](https://github.com/semiekhin/rizalta-bot/blob/main/services/ai_chat.py) — OpenAI API + Function Calling
+- [services/speech.py](https://github.com/semiekhin/rizalta-bot/blob/main/services/speech.py) — Whisper API (голос)
+- [services/calculations.py](https://github.com/semiekhin/rizalta-bot/blob/main/services/calculations.py) — финансовые расчёты
+- [services/kp_generator.py](https://github.com/semiekhin/rizalta-bot/blob/main/services/kp_generator.py) — генерация КП
+- [services/kp_search.py](https://github.com/semiekhin/rizalta-bot/blob/main/services/kp_search.py) — поиск КП
+
+### models/
+- [models/state.py](https://github.com/semiekhin/rizalta-bot/blob/main/models/state.py) — состояния диалогов
+
+### data/
+- [data/units.json](https://github.com/semiekhin/rizalta-bot/blob/main/data/units.json) — 69 лотов
+- [data/rizalta_finance.json](https://github.com/semiekhin/rizalta-bot/blob/main/data/rizalta_finance.json) — финансовые сценарии
+- [data/rizalta_knowledge_base.txt](https://github.com/semiekhin/rizalta-bot/blob/main/data/rizalta_knowledge_base.txt) — база знаний AI
+
+### Скрипты
+- [backup.sh](https://github.com/semiekhin/rizalta-bot/blob/main/backup.sh) — ежедневный бэкап
+- [backup_weekly.sh](https://github.com/semiekhin/rizalta-bot/blob/main/backup_weekly.sh) — еженедельный бэкап
+- [update_webhook.sh](https://github.com/semiekhin/rizalta-bot/blob/main/update_webhook.sh) — автообновление webhook
 
 ---
 

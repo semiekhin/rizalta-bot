@@ -259,6 +259,107 @@ journalctl -u rizalta-bot -f
 
 ## Ссылки
 
-- GitHub: https://github.com/semukhin/RIZALTA_BOT
+- GitHub: https://github.com/semiekhin/rizalta-bot
 - Сервер: 72.56.64.91
 - Telegram: @RealtMeAI_bot
+
+---
+
+## Ключевые решения и почему
+
+### Cloudflare Tunnel вместо открытого порта
+**Почему:** Скрывает реальный IP сервера, бесплатный SSL, защита от DDoS.
+**Нюанс:** При каждом перезапуске создаётся новый URL, поэтому нужен скрипт update_webhook.sh.
+
+### Hybrid подход (Regex + AI)
+**Почему:** Regex быстрый и бесплатный для очевидных команд ("скинь презу"). AI дорогой, используем только для сложных запросов.
+**Реализация:** Сначала проверяем regex в handlers/ai_chat.py, если не сработал — вызываем OpenAI.
+
+### SQLite вместо PostgreSQL
+**Почему:** Простота, не нужен отдельный сервер, достаточно для текущей нагрузки.
+**Файл:** /opt/bot/properties.db
+
+### Systemd вместо nohup
+**Почему:** Автозапуск при перезагрузке, автоматический рестарт при падении, удобные логи через journalctl.
+
+---
+
+## Частые ошибки и решения
+
+### "Address already in use" (порт 8000 занят)
+```bash
+fuser -k 8000/tcp
+sleep 2
+systemctl start rizalta-bot
+```
+
+### "ProxyError: Unable to connect to proxy"
+Удалить строку HTTPS_PROXY из .env:
+```bash
+sed -i '/HTTPS_PROXY/d' /opt/bot/.env
+systemctl restart rizalta-bot
+```
+
+### Git push rejected (remote contains work)
+```bash
+git push --force origin main
+```
+⚠️ Только если уверен что твоя версия правильная!
+
+### Webhook не обновился после перезапуска
+Проверить URL туннеля и обновить вручную:
+```bash
+journalctl -u cloudflare-rizalta --no-pager | grep trycloudflare
+# Скопировать URL
+source /opt/bot/.env
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=НОВЫЙ_URL/telegram/webhook"
+```
+
+### Бот не отвечает после апгрейда сервера
+После миграции на новую ноду может появиться прокси. Проверить:
+```bash
+grep -i proxy /opt/bot/.env
+# Если есть HTTPS_PROXY — удалить
+```
+
+---
+
+## Полезные команды (часто используемые)
+
+```bash
+# Логи в реальном времени
+journalctl -u rizalta-bot -f
+
+# Последние 50 строк логов
+journalctl -u rizalta-bot --no-pager -n 50
+
+# Статус всех сервисов
+systemctl status rizalta-bot cloudflare-rizalta --no-pager
+
+# Проверка RAM и диска
+free -m && df -h
+
+# Проверка забаненных IP
+fail2ban-client status sshd
+
+# Ручной запуск бэкапа
+/opt/bot/backup.sh
+
+# Проверка webhook
+source /opt/bot/.env
+curl "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
+```
+
+---
+
+## Нюансы для следующего чата
+
+1. **Специалисты в календаре** — сейчас все указывают на один telegram_id (512319063). Нужно получить реальные данные.
+
+2. **OAZIS Bot** — на том же сервере, порт 8001. Не трогать если не просят.
+
+3. **Бэкапы** — приходят на 89181011091s@mail.ru. Ежедневный ~100KB, еженедельный ~80MB.
+
+4. **При изменении app.py** — обязательно перезапустить: `systemctl restart rizalta-bot`
+
+5. **GitHub репо** — semiekhin (с "e"), не semukhin!
