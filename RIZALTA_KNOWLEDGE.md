@@ -1,286 +1,264 @@
-# RIZALTA BOT — Инструкция для Claude
+# RIZALTA BOT — База знаний
 
-> **Этот файл читает Claude в начале нового чата**
+## Быстрый старт
 
----
-
-## 🚀 НАЧАЛО НОВОГО ЧАТА
-
-Пользователь пишет: **"продолжаем RIZALTA BOT"** и прикрепляет ссылки.
-
-**Claude должен:**
-1. Пройти по всем ссылкам через web_fetch
-2. Прочитать документацию и код
-3. Спросить: "Какую задачу делаем сегодня?"
-
----
-
-## 🔗 ССЫЛКИ ДЛЯ НАЧАЛА ЧАТА (копировать целиком)
-
-```
-продолжаем RIZALTA BOT
-
-GitHub репо:
-https://github.com/semiekhin/rizalta-bot
-
-Документация:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/RIZALTA_PROJECT.md
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/RIZALTA_CURRENT_TASK.md
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/RIZALTA_KNOWLEDGE.md
-
-Главный файл:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/app.py
-
-Handlers:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/__init__.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/kp.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/ai_chat.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/menu.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/booking.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/units.py
-
-Services:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/__init__.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/kp_search.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/ai_chat.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/telegram.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/calculations.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/data_loader.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/notifications.py
-
-Config & Models:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/config/settings.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/config/instructions.txt
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/models/state.py
-
-Data:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/data/units.json
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/data/rizalta_finance.json
-```
-
----
-
-## 📝 КОНЕЦ ЧАТА
-
-Пользователь пишет: **"обнови текущую задачу для нового чата"**
-
-**Claude должен:**
-
-1. Обновить `RIZALTA_CURRENT_TASK.md`:
-   - Допиши в "Что сделано в этом чате"
-   - Обнови "Текущий статус"
-   - Обнови "Следующие задачи"
-   - Добавь новые баги если есть
-
-2. Если были изменения в коде — обновить `RIZALTA_PROJECT.md`:
-   - Добавь в "История изменений"
-   - Обнови структуру если изменилась
-
-3. Дать пользователю скачать обновлённые файлы
-
-4. Напомнить команды для git push:
 ```bash
-cd ~/Downloads/rizalta-bot
-git pull
-cp ~/Downloads/RIZALTA_*.md .
-git add .
-git commit -m "Update docs: краткое описание"
-git push
-```
-
----
-
-## 🔑 КЛЮЧЕВАЯ ИНФОРМАЦИЯ
-
-| Параметр | Значение |
-|----------|----------|
-| GitHub | https://github.com/semiekhin/rizalta-bot |
-| Сервер | 72.56.64.91 |
-| Путь на сервере | /opt/bot/ |
-| Telegram бот | @rizaboris_bot |
-| Порт | 8000 |
-| Python | venv в /opt/bot/venv/ |
-
----
-
-## 🛠 ЧАСТЫЕ КОМАНДЫ НА СЕРВЕРЕ
-
-### SSH подключение:
-```bash
+# SSH на сервер
 ssh root@72.56.64.91
-```
 
-### Перезапуск бота:
-```bash
+# Путь к боту
 cd /opt/bot
-pkill -f "python app.py"
-source venv/bin/activate
-nohup python app.py > bot.log 2>&1 &
-```
-
-### Если порт занят:
-```bash
-fuser -k 8000/tcp
-```
-
-### Посмотреть логи:
-```bash
-tail -50 /opt/bot/bot.log
-```
-
-### Деплой новой версии:
-```bash
-# На локальном компе:
-scp file.tar.gz root@72.56.64.91:/tmp/
-
-# На сервере:
-cd /opt/bot
-pkill -f "python app.py"
-tar -xzf /tmp/file.tar.gz --exclude='.env'
-source venv/bin/activate
-nohup python app.py > bot.log 2>&1 &
-```
-
----
-
-## ⚠️ ВАЖНЫЕ НЮАНСЫ
-
-1. **dotenv** — `load_dotenv()` должен быть в начале `config/settings.py`
-
-2. **Архивы не всегда обновляют файлы** — для критичных изменений использовать `cat > file << 'EOF'`
-
-3. **База данных** — `properties.db` содержит 375 гостиничных номеров, 69 из них имеют готовые КП (JPG)
-
-4. **КП файлы** — лежат в `/opt/bot/kp_all/`, паттерн: `kp_{площадь}m_{тип}_{код}.jpg`
-
-5. **.env не в git** — секреты только на сервере
-
----
-
-## 📂 СТРУКТУРА ПРОЕКТА
-
-```
-/opt/bot/
-├── app.py                    # FastAPI + webhook роутер
-├── .env                      # Секреты (НЕ в git!)
-├── properties.db             # SQLite: 375 гостиничных номеров
-│
-├── config/
-│   ├── settings.py           # Настройки + load_dotenv()
-│   └── instructions.txt      # Системный промпт AI
-│
-├── handlers/
-│   ├── kp.py                 # Коммерческие предложения
-│   ├── ai_chat.py            # AI + Function Calling
-│   ├── menu.py               # Меню и навигация
-│   ├── booking.py            # Запись на показ
-│   └── units.py              # ROI, рассрочка
-│
-├── services/
-│   ├── kp_search.py          # Поиск JPG файлов
-│   ├── ai_chat.py            # OpenAI клиент
-│   ├── telegram.py           # Telegram API
-│   ├── calculations.py       # Финансы (1195 строк)
-│   ├── data_loader.py        # Загрузка JSON
-│   └── notifications.py      # Email
-│
-├── models/
-│   └── state.py              # Состояния диалогов
-│
-├── data/                     # JSON конфиги
-├── kp_all/                   # 69 JPG (не в git)
-└── docs/                     # Документы (не в git)
-```
-
----
-
-## 🆕 Обновления (05.12.2024)
-
-### Ключевой принцип: Площадь = ключ
-
-**Площадь уникальна** (69 уникальных значений) — используется для связи:
-- КП (JPG файлы) ↔ Расчёты ↔ AI данные
-
-**Callback форматы:**
-- `kp_send_247` — КП для 24.7 м²
-- `calc_roi_lot_247` — ROI для 24.7 м²
-- `calc_finance_lot_247` — рассрочка для 24.7 м²
-
-**НЕ использовать код лота в callback'ах!**
-
-### Данные
-
-| Файл | Записей | Назначение |
-|------|---------|------------|
-| `kp_all/*.jpg` | 69 | Источник истины |
-| `units.json` | 69 | Для AI |
-| `rizalta_finance.json` | 69 | Финансы + AI |
-
-**Минимальный лот:** В215 — 22.0 м² — 13 695 000 ₽
-
-### Запуск (uvicorn)
-```bash
-# Перезапуск
-pkill -9 -f "uvicorn.*8000"
-sleep 2
-cd /opt/bot
-nohup /opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > /var/log/rizalta-bot.log 2>&1 &
 
 # Логи
-tail -50 /var/log/rizalta-bot.log
+journalctl -u rizalta-bot -f
+
+# Перезапуск
+systemctl restart rizalta-bot
 ```
-
-### Диапазоны площадей
-
-КП и Расчёты: 22-30, 31-40, 41-50, 51-70, 71-90, 90+
-
-### Договоры
-
-- `docs/ddu.pdf` — ДДУ
-- `docs/arenda.pdf` — Аренда
-- Обработчик: `handlers/docs.py`
 
 ---
 
-## 🔗 ПОЛНЫЙ СПИСОК ССЫЛОК ДЛЯ НОВОГО ЧАТА (копировать целиком)
+## Архитектура
+
 ```
-продолжаем RIZALTA BOT
-
-GitHub репо:
-https://github.com/semiekhin/rizalta-bot
-
-Документация:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/RIZALTA_PROJECT.md
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/RIZALTA_CURRENT_TASK.md
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/RIZALTA_KNOWLEDGE.md
-
-Главный файл:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/app.py
-
-Handlers:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/__init__.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/kp.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/calc_dynamic.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/docs.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/ai_chat.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/menu.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/booking.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/handlers/units.py
-
-Services:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/__init__.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/kp_search.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/ai_chat.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/telegram.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/calculations.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/data_loader.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/services/notifications.py
-
-Config & Models:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/config/settings.py
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/models/state.py
-
-Data:
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/data/units.json
-https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/data/rizalta_finance.json
+Telegram → Cloudflare Tunnel → localhost:8000 → FastAPI (app.py)
+                                                      ↓
+                                              handlers/*.py
+                                                      ↓
+                                              services/*.py
 ```
+
+---
+
+## Ключевые файлы
+
+### app.py — Главный файл
+
+```python
+# Webhook endpoint
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    ...
+
+# Роутинг callback'ов
+async def process_callback(callback: Dict):
+    data = callback.get("data", "")
+    
+    if data == "kp_menu": ...
+    elif data.startswith("book_spec_"): ...
+    elif data.startswith("book_confirm_"): ...
+    ...
+
+# Обработка сообщений
+async def process_message(chat_id, text, user_info):
+    # 1. Кнопки меню (точное совпадение)
+    # 2. Regex паттерны
+    # 3. AI консультант
+```
+
+### handlers/ai_chat.py — AI консультант
+
+```python
+# Function Calling
+TOOLS = [
+    "get_finance_info",     # Финансы по лоту
+    "get_unit_info",        # Информация о лоте
+    "calculate_roi",        # Расчёт ROI
+    "search_units",         # Поиск лотов
+    "get_documents",        # Документы
+    "send_presentation",    # Презентация
+    "open_fixation",        # Фиксация клиента
+    "open_shahmatka",       # Шахматка
+    "send_documents",       # Отправка документов
+    "show_media",           # Медиа-материалы
+]
+
+# Обработка
+async def handle_free_text(chat_id, text):
+    response = await get_ai_response(text)
+    if response.tool_calls:
+        await handle_tool_call(...)
+    else:
+        await send_message(chat_id, response.content)
+```
+
+### handlers/booking_calendar.py — Календарь
+
+```python
+SPECIALISTS = [
+    {"id": 1, "name": "Специалист 1", "telegram_id": 512319063},
+    {"id": 2, "name": "Специалист 2", "telegram_id": 512319063},
+    {"id": 3, "name": "Специалист 3", "telegram_id": 512319063},
+]
+
+# Поток:
+# 1. handle_booking_start() → выбор специалиста
+# 2. handle_select_specialist() → выбор даты
+# 3. handle_select_date() → выбор времени
+# 4. handle_select_time() → заявка отправлена
+# 5. handle_confirm_booking() → подтверждение
+# 6. handle_decline_booking() → отклонение
+```
+
+### handlers/kp.py — Коммерческие предложения
+
+```python
+# Поиск по площади
+async def handle_kp_area_range(chat_id, min_area, max_area):
+    lots = get_lots_by_area_range(min_area, max_area)
+    # Показывает 8 кнопок + "Показать все"
+
+# Показать все
+async def handle_kp_show_all_area(chat_id, min_area, max_area):
+    # Показывает ВСЕ лоты кнопками
+```
+
+### services/speech.py — Голосовое управление
+
+```python
+from openai import OpenAI
+
+def transcribe_voice(file_path: str) -> str:
+    with open(file_path, "rb") as audio_file:
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            language="ru"
+        )
+    return transcript.text
+```
+
+### services/telegram.py — Telegram API
+
+```python
+async def send_message(chat_id, text, with_keyboard=False, buttons=None)
+async def send_message_inline(chat_id, text, inline_buttons=None)
+async def send_document(chat_id, filepath, caption=None)
+async def send_photo(chat_id, filepath, caption=None)
+async def send_media_group(chat_id, filepaths, caption=None)
+async def download_file(file_id, save_path) -> Optional[str]
+async def answer_callback_query(callback_id, text=None)
+```
+
+---
+
+## База данных
+
+### properties.db
+
+```sql
+-- Таблица лотов
+CREATE TABLE units (
+    id INTEGER PRIMARY KEY,
+    code TEXT,           -- A101, B202
+    building INTEGER,    -- 1, 2, 3
+    floor INTEGER,
+    area_m2 REAL,
+    price_rub INTEGER,
+    status TEXT          -- available, sold, reserved
+);
+
+-- Таблица бронирований
+CREATE TABLE bookings (
+    id INTEGER PRIMARY KEY,
+    chat_id INTEGER,
+    username TEXT,
+    specialist_id INTEGER,
+    specialist_name TEXT,
+    booking_date TEXT,   -- 2025-12-09
+    booking_time TEXT,   -- 14:00
+    status TEXT,         -- pending, confirmed, declined
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## Конфигурация (.env)
+
+```bash
+TELEGRAM_BOT_TOKEN=8343378629:AAHHacgXmIVhShht...
+OPENAI_API_KEY=sk-proj-...
+
+MANAGER_EMAIL=89181011091s@mail.ru
+BOT_EMAIL=rizalta-bot@mail.ru
+SMTP_HOST=smtp.mail.ru
+SMTP_PORT=587
+SMTP_USER=rizalta-bot@mail.ru
+SMTP_PASSWORD=...
+```
+
+---
+
+## Systemd сервисы
+
+```bash
+# Бот
+/etc/systemd/system/rizalta-bot.service
+ExecStart=/opt/bot/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
+
+# Туннель + автообновление webhook
+/etc/systemd/system/cloudflare-rizalta.service
+ExecStart=/usr/bin/cloudflared tunnel --url http://127.0.0.1:8000
+ExecStartPost=/opt/bot/update_webhook.sh
+```
+
+---
+
+## Автобэкапы
+
+```bash
+# Ежедневный (3:00 UTC)
+/opt/bot/backup.sh
+# Содержимое: .env, properties.db, data/
+
+# Еженедельный (Вс 4:00 UTC)
+/opt/bot/backup_weekly.sh
+# Содержимое: kp_all/, media/
+
+# Email: 89181011091s@mail.ru
+```
+
+---
+
+## Частые операции
+
+### Добавить новую кнопку
+
+1. В `app.py` → `process_callback()` добавить обработчик
+2. В `handlers/*.py` создать функцию
+3. В `handlers/__init__.py` добавить импорт
+
+### Добавить AI-функцию
+
+1. В `services/ai_chat.py` → TOOLS добавить описание
+2. В `handlers/ai_chat.py` добавить обработку tool_call
+
+### Изменить специалистов
+
+```python
+# handlers/booking_calendar.py
+SPECIALISTS = [
+    {"id": 1, "name": "Иван Петров", "telegram_id": 123456789, "email": "..."},
+    ...
+]
+```
+
+### Деплой изменений
+
+```bash
+# Локально
+scp файл.py root@72.56.64.91:/opt/bot/handlers/
+
+# На сервере
+systemctl restart rizalta-bot
+journalctl -u rizalta-bot -f
+```
+
+---
+
+## Ссылки
+
+- GitHub: https://github.com/semukhin/RIZALTA_BOT
+- Сервер: 72.56.64.91
+- Telegram: @RealtMeAI_bot
