@@ -451,3 +451,124 @@ pkill -9 -f uvicorn; sleep 2; systemctl restart rizalta-bot
 8. **RSS без ключей** — РИА, Коммерсант, Lenta, Ведомости, ТАСС работают бесплатно
 
 9. **AI-агент (Контент-завод)** — следующая задача: парсинг → GPT рерайт → DALL-E → автопостинг
+
+---
+
+## Сессия 09.12.2025 — Dev-окружение и синхронизация данных
+
+### Архитектура данных (ВАЖНО!)
+
+**Проблема была:**
+```
+properties.db (375 лотов)     rizalta_finance.json (3 лота)     units.json (829 строк)
+      ↓                              ↓                               ↓
+   Старые цены                  Только демо                    Не используется
+```
+
+**Решение — единый источник:**
+```
+ri.rclick.ru (сайт застройщика)
+         ↓ parser_rclick.py
+properties.db (369 квартир, 70 уникальных площадей)
+         ↓ units_db.py
+Расчёты, КП, Шахматка
+```
+
+### Парсер ri.rclick.ru
+```python
+# Endpoint
+POST https://ri.rclick.ru/catalog/more/
+data: {"id": 340, "page": N}
+
+# Структура ответа: 8 карточек на страницу, 47 страниц = 369 квартир
+# Парсит: code, building, floor, rooms, area_m2, price_rub, layout_url, completion
+
+# Запуск
+cd /opt/bot-dev && python3 services/parser_rclick.py
+```
+
+### Сервис units_db.py
+```python
+from services.units_db import (
+    get_unique_lots,      # 70 уникальных типов по площади
+    get_all_lots,         # Все 369 квартир
+    get_lots_by_area,     # Фильтр по площади
+    get_lots_by_budget,   # Фильтр по бюджету
+    get_lot_by_area,      # Поиск по площади
+    get_lot_by_code,      # Поиск по коду (с нормализацией кириллицы)
+)
+```
+
+### Нормализация кодов лотов
+```python
+# Кириллица → латиница
+table = str.maketrans({
+    "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M",
+    "Н": "H", "О": "O", "Р": "P", "С": "S", "Т": "T", "У": "Y", "Х": "X"
+})
+code_latin = code.translate(table)
+```
+
+### PDF генератор КП
+```bash
+# Установка зависимостей
+apt install fonts-montserrat wkhtmltopdf -y
+
+# Генерация
+cd /opt/bot-dev && python3 services/kp_pdf_generator.py --area 22.0
+cd /opt/bot-dev && python3 services/kp_pdf_generator.py --code В227
+
+# Результат: /tmp/KP_В227_12m_24m.pdf
+```
+
+### Dev-бот
+```bash
+# Токен
+8454364431:AAESkhkvWlo2Y8vv4iq6n1HePZ40bv8YlbY
+
+# Username
+@rizaltatestdevop_bot
+
+# Systemd
+systemctl status rizalta-bot-dev
+journalctl -u rizalta-bot-dev -f
+
+# Режим: polling (не webhook)
+```
+
+### Корпуса в БД
+```
+building=1 → Корпус 1 "Family" (коды В*) → block_section=2
+building=2 → Корпус 2 "Business" (коды А*) → block_section=1
+```
+
+### Ключевые команды сессии
+```bash
+# Создать dev-окружение
+bash /opt/scripts/setup_dev_bot.sh
+
+# Проверить данные
+sqlite3 /opt/bot-dev/properties.db "SELECT COUNT(*), MIN(price_rub), MAX(price_rub) FROM units"
+
+# Тест парсера
+cd /opt/bot-dev && python3 -c "from services.units_db import get_stats; print(get_stats())"
+
+# Скачать PDF на Mac
+scp root@72.56.64.91:/tmp/KP_В227_12m_24m.pdf ~/Downloads/
+```
+
+### Нюансы для следующего чата
+
+10. **Dev-бот** — @rizaltatestdevop_bot, polling mode, /opt/bot-dev/
+
+11. **Парсер** — parser_rclick.py обновляет properties.db из ri.rclick.ru
+
+12. **PDF генератор** — базовая версия работает, нужен дизайн как в оригинале (логотип, шрифты)
+
+13. **Ресурсы для PDF** — есть в /home/claude/kp_files/:
+    - montserrat_*_base64.txt (шрифты)
+    - logo_mono_trim_base64.txt (логотип)
+    - KP_B415_12m_24m.pdf (образец дизайна)
+
+14. **Prod не трогали** — все изменения только в /opt/bot-dev/
+

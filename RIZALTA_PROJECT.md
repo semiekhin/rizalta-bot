@@ -205,3 +205,45 @@ free -m && df -h
 - AI консультант с базой знаний
 - 69 коммерческих предложений
 - Главное меню и навигация
+
+### v1.7.0-dev (09.12.2025) — Dev-окружение
+- Dev-бот @rizaltatestdevop_bot (polling mode)
+- Парсер ri.rclick.ru: 369 квартир с актуальными ценами
+- Единая архитектура данных: ri.rclick.ru → properties.db
+- Сервис units_db.py для работы с БД
+- PDF генератор КП (базовая версия)
+- Системный шрифт Montserrat + wkhtmltopdf
+
+## Dev-окружение
+```
+/opt/bot-dev/                 # Dev-версия бота
+├── services/
+│   ├── parser_rclick.py      # Парсер сайта застройщика
+│   ├── units_db.py           # Сервис работы с БД
+│   └── kp_pdf_generator.py   # PDF генератор КП
+├── properties.db             # 369 актуальных квартир
+└── run_polling.py            # Запуск в polling mode
+
+/opt/scripts/
+├── setup_dev_bot.sh          # Создание dev-окружения
+└── analyze_data.sh           # Анализ данных
+```
+
+### Команды dev-бота
+```bash
+# Статус
+systemctl status rizalta-bot-dev
+
+# Логи
+journalctl -u rizalta-bot-dev -f
+
+# Перезапуск
+systemctl restart rizalta-bot-dev
+
+# Парсинг сайта
+cd /opt/bot-dev && python3 services/parser_rclick.py
+
+# Генерация PDF
+cd /opt/bot-dev && python3 services/kp_pdf_generator.py --area 22.0
+```
+
