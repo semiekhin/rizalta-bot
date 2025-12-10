@@ -32,3 +32,6 @@ docs/
 # Temp
 *.tmp
 .DS_Store
+node_modules/
+properties.db
+*.db
