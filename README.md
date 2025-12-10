@@ -175,3 +175,16 @@ BOT_BASE_DIR=/opt/bot
 
 *Создано: 28 ноября 2025*
 *Версия: modular-1.0*
+
+## После клонирования
+```bash
+# 1. Установить зависимости
+pip install -r requirements.txt
+npm install
+
+# 2. Создать базу данных
+python3 services/parser_rclick.py
+
+# 3. Настроить .env (скопировать из .env.example)
+cp .env.example .env
+```
