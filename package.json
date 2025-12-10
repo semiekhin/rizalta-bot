@@ -1,0 +1,26 @@
+{
+  "name": "bot-dev",
+  "version": "1.0.0",
+  "description": "## Структура проекта",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/semiekhin/rizalta-bot-dev.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/semiekhin/rizalta-bot-dev/issues"
+  },
+  "homepage": "https://github.com/semiekhin/rizalta-bot-dev#readme",
+  "dependencies": {
+    "docx": "^9.5.1"
+  }
+}

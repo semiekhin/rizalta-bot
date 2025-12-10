@@ -1,104 +1,54 @@
 """
 Обработчик коммерческих предложений.
+Данные из БД через services/units_db.py
+PDF генерация через services/kp_pdf_generator.py
 """
 
 from typing import List, Dict, Any
-import sqlite3
 import os
 import re
 
-from services.telegram import send_message, send_message_inline, send_photo, send_media_group
-from services.kp_search import (
-    find_kp_by_code,
-    get_all_kp_files,
-    get_kp_info_from_filename,
-    KP_DIR,
+from services.telegram import send_message, send_message_inline, send_photo, send_document
+from services.units_db import (
+    get_unique_lots, get_lots_by_area, get_lots_by_budget,
+    get_lot_by_area, get_lot_by_code, format_price_short
 )
-from models.state import set_dialog_state, clear_dialog_state, DialogStates
+from services.kp_pdf_generator import generate_kp_pdf
+from models.state import clear_dialog_state
 from config.settings import BASE_DIR
 
 
-DB_PATH = os.path.join(BASE_DIR, "properties.db")
+# Путь к папке с готовыми КП (JPG) - для fallback
+KP_DIR = os.path.join(BASE_DIR, "kp_all")
 
 # Сколько кнопок показывать по умолчанию
 DEFAULT_DISPLAY_LIMIT = 8
 
 
 def find_kp_by_area(area: float) -> str:
-    """Ищет КП по площади."""
-    kp_dir = os.path.join(BASE_DIR, "kp_all")
-    if not os.path.exists(kp_dir):
+    """Ищет готовый JPG файл КП по площади (fallback)."""
+    if not os.path.exists(KP_DIR):
         return None
     
-    for f in os.listdir(kp_dir):
+    for f in os.listdir(KP_DIR):
         if not f.endswith(".jpg"):
             continue
         match = re.match(r"kp_([\d.]+)m_", f)
         if match:
             file_area = float(match.group(1))
             if abs(file_area - area) < 0.05:
-                return os.path.join(kp_dir, f)
+                return os.path.join(KP_DIR, f)
     return None
 
 
-def get_kp_from_files() -> List[Dict[str, Any]]:
-    """Получает список КП из файлов, добавляет цены из базы."""
-    kp_list = []
-    kp_dir = os.path.join(BASE_DIR, "kp_all")
-    
-    if not os.path.exists(kp_dir):
-        return []
-    
-    for f in os.listdir(kp_dir):
-        if not f.endswith(".jpg"):
-            continue
-        match = re.match(r"kp_([\d.]+)m_\w+_(.+)\.jpg", f)
-        if match:
-            area = float(match.group(1))
-            code = match.group(2)
-            kp_list.append({
-                "code": code, 
-                "area": area, 
-                "filepath": os.path.join(kp_dir, f)
-            })
-    
-    # Добавляем цены из базы
-    if os.path.exists(DB_PATH):
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        for kp in kp_list:
-            cur.execute("""
-                SELECT price_rub, building FROM units 
-                WHERE code = ? AND ABS(area_m2 - ?) < 0.5
-            """, (kp["code"], kp["area"]))
-            row = cur.fetchone()
-            if row:
-                kp["price"] = row[0]
-                kp["building"] = row[1]
-            else:
-                kp["price"] = 0
-                kp["building"] = 0
-        conn.close()
-    
-    return [k for k in kp_list if k["price"] > 0]
-
-
 def get_lots_by_area_range(min_area: float, max_area: float) -> List[Dict[str, Any]]:
-    """Получает лоты по диапазону площади — ТОЛЬКО с КП."""
-    all_kp = get_kp_from_files()
-    return sorted(
-        [k for k in all_kp if min_area <= k["area"] <= max_area],
-        key=lambda x: (x["area"], x["price"])
-    )
+    """Получает лоты по диапазону площади из БД."""
+    return get_lots_by_area(min_area, max_area)
 
 
 def get_lots_by_budget_range(min_budget: int, max_budget: int) -> List[Dict[str, Any]]:
-    """Получает лоты по диапазону бюджета — ТОЛЬКО с КП."""
-    all_kp = get_kp_from_files()
-    return sorted(
-        [k for k in all_kp if min_budget <= k["price"] <= max_budget],
-        key=lambda x: (x["price"], x["area"])
-    )
+    """Получает лоты по диапазону бюджета из БД."""
+    return get_lots_by_budget(min_budget, max_budget)
 
 
 def normalize_code(code: str) -> str:
@@ -108,11 +58,6 @@ def normalize_code(code: str) -> str:
     code = str(code).strip().upper()
     table = str.maketrans({"А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "S", "Т": "T"})
     return code.translate(table)
-
-
-def format_price_short(price: int) -> str:
-    """Форматирует цену кратко: 15.2 млн"""
-    return f"{price / 1_000_000:.1f} млн"
 
 
 async def handle_kp_menu(chat_id: int):
@@ -183,7 +128,6 @@ async def handle_kp_area_range(chat_id: int, min_area: float, max_area: float):
         )
         return
     
-    # Показываем только первые 8
     display_lots = lots[:DEFAULT_DISPLAY_LIMIT]
     
     area_text = f"{int(min_area)}-{int(max_area)}" if max_area < 900 else f"{int(min_area)}+"
@@ -193,9 +137,9 @@ async def handle_kp_area_range(chat_id: int, min_area: float, max_area: float):
     
     for lot in display_lots:
         btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_send_{int(lot['area']*10)}"}])
+        # Изменено: передаём код лота для точного поиска
+        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_select_{int(lot['area']*10)}"}])
     
-    # Если есть ещё лоты — показываем кнопку "Показать все"
     if len(lots) > DEFAULT_DISPLAY_LIMIT:
         inline_buttons.append([{
             "text": f"📋 Показать все ({len(lots)} шт.)", 
@@ -219,7 +163,6 @@ async def handle_kp_budget_range(chat_id: int, min_budget: int, max_budget: int)
         )
         return
     
-    # Показываем только первые 8
     display_lots = lots[:DEFAULT_DISPLAY_LIMIT]
     
     budget_text = f"{min_budget}-{max_budget}" if max_budget < 900 else f"{min_budget}+"
@@ -229,9 +172,9 @@ async def handle_kp_budget_range(chat_id: int, min_budget: int, max_budget: int)
     
     for lot in display_lots:
         btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_send_{int(lot['area']*10)}"}])
+        # Изменено: передаём код лота для точного поиска
+        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_select_{int(lot['area']*10)}"}])
     
-    # Если есть ещё лоты — показываем кнопку "Показать все"
     if len(lots) > DEFAULT_DISPLAY_LIMIT:
         inline_buttons.append([{
             "text": f"📋 Показать все ({len(lots)} шт.)", 
@@ -256,10 +199,9 @@ async def handle_kp_show_all_area(chat_id: int, min_area: float, max_area: float
     
     inline_buttons = []
     
-    # Показываем ВСЕ лоты
     for lot in lots:
         btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_send_{int(lot['area']*10)}"}])
+        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_select_{int(lot['area']*10)}"}])
     
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"kp_area_{int(min_area)}_{int(max_area)}"}])
     
@@ -279,41 +221,141 @@ async def handle_kp_show_all_budget(chat_id: int, min_budget: int, max_budget: i
     
     inline_buttons = []
     
-    # Показываем ВСЕ лоты
     for lot in lots:
         btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
-        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_send_{int(lot['area']*10)}"}])
+        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_select_{int(lot['area']*10)}"}])
     
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"kp_budget_{min_budget}_{max_budget}"}])
     
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_kp_send_one(chat_id: int, unit_code: str = "", area: float = 0):
-    """Отправляет одно КП по площади."""
-    filepath = find_kp_by_area(area) if area > 0 else None
+async def handle_kp_select_lot(chat_id: int, area_x10: int):
+    """
+    После выбора лота — спрашиваем какую рассрочку указать.
+    area_x10: площадь * 10 (например 287 для 28.7 м²)
+    """
+    area = area_x10 / 10.0
+    lots = get_lots_by_area_range(0, 9999)
+    lot = None
+    for l in lots:
+        if abs(l['area'] - area) < 0.05:
+            lot = l
+            break
     
-    if filepath:
-        info = get_kp_info_from_filename(filepath)
-        caption = f"📋 КП: {info['code']} ({info['area']} м²)"
-        await send_photo(chat_id, filepath, caption)
+    if not lot:
+        await send_message(chat_id, f"❌ Лот с площадью {area} м² не найден.")
+        return
+    
+    text = (
+        f"📋 <b>Лот {lot['code']}</b>\n"
+        f"📐 {lot['area']} м² • 💰 {format_price_short(lot['price'])}\n\n"
+        f"<b>Какую рассрочку указать в КП?</b>"
+    )
+    
+    inline_buttons = [
+        [
+            {"text": "📄 12 месяцев", "callback_data": f"kp_gen_{area_x10}_12"},
+            {"text": "📄 12 и 24 месяца", "callback_data": f"kp_gen_{area_x10}_24"},
+        ],
+        [{"text": "🔙 Назад", "callback_data": "kp_menu"}],
+    ]
+    
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_kp_generate_pdf(chat_id: int, area_x10: int, include_24m: bool):
+    """
+    Генерирует и отправляет PDF КП.
+    area_x10: площадь * 10 (например 287 для 28.7 м²)
+    """
+    area = area_x10 / 10.0
+    lots = get_lots_by_area_range(0, 9999)
+    lot = None
+    for l in lots:
+        if abs(l['area'] - area) < 0.05:
+            lot = l
+            break
+    
+    if not lot:
+        await send_message(chat_id, f"❌ Лот с площадью {area} м² не найден.")
+        return
+    
+    # Отправляем "печатаем..."
+    await send_message(chat_id, "⏳ Генерирую PDF...")
+    
+    # Генерируем PDF
+    pdf_path = generate_kp_pdf(area=lot["area"], include_24m=include_24m)
+    
+    if pdf_path and os.path.exists(pdf_path):
+        # Отправляем PDF
+        mode_text = "12 и 24 месяца" if include_24m else "12 месяцев"
+        caption = f"📋 КП: {lot['code']} ({lot['area']} м²)\n💰 {format_price_short(lot['price'])}\n📅 Рассрочка: {mode_text}"
         
+        await send_document(chat_id, pdf_path, caption)
+        
+        # Удаляем временный файл
+        try:
+            os.remove(pdf_path)
+        except:
+            pass
+        
+        # Предлагаем дальнейшие действия
         inline_buttons = [
+            [
+                {"text": "📊 Доходность", "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"},
+                {"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"},
+            ],
             [
                 {"text": "📋 Ещё КП", "callback_data": "kp_menu"},
                 {"text": "🔥 Записаться на показ", "callback_data": "online_show"}
             ]
         ]
-        await send_message_inline(chat_id, "Хотите посмотреть другие варианты?", inline_buttons)
+        await send_message_inline(chat_id, "Выберите действие:", inline_buttons)
     else:
-        await send_message(chat_id, f"❌ КП для лота {unit_code} не найдено.")
+        # Fallback на JPG если есть
+        jpg_path = find_kp_by_area(lot['area'])
+        
+        if jpg_path and os.path.exists(jpg_path):
+            caption = f"📋 КП: {lot['code']} ({lot['area']} м²)\n💰 {format_price_short(lot['price'])}"
+            await send_photo(chat_id, jpg_path, caption)
+            
+            inline_buttons = [
+                [
+                    {"text": "📊 Доходность", "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"},
+                    {"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"},
+                ],
+                [{"text": "📋 Ещё КП", "callback_data": "kp_menu"}]
+            ]
+            await send_message_inline(chat_id, "Выберите действие:", inline_buttons)
+        else:
+            await send_message(chat_id, "❌ Не удалось сгенерировать PDF. Попробуйте позже.")
+
+
+# === LEGACY: для обратной совместимости ===
+
+async def handle_kp_send_one(chat_id: int, unit_code: str = "", area: float = 0):
+    """
+    Отправляет одно КП по площади (legacy).
+    Теперь перенаправляет на выбор рассрочки.
+    """
+    lot = get_lot_by_area(area) if area > 0 else get_lot_by_code(unit_code)
+    
+    if not lot:
+        await send_message(chat_id, f"❌ Лот не найден.")
+        return
+    
+    # Перенаправляем на выбор рассрочки
+    await handle_kp_select_lot(chat_id, int(lot['area']*10))
 
 
 async def handle_kp_request(chat_id: int, text: str):
     """Обрабатывает текстовый запрос на КП (для AI)."""
     code_match = re.search(r"[аaвb]\d{3,4}", text, re.IGNORECASE)
     if code_match:
-        await handle_kp_send_one(chat_id, code_match.group())
-        return
+        lot = get_lot_by_code(code_match.group())
+        if lot:
+            await handle_kp_select_lot(chat_id, int(lot['area']*10))
+            return
     
     await handle_kp_menu(chat_id)

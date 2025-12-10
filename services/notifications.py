@@ -1,5 +1,5 @@
 """
-Уведомления менеджерам: Telegram + Email.
+Уведомления менеджерам: Telegram + Email + Группа.
 """
 
 import os
@@ -23,12 +23,7 @@ async def notify_managers_telegram(
     message: str,
     manager_ids: Optional[List[int]] = None,
 ) -> int:
-    """
-    Отправляет уведомление менеджерам в Telegram.
-    
-    Returns:
-        Количество успешных отправок
-    """
+    """Отправляет уведомление менеджерам в Telegram."""
     if manager_ids is None:
         manager_ids = get_manager_ids()
     
@@ -49,19 +44,34 @@ async def notify_managers_telegram(
     return success_count
 
 
-async def notify_managers_email(subject: str, body: str) -> bool:
-    """
-    Отправляет email уведомление.
-    Поддерживает несколько адресов через запятую.
+async def notify_shows_group(message: str) -> bool:
+    """Отправляет уведомление в группу показов."""
+    try:
+        from config.settings import SHOWS_GROUP_ID
+    except ImportError:
+        SHOWS_GROUP_ID = None
     
-    Returns:
-        True если хотя бы одна отправка успешна
-    """
+    if not SHOWS_GROUP_ID:
+        print("[NOTIFY] Shows group ID not configured")
+        return False
+    
+    try:
+        result = await send_message(SHOWS_GROUP_ID, message)
+        if result:
+            print(f"[NOTIFY] ✅ Sent to shows group {SHOWS_GROUP_ID}")
+            return True
+    except Exception as e:
+        print(f"[NOTIFY] ❌ Error sending to group: {e}")
+    
+    return False
+
+
+async def notify_managers_email(subject: str, body: str) -> bool:
+    """Отправляет email уведомление."""
     if not SMTP_USER or not SMTP_PASSWORD or not MANAGER_EMAIL:
         print(f"[EMAIL] SMTP not configured, email not sent: {subject}")
         return False
     
-    # Разбиваем адреса
     email_list = [email.strip() for email in MANAGER_EMAIL.split(",") if email.strip()]
     
     if not email_list:
@@ -78,7 +88,6 @@ async def notify_managers_email(subject: str, body: str) -> bool:
         from email.mime.multipart import MIMEMultipart
         
         def _send_to_one(email_to: str) -> bool:
-            """Отправляет письмо одному получателю."""
             msg = MIMEMultipart()
             msg['From'] = BOT_EMAIL
             msg['To'] = email_to
@@ -121,10 +130,7 @@ async def send_booking_notification(
     pay_format: Optional[str] = None,
     time_pref: Optional[str] = None,
 ) -> None:
-    """
-    Отправляет уведомление о новой заявке на онлайн-показ.
-    """
-    # Формируем сообщение для Telegram
+    """Отправляет уведомление о новой заявке на онлайн-показ."""
     tg_lines = []
     tg_lines.append("🆕 <b>Новая заявка на онлайн-показ RIZALTA</b>\n")
     tg_lines.append(f"👤 Chat ID: {chat_id}")
@@ -140,10 +146,15 @@ async def send_booking_notification(
     if time_pref:
         tg_lines.append(f"⏰ Удобное время: {time_pref}")
     
-    # Отправляем в Telegram
-    await notify_managers_telegram("\n".join(tg_lines))
+    tg_message = "\n".join(tg_lines)
     
-    # Формируем email
+    # Отправляем в Telegram менеджерам
+    await notify_managers_telegram(tg_message)
+    
+    # Отправляем в группу показов
+    await notify_shows_group(tg_message)
+    
+    # Формируем и отправляем email
     email_lines = []
     email_lines.append("Новая заявка на онлайн-показ RIZALTA Resort Belokurikha")
     email_lines.append("")

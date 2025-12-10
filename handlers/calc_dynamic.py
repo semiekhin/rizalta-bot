@@ -13,6 +13,8 @@ from handlers.kp import (
     normalize_code, format_price_short,
 )
 
+DEFAULT_DISPLAY_LIMIT = 8
+
 
 async def handle_calculations_menu_new(chat_id: int):
     text = "💰 <b>Расчёты</b>\n\nВыберите тип расчёта:"
@@ -67,14 +69,31 @@ async def handle_calc_roi_area_range(chat_id: int, min_area: float, max_area: fl
         await send_message_inline(chat_id, f"❌ Лоты на {min_area}-{max_area} м² не найдены.",
                                   [[{"text": "🔙 Назад", "callback_data": "calc_roi_by_area"}]])
         return
-    display_lots = lots[:8]
+    display_lots = lots[:DEFAULT_DISPLAY_LIMIT]
     area_text = f"{int(min_area)}-{int(max_area)}" if max_area < 900 else f"{int(min_area)}+"
     text = f"📊 <b>ROI для {area_text} м²</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
         btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
         inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"}])
+    if len(lots) > DEFAULT_DISPLAY_LIMIT:
+        inline_buttons.append([{"text": f"📋 Показать все ({len(lots)} шт.)", "callback_data": f"calc_roi_show_area_{int(min_area)}_{int(max_area)}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_roi_by_area"}])
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_calc_roi_show_all_area(chat_id: int, min_area: float, max_area: float):
+    lots = get_lots_by_area_range(min_area, max_area)
+    if not lots:
+        await send_message(chat_id, "❌ Лоты не найдены.")
+        return
+    area_text = f"{int(min_area)}-{int(max_area)}" if max_area < 900 else f"{int(min_area)}+"
+    text = f"📊 <b>Все лоты ROI на {area_text} м²</b> ({len(lots)} шт.):"
+    inline_buttons = []
+    for lot in lots:
+        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"}])
+    inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"calc_roi_area_{int(min_area)}_{int(max_area)}"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
 
@@ -84,14 +103,31 @@ async def handle_calc_roi_budget_range(chat_id: int, min_budget: int, max_budget
         await send_message_inline(chat_id, f"❌ Лоты на {min_budget}-{max_budget} млн не найдены.",
                                   [[{"text": "🔙 Назад", "callback_data": "calc_roi_by_budget"}]])
         return
-    display_lots = lots[:8]
+    display_lots = lots[:DEFAULT_DISPLAY_LIMIT]
     budget_text = f"{min_budget}-{max_budget}" if max_budget < 900 else f"{min_budget}+"
     text = f"📊 <b>ROI для {budget_text} млн</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
         btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
         inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"}])
+    if len(lots) > DEFAULT_DISPLAY_LIMIT:
+        inline_buttons.append([{"text": f"📋 Показать все ({len(lots)} шт.)", "callback_data": f"calc_roi_show_budget_{min_budget}_{max_budget}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_roi_by_budget"}])
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_calc_roi_show_all_budget(chat_id: int, min_budget: int, max_budget: int):
+    lots = get_lots_by_budget_range(min_budget * 1_000_000, max_budget * 1_000_000)
+    if not lots:
+        await send_message(chat_id, "❌ Лоты не найдены.")
+        return
+    budget_text = f"{min_budget}-{max_budget}" if max_budget < 900 else f"{min_budget}+"
+    text = f"📊 <b>Все лоты ROI на {budget_text} млн</b> ({len(lots)} шт.):"
+    inline_buttons = []
+    for lot in lots:
+        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"}])
+    inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"calc_roi_budget_{min_budget}_{max_budget}"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
 
@@ -103,12 +139,17 @@ async def handle_calc_roi_lot(chat_id: int, area: float):
             lot = l
             break
     if not lot:
-        await send_message(chat_id, f"❌ Лот {unit_code} не найден.")
+        await send_message(chat_id, f"❌ Лот не найден.")
         return
-    calc = calculate_roi_for_lot(lot['price'], lot['area'], lot['code'])
-    text = format_roi_text(calc)
+    
+    from services.investment_calc import calculate_investment, format_investment_text
+    price_m2 = int(lot['price'] / lot['area'])
+    calc = calculate_investment(lot['area'], price_m2)
+    text = format_investment_text(lot['code'], calc)
+    
     inline_buttons = [
         [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"},
+         {"text": "📥 DOCX", "callback_data": f"roi_docx_{lot['code']}"},
          {"text": "📋 Получить КП", "callback_data": f"kp_send_{int(lot['area']*10)}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
@@ -160,14 +201,31 @@ async def handle_calc_finance_area_range(chat_id: int, min_area: float, max_area
         await send_message_inline(chat_id, f"❌ Лоты на {min_area}-{max_area} м² не найдены.",
                                   [[{"text": "🔙 Назад", "callback_data": "calc_finance_by_area"}]])
         return
-    display_lots = lots[:8]
+    display_lots = lots[:DEFAULT_DISPLAY_LIMIT]
     area_text = f"{int(min_area)}-{int(max_area)}" if max_area < 900 else f"{int(min_area)}+"
     text = f"💳 <b>Рассрочка для {area_text} м²</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
         btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
         inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"}])
+    if len(lots) > DEFAULT_DISPLAY_LIMIT:
+        inline_buttons.append([{"text": f"📋 Показать все ({len(lots)} шт.)", "callback_data": f"calc_fin_show_area_{int(min_area)}_{int(max_area)}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_finance_by_area"}])
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_calc_finance_show_all_area(chat_id: int, min_area: float, max_area: float):
+    lots = get_lots_by_area_range(min_area, max_area)
+    if not lots:
+        await send_message(chat_id, "❌ Лоты не найдены.")
+        return
+    area_text = f"{int(min_area)}-{int(max_area)}" if max_area < 900 else f"{int(min_area)}+"
+    text = f"💳 <b>Все лоты рассрочки на {area_text} м²</b> ({len(lots)} шт.):"
+    inline_buttons = []
+    for lot in lots:
+        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"}])
+    inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"calc_fin_area_{int(min_area)}_{int(max_area)}"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
 
@@ -177,14 +235,31 @@ async def handle_calc_finance_budget_range(chat_id: int, min_budget: int, max_bu
         await send_message_inline(chat_id, f"❌ Лоты на {min_budget}-{max_budget} млн не найдены.",
                                   [[{"text": "🔙 Назад", "callback_data": "calc_finance_by_budget"}]])
         return
-    display_lots = lots[:8]
+    display_lots = lots[:DEFAULT_DISPLAY_LIMIT]
     budget_text = f"{min_budget}-{max_budget}" if max_budget < 900 else f"{min_budget}+"
     text = f"💳 <b>Рассрочка для {budget_text} млн</b> ({len(lots)} лотов)\n\nВыберите лот:"
     inline_buttons = []
     for lot in display_lots:
         btn_text = f"{lot['code']} (корп.{lot.get('building', '?')}) — {lot['area']} м² — {format_price_short(lot['price'])}"
         inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"}])
+    if len(lots) > DEFAULT_DISPLAY_LIMIT:
+        inline_buttons.append([{"text": f"📋 Показать все ({len(lots)} шт.)", "callback_data": f"calc_fin_show_budget_{min_budget}_{max_budget}"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "calc_finance_by_budget"}])
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_calc_finance_show_all_budget(chat_id: int, min_budget: int, max_budget: int):
+    lots = get_lots_by_budget_range(min_budget * 1_000_000, max_budget * 1_000_000)
+    if not lots:
+        await send_message(chat_id, "❌ Лоты не найдены.")
+        return
+    budget_text = f"{min_budget}-{max_budget}" if max_budget < 900 else f"{min_budget}+"
+    text = f"💳 <b>Все лоты рассрочки на {budget_text} млн</b> ({len(lots)} шт.):"
+    inline_buttons = []
+    for lot in lots:
+        btn_text = f"{lot['code']} — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"}])
+    inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"calc_fin_budget_{min_budget}_{max_budget}"}])
     await send_message_inline(chat_id, text, inline_buttons)
 
 
@@ -196,7 +271,7 @@ async def handle_calc_finance_lot(chat_id: int, area: float):
             lot = l
             break
     if not lot:
-        await send_message(chat_id, f"❌ Лот {unit_code} не найден.")
+        await send_message(chat_id, f"❌ Лот не найден.")
         return
     calc = calculate_installment_for_lot(lot['price'], lot['area'], lot['code'])
     text = format_installment_text(calc)

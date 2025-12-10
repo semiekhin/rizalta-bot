@@ -35,7 +35,7 @@ from models.state import (
 )
 
 # Сервисы
-from services.telegram import send_message, send_message_inline, answer_callback_query
+from services.telegram import send_message, send_message_inline, answer_callback_query, send_document
 from services.calculations import normalize_unit_code
 
 # Обработчики
@@ -272,6 +272,16 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.docs import handle_documents_menu
         await handle_documents_menu(chat_id)
     
+    elif data.startswith("roi_docx_"):
+        lot_code = data.replace("roi_docx_", "")
+        await send_message(chat_id, f"⏳ Создаю DOCX для {lot_code}...")
+        from services.calc_docx import generate_roi_docx
+        docx_path = generate_roi_docx(lot_code)
+        if docx_path:
+            await send_document(chat_id, docx_path, f"ROI_{lot_code}.docx")
+        else:
+            await send_message(chat_id, f"❌ Ошибка создания DOCX")
+
     elif data.startswith("roi_"):
         unit_code = data[4:]
         await handle_base_roi(chat_id, unit_code=unit_code)
@@ -346,6 +356,19 @@ async def process_callback(callback: Dict[str, Any]):
         min_budget, max_budget = int(parts[0]), int(parts[1])
         await handle_kp_show_all_budget(chat_id, min_budget, max_budget)
 
+    elif data.startswith("kp_select_"):
+        from handlers.kp import handle_kp_select_lot
+        area_x10 = int(data.replace("kp_select_", ""))
+        await handle_kp_select_lot(chat_id, area_x10)
+
+    elif data.startswith("kp_gen_"):
+        from handlers.kp import handle_kp_generate_pdf
+        parts = data.replace("kp_gen_", "").rsplit("_", 1)
+        if len(parts) == 2:
+            area_x10 = int(parts[0])
+            include_24m = (parts[1] == "24")
+            await handle_kp_generate_pdf(chat_id, area_x10, include_24m)
+
     # ===== Документы =====
 
     elif data == "doc_menu":
@@ -397,6 +420,29 @@ async def process_callback(callback: Dict[str, Any]):
         min_budget, max_budget = int(parts[0]), int(parts[1])
         await handle_calc_roi_budget_range(chat_id, min_budget, max_budget)
 
+    elif data.startswith("calc_roi_show_area_"):
+        from handlers.calc_dynamic import handle_calc_roi_show_all_area
+        parts = data.replace("calc_roi_show_area_", "").split("_")
+        min_area, max_area = float(parts[0]), float(parts[1])
+        await handle_calc_roi_show_all_area(chat_id, min_area, max_area)
+
+    elif data.startswith("calc_roi_show_budget_"):
+        from handlers.calc_dynamic import handle_calc_roi_show_all_budget
+        parts = data.replace("calc_roi_show_budget_", "").split("_")
+        min_budget, max_budget = int(parts[0]), int(parts[1])
+        await handle_calc_roi_show_all_budget(chat_id, min_budget, max_budget)
+
+    elif data.startswith("calc_fin_show_area_"):
+        from handlers.calc_dynamic import handle_calc_finance_show_all_area
+        parts = data.replace("calc_fin_show_area_", "").split("_")
+        min_area, max_area = float(parts[0]), float(parts[1])
+        await handle_calc_finance_show_all_area(chat_id, min_area, max_area)
+
+    elif data.startswith("calc_fin_show_budget_"):
+        from handlers.calc_dynamic import handle_calc_finance_show_all_budget
+        parts = data.replace("calc_fin_show_budget_", "").split("_")
+        min_budget, max_budget = int(parts[0]), int(parts[1])
+        await handle_calc_finance_show_all_budget(chat_id, min_budget, max_budget)
     elif data.startswith("calc_fin_area_"):
         parts = data.replace("calc_fin_area_", "").split("_")
         min_area, max_area = float(parts[0]), float(parts[1])
@@ -452,6 +498,33 @@ async def process_callback(callback: Dict[str, Any]):
         booking_id = int(data.replace("book_decline_", ""))
         await handle_decline_booking(chat_id, booking_id)
 
+    # ===== Domoplaner =====
+    elif data == "domo_all":
+        flats = domoplaner_cache.get(chat_id, [])
+        if not flats:
+            await send_message(chat_id, "❌ Подборка не найдена. Отправьте ссылку заново.")
+        else:
+            await send_message(chat_id, f"⏳ Генерирую {len(flats)} КП...")
+            from services.kp_pdf_generator import generate_kp_pdf
+            success = 0
+            for flat in flats:
+                pdf_path = generate_kp_pdf(code=flat["code"], include_24m=True)
+                if pdf_path:
+                    await send_document(chat_id, pdf_path, f"КП_{flat['code']}.pdf")
+                    success += 1
+            await send_message(chat_id, f"✅ Создано {success} из {len(flats)} КП")
+
+
+    elif data.startswith("domo_"):
+        lot_code = data.replace("domo_", "")
+        await send_message(chat_id, f"⏳ Генерирую КП для {lot_code}...")
+        from services.kp_pdf_generator import generate_kp_pdf
+        pdf_path = generate_kp_pdf(code=lot_code, include_24m=True)
+        if pdf_path:
+            await send_document(chat_id, pdf_path, f"КП_{lot_code}.pdf")
+        else:
+            await send_message(chat_id, f"❌ Лот {lot_code} не найден в базе.")
+
     # ===== Новости =====
 
     elif data == "news_menu":
@@ -475,6 +548,38 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_flights(chat_id)
 
 
+
+# Кеш подборок domoplaner
+domoplaner_cache = {}
+
+async def handle_domoplaner_link(chat_id: int, url: str):
+    """Обрабатывает ссылку на подборку domoplaner."""
+    from services.domoplaner_parser import parse_domoplaner_set
+    
+    await send_message(chat_id, "⏳ Загружаю подборку...")
+    
+    flats = parse_domoplaner_set(url)
+    
+    if not flats:
+        await send_message(chat_id, "❌ Не удалось загрузить подборку. Проверьте ссылку.")
+        return
+    
+    domoplaner_cache[chat_id] = flats
+    
+    buttons = []
+    for flat in flats:
+        price_mln = flat["price"] / 1_000_000
+        btn_text = f"{flat['code']} — {flat['area']} м² — {price_mln:.1f} млн"
+        callback = f"domo_{flat['code']}"
+        buttons.append([{"text": btn_text, "callback_data": callback}])
+    
+    buttons.append([{"text": f"📦 Создать {len(flats)} КП", "callback_data": "domo_all"}])
+    buttons.append([{"text": "🔙 Отмена", "callback_data": "main_menu"}])
+    
+    text = f"📋 Подборка от менеджера\n\nНайдено {len(flats)} квартир.\nВыберите для генерации КП:"
+    
+    await send_message_inline(chat_id, text, buttons)
+
 async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     """Главный роутер текстовых сообщений."""
     
@@ -497,6 +602,13 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     
     if text.startswith("/start"):
         await handle_start(chat_id, text, user_info)
+        return
+    
+    # ===== Ссылки domoplaner =====
+    from services.domoplaner_parser import is_domoplaner_link, parse_domoplaner_set
+    domo_url = is_domoplaner_link(text)
+    if domo_url:
+        await handle_domoplaner_link(chat_id, domo_url)
         return
     
     # ===== Кнопка Назад =====
@@ -588,7 +700,7 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     
     # ===== Кнопки с внешними ссылками =====
     
-    if "📌 Фиксация клиента" in text:
+    if "📌 Фиксация" in text:
         inline_buttons = [
             [{"text": "🔗 Открыть форму фиксации", "url": LINK_FIXATION}]
         ]

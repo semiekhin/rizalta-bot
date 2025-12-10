@@ -350,6 +350,21 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
             ]
         )
     
+    # Отправляем в группу показов
+    try:
+        from services.notifications import notify_shows_group
+        group_msg = (
+            f"🆕 <b>Новая запись на онлайн-показ</b>\n\n"
+            f"👤 Специалист: {specialist_name}\n"
+            f"📅 Дата: {date_display}\n"
+            f"🕐 Время: {time_formatted}\n"
+            f"🆔 Бронь: #{booking_id}\n"
+            f"📱 Клиент: @{username if username else chat_id}"
+        )
+        await notify_shows_group(group_msg)
+    except Exception as e:
+        print(f"[BOOKING] Group notify error: {e}")
+
     # Также отправляем email
     if specialist and specialist.get("email"):
         try:
