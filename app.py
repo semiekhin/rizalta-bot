@@ -272,15 +272,16 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.docs import handle_documents_menu
         await handle_documents_menu(chat_id)
     
-    elif data.startswith("roi_docx_"):
-        lot_code = data.replace("roi_docx_", "")
-        await send_message(chat_id, f"⏳ Создаю DOCX для {lot_code}...")
-        from services.calc_docx import generate_roi_docx
-        docx_path = generate_roi_docx(lot_code)
-        if docx_path:
-            await send_document(chat_id, docx_path, f"ROI_{lot_code}.docx")
+    elif data.startswith("roi_xlsx_"):
+        area_x10 = int(data.replace("roi_xlsx_", ""))
+        area = area_x10 / 10
+        await send_message(chat_id, f"⏳ Создаю Excel для {area} м²...")
+        from services.calc_xlsx_generator import generate_roi_xlsx
+        xlsx_path = generate_roi_xlsx(area=area)
+        if xlsx_path:
+            await send_document(chat_id, xlsx_path, f"ROI_{area}m2.xlsx")
         else:
-            await send_message(chat_id, f"❌ Ошибка создания DOCX")
+            await send_message(chat_id, f"❌ Ошибка создания Excel")
 
     elif data.startswith("roi_"):
         unit_code = data[4:]

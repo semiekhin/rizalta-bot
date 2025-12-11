@@ -14,8 +14,8 @@ DB_PATH = BASE_DIR / "properties.db"
 EXPENSES_PCT = 0.50
 
 RATE_PER_M2 = {
-    2028: 501, 2029: 546, 2030: 594, 2031: 648,
-    2032: 704, 2033: 766, 2034: 834, 2035: 907,
+    2028: 664.18, 2029: 723.88, 2030: 787.31, 2031: 858.21,
+    2032: 932.84, 2033: 1014.93, 2034: 1104.48, 2035: 1201.49,
 }
 
 OCCUPANCY = {
@@ -73,7 +73,7 @@ def calculate_investment(area: float, price_m2: int) -> Dict:
             rate_m2 = RATE_PER_M2.get(year, 0)
             occupancy = OCCUPANCY.get(year, 0)
             days = DAYS_IN_YEAR.get(year, 365)
-            gross_income = days * rate_m2 * area / 100 * occupancy
+            gross_income = days * rate_m2 * area * occupancy / 100
             G = gross_income * (1 - EXPENSES_PCT)
         
         cumulative_profit = cumulative_profit + G + H

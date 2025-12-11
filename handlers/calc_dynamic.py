@@ -149,7 +149,7 @@ async def handle_calc_roi_lot(chat_id: int, area: float):
     
     inline_buttons = [
         [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"},
-         {"text": "📥 DOCX", "callback_data": f"roi_docx_{lot['code']}"},
+         {"text": "📥 Excel", "callback_data": f"roi_xlsx_{int(lot['area']*10)}"},
          {"text": "📋 Получить КП", "callback_data": f"kp_send_{int(lot['area']*10)}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
