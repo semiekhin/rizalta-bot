@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Генератор Excel-файла с расчётом прибыли от апартамента RIZALTA
-На основе формул застройщика
+Записывает вычисленные значения (не формулы) для совместимости с просмотрщиками
 """
 
 import sqlite3
@@ -63,7 +63,9 @@ class ProfitCalculatorGenerator:
         self.price_m2 = price_m2
         self.expense_rate = expense_rate
         self.growth_rate = growth_rate
+        self.total_cost = round(area * price_m2)
         self._setup_styles()
+        self._precalculate()
     
     def _setup_styles(self):
         """Настройка стилей"""
@@ -74,6 +76,109 @@ class ProfitCalculatorGenerator:
         self.font_bold = Font(bold=True)
         self.align_center_wrap = Alignment(horizontal='center', vertical='center', wrap_text=True)
         self.align_center = Alignment(horizontal='center', vertical='center')
+    
+    def _precalculate(self):
+        """Предварительный расчёт всех значений"""
+        # Годы без аренды (2025-2027)
+        self.pre_rent_data = []
+        cumulative_growth = 0
+        accumulated_value = self.total_cost
+        
+        # 2025: рост 18%
+        growth_2025 = round(self.total_cost * 0.18)
+        cumulative_growth += growth_2025
+        self.pre_rent_data.append({
+            'year': 2025,
+            'growth_profit': growth_2025,
+            'cumulative': cumulative_growth,
+            'growth_pct': round(growth_2025 * 100 / self.total_cost, 2) if self.total_cost > 0 else 0,
+            'total_pct': round(cumulative_growth * 100 / self.total_cost, 2) if self.total_cost > 0 else 0
+        })
+        accumulated_value += growth_2025
+        
+        # 2026: рост 20%
+        growth_2026 = round(accumulated_value * self.growth_rate)
+        cumulative_growth += growth_2026
+        self.pre_rent_data.append({
+            'year': 2026,
+            'growth_profit': growth_2026,
+            'cumulative': cumulative_growth,
+            'growth_pct': round(growth_2026 * 100 / self.total_cost, 2) if self.total_cost > 0 else 0,
+            'total_pct': round(cumulative_growth * 100 / self.total_cost, 2) if self.total_cost > 0 else 0
+        })
+        accumulated_value += growth_2026
+        
+        # 2027: рост 20%
+        growth_2027 = round(accumulated_value * self.growth_rate)
+        cumulative_growth += growth_2027
+        self.pre_rent_data.append({
+            'year': 2027,
+            'growth_profit': growth_2027,
+            'cumulative': cumulative_growth,
+            'growth_pct': round(growth_2027 * 100 / self.total_cost, 2) if self.total_cost > 0 else 0,
+            'total_pct': round(cumulative_growth * 100 / self.total_cost, 2) if self.total_cost > 0 else 0
+        })
+        accumulated_value += growth_2027
+        
+        # Годы с арендой (2028-2035)
+        self.rent_data = []
+        cumulative_rent = 0
+        total_rent_profit_for_avg = 0
+        
+        for i, year in enumerate(range(2028, 2036)):
+            daily_rate = round(self.RENT_PRICES_PER_M2[i] * self.area)
+            occupancy = self.OCCUPANCY[i]
+            days = self.DAYS_PER_YEAR[i]
+            
+            annual_rent = round(days * daily_rate * occupancy / 100)
+            expenses = round(annual_rent * self.expense_rate)
+            rent_profit = round(annual_rent - expenses)
+            cumulative_rent += rent_profit
+            total_rent_profit_for_avg += rent_profit
+            
+            # Рост стоимости
+            if i == 0:  # 2028 - половина от 20%
+                growth_profit = round(accumulated_value * self.growth_rate / 2)
+            else:  # 2029-2035 - 8.8%
+                growth_profit = round(accumulated_value * 0.088)
+            
+            accumulated_value += growth_profit
+            cumulative_growth += growth_profit
+            
+            rent_pct = round(rent_profit * 100 / self.total_cost, 2) if self.total_cost > 0 else 0
+            growth_pct = round(growth_profit * 100 / self.total_cost, 2) if self.total_cost > 0 else 0
+            total_pct = round(rent_pct + growth_pct, 2)
+            
+            self.rent_data.append({
+                'year': year,
+                'daily_rate': daily_rate,
+                'occupancy': occupancy,
+                'annual_rent': annual_rent,
+                'expenses': expenses,
+                'rent_profit': rent_profit,
+                'cumulative_rent': cumulative_rent,
+                'growth_profit': growth_profit,
+                'cumulative_total': cumulative_rent + cumulative_growth,
+                'rent_pct': rent_pct,
+                'growth_pct': growth_pct,
+                'total_pct': total_pct
+            })
+        
+        # Итоговые значения
+        self.total_annual_rent = sum(d['annual_rent'] for d in self.rent_data)
+        self.total_expenses = sum(d['expenses'] for d in self.rent_data)
+        self.total_rent_profit = cumulative_rent
+        self.total_growth_profit = cumulative_growth
+        self.total_profit = self.rent_data[-1]['cumulative_total'] if self.rent_data else 0
+        
+        # Средняя прибыль за все 11 лет
+        all_total_pcts = [d['total_pct'] for d in self.pre_rent_data] + [d['total_pct'] for d in self.rent_data]
+        self.avg_total_pct = round(sum(all_total_pcts) / 11, 2) if all_total_pcts else 0
+        
+        # Сроки окупаемости
+        self.payback_years = round(self.total_cost / (self.total_profit / 11), 2) if self.total_profit > 0 else 0
+        avg_rent_profit = total_rent_profit_for_avg / 8 if total_rent_profit_for_avg > 0 else 1
+        self.payback_rent_years = round(self.total_cost / avg_rent_profit, 2) if avg_rent_profit > 0 else 0
     
     def generate(self, output_path: Optional[str] = None) -> str:
         """Генерирует Excel-файл"""
@@ -141,7 +246,7 @@ class ProfitCalculatorGenerator:
         ws.merge_cells('D5:E5')
         ws.merge_cells('D6:E6')
         
-        # Входные данные
+        # Входные данные — ЗНАЧЕНИЯ вместо формул
         ws['B6'] = self.area
         ws['B6'].border = self.border_thin
         ws['B6'].alignment = self.align_center
@@ -151,7 +256,7 @@ class ProfitCalculatorGenerator:
         ws['C6'].alignment = self.align_center
         ws['C6'].number_format = '#,##0'
         
-        ws['D6'] = '=B6*C6'
+        ws['D6'] = self.total_cost  # Было: '=B6*C6'
         ws['D6'].border = self.border_thin
         ws['D6'].alignment = self.align_center
         ws['D6'].number_format = '#,##0'
@@ -169,13 +274,13 @@ class ProfitCalculatorGenerator:
         ws['G6'].alignment = self.align_center
         ws['G6'].number_format = '0%'
         
-        ws['H6'] = '=ROUND(D6/(I22/11),2)'
+        ws['H6'] = self.payback_years  # Было: '=ROUND(D6/(I22/11),2)'
         ws['H6'].font = self.font_red_bold
         ws['H6'].border = self.border_thin
         ws['H6'].alignment = self.align_center
         ws['H6'].number_format = '0.00'
         
-        ws['I6'] = '=ROUND(D6/(SUM(G11:G21)/9),2)'
+        ws['I6'] = self.payback_rent_years  # Было: '=ROUND(D6/(SUM(G11:G21)/9),2)'
         ws['I6'].font = self.font_red_bold
         ws['I6'].border = self.border_thin
         ws['I6'].alignment = self.align_center
@@ -207,126 +312,100 @@ class ProfitCalculatorGenerator:
     
     def _create_pre_rent_years(self, ws):
         """Создаёт строки 11-13 (годы без аренды)"""
-        for i, year in enumerate([2025, 2026, 2027]):
+        for i, data in enumerate(self.pre_rent_data):
             row = 11 + i
-            ws[f'B{row}'] = year
+            
+            ws[f'B{row}'] = data['year']
             ws[f'B{row}'].border = self.border_thin
             ws[f'B{row}'].alignment = self.align_center
             
-            for col in ['C', 'D', 'E', 'F', 'G', 'H']:
+            # Пустые ячейки с рамкой
+            for col in ['C', 'D', 'E', 'F', 'G', 'H', 'L']:
                 ws[f'{col}{row}'].border = self.border_thin
-        
-        # Формулы для роста стоимости
-        formulas = [
-            {'I': '=ROUND(D6*18%,0)', 'J': '=ROUND(I11,0)', 
-             'M': '=ROUND(I11*100/D6,2)', 'N': '=ROUND(M11+L11,2)'},
-            {'I': '=ROUND((D6+I11)*G6,0)', 'J': '=ROUND(J11+I12,0)', 
-             'M': '=ROUND(I12*100/D6,2)', 'N': '=ROUND(M12+L12,2)'},
-            {'I': '=ROUND((D6+I11+I12)*G6,0)', 'J': '=ROUND(J12+I13,0)', 
-             'M': '=ROUND(I13*100/D6,2)', 'N': '=ROUND(M13+L13,2)'},
-        ]
-        
-        for i, row in enumerate([11, 12, 13]):
-            for col, formula in formulas[i].items():
-                ws[f'{col}{row}'] = formula
-                ws[f'{col}{row}'].border = self.border_thin
-                ws[f'{col}{row}'].alignment = self.align_center
-                if col in ['I', 'J']:
-                    ws[f'{col}{row}'].number_format = '#,##0'
-                else:
-                    ws[f'{col}{row}'].number_format = '0.00'
             
-            for col in ['L']:
-                ws[f'{col}{row}'].border = self.border_thin
-                ws[f'{col}{row}'].alignment = self.align_center
-                ws[f'{col}{row}'].number_format = '0.00'
-    
-    def _create_rent_years(self, ws):
-        """Создаёт строки 14-21 (годы с арендой)"""
-        years = [2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035]
-        
-        i_formulas = [
-            '=ROUND((D6+I11+I12+I13)*G6/2,0)',
-            '=ROUND((D6+I11+I12+I13+I14)*0.088,0)',
-            '=ROUND((D6+I11+I12+I13+I14+I15)*0.088,0)',
-            '=ROUND((D6+I11+I12+I13+I14+I15+I16)*0.088,0)',
-            '=ROUND((D6+I11+I12+I13+I14+I15+I16+I17)*0.088,0)',
-            '=ROUND((D6+I11+I12+I13+I14+I15+I16+I17+I18)*0.088,0)',
-            '=ROUND((D6+I11+I12+I13+I14+I15+I16+I17+I18+I19)*0.088,0)',
-            '=ROUND((D6+I11+I12+I13+I14+I15+I16+I17+I18+I19+I20)*0.088,0)'
-        ]
-        
-        for i, year in enumerate(years):
-            row = 14 + i
-            d = self.DAYS_PER_YEAR[i]
-            
-            # Год
-            ws[f'B{row}'] = year
-            ws[f'B{row}'].font = self.font_blue
-            ws[f'B{row}'].border = self.border_thin
-            ws[f'B{row}'].alignment = self.align_center
-            
-            # Цена в сутки за весь номер (ставка м² × площадь)
-            ws[f'C{row}'] = f'=ROUND({self.RENT_PRICES_PER_M2[i]}*$B$6,0)'
-            ws[f'C{row}'].border = self.border_thin
-            ws[f'C{row}'].alignment = self.align_center
-            ws[f'C{row}'].number_format = '#,##0'
-            
-            # Загрузка
-            ws[f'D{row}'] = self.OCCUPANCY[i]
-            ws[f'D{row}'].border = self.border_thin
-            ws[f'D{row}'].alignment = self.align_center
-            
-            # Доход за год = дней * (ставка_м2 * площадь) * загрузка / 100
-            ws[f'E{row}'] = f'=ROUND({d}*C{row}*D{row}/100,0)'
-            ws[f'E{row}'].border = self.border_thin
-            ws[f'E{row}'].alignment = self.align_center
-            ws[f'E{row}'].number_format = '#,##0'
-            
-            # Расходы
-            ws[f'F{row}'] = f'=ROUND(E{row}*$F$6,0)'
-            ws[f'F{row}'].border = self.border_thin
-            ws[f'F{row}'].alignment = self.align_center
-            ws[f'F{row}'].number_format = '#,##0'
-            
-            # Прибыль от сдачи
-            ws[f'G{row}'] = f'=ROUND(E{row}-F{row},0)'
-            ws[f'G{row}'].border = self.border_thin
-            ws[f'G{row}'].alignment = self.align_center
-            ws[f'G{row}'].number_format = '#,##0'
-            
-            # Накопительная прибыль от сдачи (новый столбец H)
-            if row == 14:
-                ws[f'H{row}'] = f'=ROUND(G{row},0)'
-            else:
-                ws[f'H{row}'] = f'=ROUND(H{row-1}+G{row},0)'
-            ws[f'H{row}'].border = self.border_thin
-            ws[f'H{row}'].alignment = self.align_center
-            ws[f'H{row}'].number_format = '#,##0'
-            
-            # Прибыль от роста стоимости (теперь столбец I)
-            ws[f'I{row}'] = i_formulas[i]
+            ws[f'I{row}'] = data['growth_profit']
             ws[f'I{row}'].border = self.border_thin
             ws[f'I{row}'].alignment = self.align_center
             ws[f'I{row}'].number_format = '#,##0'
             
-            # Прибыль накопительно (теперь столбец J)
-            prev = 13 if row == 14 else row - 1
-            ws[f'J{row}'] = f'=ROUND(G{row}+J{prev}+I{row},0)'
+            ws[f'J{row}'] = data['cumulative']
             ws[f'J{row}'].border = self.border_thin
             ws[f'J{row}'].alignment = self.align_center
             ws[f'J{row}'].number_format = '#,##0'
             
-            # Проценты (теперь L, M, N)
-            for col, formula in [
-                ('L', f'=ROUND(G{row}*100/$D$6,2)'),
-                ('M', f'=ROUND(I{row}*100/$D$6,2)'),
-                ('N', f'=ROUND(M{row}+L{row},2)')
-            ]:
-                ws[f'{col}{row}'] = formula
-                ws[f'{col}{row}'].border = self.border_thin
-                ws[f'{col}{row}'].alignment = self.align_center
-                ws[f'{col}{row}'].number_format = '0.00'
+            ws[f'M{row}'] = data['growth_pct']
+            ws[f'M{row}'].border = self.border_thin
+            ws[f'M{row}'].alignment = self.align_center
+            ws[f'M{row}'].number_format = '0.00'
+            
+            ws[f'N{row}'] = data['total_pct']
+            ws[f'N{row}'].border = self.border_thin
+            ws[f'N{row}'].alignment = self.align_center
+            ws[f'N{row}'].number_format = '0.00'
+    
+    def _create_rent_years(self, ws):
+        """Создаёт строки 14-21 (годы с арендой)"""
+        for i, data in enumerate(self.rent_data):
+            row = 14 + i
+            
+            ws[f'B{row}'] = data['year']
+            ws[f'B{row}'].font = self.font_blue
+            ws[f'B{row}'].border = self.border_thin
+            ws[f'B{row}'].alignment = self.align_center
+            
+            ws[f'C{row}'] = data['daily_rate']
+            ws[f'C{row}'].border = self.border_thin
+            ws[f'C{row}'].alignment = self.align_center
+            ws[f'C{row}'].number_format = '#,##0'
+            
+            ws[f'D{row}'] = data['occupancy']
+            ws[f'D{row}'].border = self.border_thin
+            ws[f'D{row}'].alignment = self.align_center
+            
+            ws[f'E{row}'] = data['annual_rent']
+            ws[f'E{row}'].border = self.border_thin
+            ws[f'E{row}'].alignment = self.align_center
+            ws[f'E{row}'].number_format = '#,##0'
+            
+            ws[f'F{row}'] = data['expenses']
+            ws[f'F{row}'].border = self.border_thin
+            ws[f'F{row}'].alignment = self.align_center
+            ws[f'F{row}'].number_format = '#,##0'
+            
+            ws[f'G{row}'] = data['rent_profit']
+            ws[f'G{row}'].border = self.border_thin
+            ws[f'G{row}'].alignment = self.align_center
+            ws[f'G{row}'].number_format = '#,##0'
+            
+            ws[f'H{row}'] = data['cumulative_rent']
+            ws[f'H{row}'].border = self.border_thin
+            ws[f'H{row}'].alignment = self.align_center
+            ws[f'H{row}'].number_format = '#,##0'
+            
+            ws[f'I{row}'] = data['growth_profit']
+            ws[f'I{row}'].border = self.border_thin
+            ws[f'I{row}'].alignment = self.align_center
+            ws[f'I{row}'].number_format = '#,##0'
+            
+            ws[f'J{row}'] = data['cumulative_total']
+            ws[f'J{row}'].border = self.border_thin
+            ws[f'J{row}'].alignment = self.align_center
+            ws[f'J{row}'].number_format = '#,##0'
+            
+            ws[f'L{row}'] = data['rent_pct']
+            ws[f'L{row}'].border = self.border_thin
+            ws[f'L{row}'].alignment = self.align_center
+            ws[f'L{row}'].number_format = '0.00'
+            
+            ws[f'M{row}'] = data['growth_pct']
+            ws[f'M{row}'].border = self.border_thin
+            ws[f'M{row}'].alignment = self.align_center
+            ws[f'M{row}'].number_format = '0.00'
+            
+            ws[f'N{row}'] = data['total_pct']
+            ws[f'N{row}'].border = self.border_thin
+            ws[f'N{row}'].alignment = self.align_center
+            ws[f'N{row}'].number_format = '0.00'
     
     def _create_totals(self, ws):
         """Создаёт строку итогов (строка 22)"""
@@ -335,25 +414,44 @@ class ProfitCalculatorGenerator:
         ws['B22'].border = self.border_thin
         ws['B22'].alignment = self.align_center
         
-        totals = {
-            'E': ('=ROUND(SUM(E14:E21),0)', '0'),
-            'F': ('=ROUND(SUM(F14:F21),0)', '0'),
-            'G': ('=ROUND(SUM(G14:G21),0)', '0'),
-            'H': ('=ROUND(H21,0)', '0'),
-            'I': ('=ROUND(SUM(I11:I21),0)', '0'),
-            'J': ('=ROUND(J21,0)', '0'),
-            'N': ('=ROUND(SUM(N11:N21)/11,2)', '0.00'),
-        }
-        
-        for col, (formula, fmt) in totals.items():
-            ws[f'{col}22'] = formula
-            ws[f'{col}22'].border = self.border_thin
-            ws[f'{col}22'].alignment = self.align_center
-            ws[f'{col}22'].number_format = fmt
-        
         # Пустые ячейки с границами
         for col in ['C', 'D', 'L', 'M']:
             ws[f'{col}22'].border = self.border_thin
+        
+        ws['E22'] = self.total_annual_rent
+        ws['E22'].border = self.border_thin
+        ws['E22'].alignment = self.align_center
+        ws['E22'].number_format = '#,##0'
+        
+        ws['F22'] = self.total_expenses
+        ws['F22'].border = self.border_thin
+        ws['F22'].alignment = self.align_center
+        ws['F22'].number_format = '#,##0'
+        
+        ws['G22'] = self.total_rent_profit
+        ws['G22'].border = self.border_thin
+        ws['G22'].alignment = self.align_center
+        ws['G22'].number_format = '#,##0'
+        
+        ws['H22'] = self.total_rent_profit
+        ws['H22'].border = self.border_thin
+        ws['H22'].alignment = self.align_center
+        ws['H22'].number_format = '#,##0'
+        
+        ws['I22'] = self.total_growth_profit
+        ws['I22'].border = self.border_thin
+        ws['I22'].alignment = self.align_center
+        ws['I22'].number_format = '#,##0'
+        
+        ws['J22'] = self.total_profit
+        ws['J22'].border = self.border_thin
+        ws['J22'].alignment = self.align_center
+        ws['J22'].number_format = '#,##0'
+        
+        ws['N22'] = self.avg_total_pct
+        ws['N22'].border = self.border_thin
+        ws['N22'].alignment = self.align_center
+        ws['N22'].number_format = '0.00'
 
 
 def generate_roi_xlsx(unit_code: str = None, area: float = None, output_dir: str = None) -> Optional[str]:
