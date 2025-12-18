@@ -657,3 +657,102 @@ curl -s https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_K
 - Причина: ключ истёк или недействителен
 - Решение: создать новый ключ на platform.openai.com, обновить в .env обоих ботов
 - Проверка: `curl -s https://api.openai.com/v1/models -H "Authorization: Bearer <key>"`
+
+---
+
+## Сессия 18.12.2025 — Новые знания
+
+### Фиксация клиентов (reverse engineering)
+
+**Как исследовали:**
+1. DevTools → Network → Preserve log
+2. Заполнили форму на ri.rclick.ru/notice/
+3. Нажали "Отправить" → увидели POST запрос
+4. Вкладка Payload → параметры формы
+5. Вкладка Headers → Set-Cookie с токеном
+
+**Endpoints:**
+```
+POST https://ri.rclick.ru/auth/login/
+- phone: 89181234567
+- password: ***
+→ Set-Cookie: rClick_token=...
+
+POST https://ri.rclick.ru/notice/newbooking/
+- Cookie: rClick_token=...
+- project: 340
+- clientName: ФИО
+- clientPhone: телефон
+- manager: 2
+- message: комментарий
+- policy: on
+```
+
+**Файлы:**
+- `services/rclick_service.py` — login_rclick(), create_booking()
+- `handlers/booking_fixation.py` — диалог с состояниями
+- `rclick_tokens.db` — хранение токенов
+
+### КП: 3 варианта
+
+**Параметр mode:**
+- `"100"` — 100% оплата, full_payment=True
+- `"12"` — 12 месяцев, include_24m=False
+- `"24"` — 12+24 месяца, include_24m=True
+
+**Callback:** `kp_gen_{area_x10}_{mode}`
+
+**Условная генерация:**
+```python
+if not full_payment:
+    html += f'''<div class="installment-section">...'''
+
+if include_24m and not full_payment:
+    html += f'''<div class="installment-section-24">...'''
+```
+
+### Частые команды сессии
+```bash
+# Перезапуск dev
+systemctl restart rizalta-bot-dev
+
+# Логи
+journalctl -u rizalta-bot-dev -n 20 --no-pager
+
+# Проверка системы
+/opt/bot/daily_check.sh
+
+# Деплой в prod
+cd /opt/bot
+cp /opt/bot-dev/services/*.py services/
+cp /opt/bot-dev/handlers/*.py handlers/
+cp /opt/bot-dev/app.py .
+git add -A && git commit -m "описание" && git push
+systemctl restart rizalta-bot
+
+# Тест curl
+curl -X POST "https://ri.rclick.ru/notice/newbooking/" \
+  -H "Cookie: rClick_token=..." \
+  -F "project=340" -F "clientName=Тест" ...
+```
+
+### Решённые проблемы
+
+**1. F-string внутри условия**
+- Проблема: `{ "" if full_payment else """...""" }` ломает `{fmt(...)}`
+- Решение: Вынести в Python if, закрыть f-string
+
+**2. user_id не определён**
+- Проблема: В callback нет user_id
+- Решение: Использовать `from_user.get("id", chat_id)`
+
+**3. Кнопки меню во время ввода**
+- Проблема: "📌 Фиксация" воспринимается как телефон
+- Решение: Проверять menu_buttons в handle_booking_input()
+
+### Ключевые решения
+
+1. **Dual-repo:** Отдельные репозитории для prod/dev — безопасность
+2. **SQLite для токенов:** Простое хранение, 90 дней срок
+3. **Reverse engineering:** Официального API нет, используем endpoints сайта
+4. **Mode вместо include_24m:** Расширяемость для новых вариантов КП
