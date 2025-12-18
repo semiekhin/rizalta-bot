@@ -635,6 +635,30 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_compare_pdf(chat_id, years, amount, username)
 
 
+    elif data == "booking_menu":
+        from handlers.booking_fixation import handle_booking_menu
+        await handle_booking_menu(chat_id, user_info.get("id", chat_id))
+
+    elif data == "booking_auth":
+        from handlers.booking_fixation import handle_booking_auth_start
+        await handle_booking_auth_start(chat_id, from_user.get("id", chat_id))
+
+    elif data == "booking_reauth":
+        from handlers.booking_fixation import handle_booking_reauth
+        await handle_booking_reauth(chat_id, from_user.get("id", chat_id))
+
+    elif data == "booking_new":
+        from handlers.booking_fixation import handle_booking_new
+        await handle_booking_new(chat_id, from_user.get("id", chat_id))
+
+    elif data == "booking_cancel":
+        from handlers.booking_fixation import handle_booking_cancel
+        await handle_booking_cancel(chat_id, from_user.get("id", chat_id))
+
+    elif data == "booking_skip_comment":
+        from handlers.booking_fixation import handle_booking_skip_comment
+        await handle_booking_skip_comment(chat_id, from_user.get("id", chat_id))
+
 # Кеш подборок domoplaner
 domoplaner_cache = {}
 
@@ -676,6 +700,14 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     if is_main_menu_button:
         clear_dialog_state(chat_id)
     
+
+    # ===== Обработка ввода фиксации =====
+    from handlers.booking_fixation import handle_booking_input, has_active_booking_state
+    if has_active_booking_state(user_info.get("id", chat_id)):
+        user_id = user_info.get("id", chat_id)
+        handled = await handle_booking_input(chat_id, user_id, text)
+        if handled:
+            return
     # ===== Команды =====
     if text == "/help":
         await handle_help(chat_id)
@@ -792,14 +824,8 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     # ===== Кнопки с внешними ссылками =====
     
     if "📌 Фиксация" in text:
-        inline_buttons = [
-            [{"text": "🔗 Открыть форму фиксации", "url": LINK_FIXATION}]
-        ]
-        await send_message_inline(
-            chat_id,
-            "📌 <b>Фиксация клиента</b>\n\nНажмите кнопку ниже, чтобы открыть форму фиксации:",
-            inline_buttons
-        )
+        from handlers.booking_fixation import handle_booking_menu, has_active_booking_state
+        await handle_booking_menu(chat_id, user_info.get("id", chat_id))
         return
     
     if "🏠 Шахматка" in text:

@@ -108,3 +108,14 @@ from .compare import (
     handle_compare_with_amount,
     handle_compare_pdf,
 )
+
+from .booking_fixation import (
+    handle_booking_menu,
+    handle_booking_auth_start,
+    handle_booking_reauth,
+    handle_booking_new,
+    handle_booking_cancel,
+    handle_booking_skip_comment,
+    handle_booking_input,
+    has_active_booking_state,
+)
