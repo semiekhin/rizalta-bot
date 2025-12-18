@@ -203,7 +203,7 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center;">
 <span style="color: #313D20; font-size: 15px; font-weight: 500;">При 100% оплате <span style="color: #4a7c23;">(–5%)</span></span>
-<span style="font-weight: 700; font-size: 20px; color: #4a7c23;">{fmt(int((lot["price"] - 150000) * 0.95))}</span>
+<span style="font-weight: 700; font-size: 20px; color: #4a7c23;">{fmt(int(lot["price"] * 0.95))}</span>
 </div>
 </div>
 </div>
