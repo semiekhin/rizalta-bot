@@ -91,3 +91,20 @@ from .media import (
     handle_media_menu,
     handle_send_presentation,
 )
+
+# Сравнение депозит vs RIZALTA
+from .compare import (
+    handle_compare_by_area_menu,
+    handle_compare_by_budget_menu,
+    handle_compare_area_range,
+    handle_compare_budget_range,
+    handle_compare_lot,
+    handle_compare_quick,
+    handle_compare_menu,
+    handle_compare_period,
+    handle_compare_full,
+    handle_compare_table,
+    handle_compare_amount_menu,
+    handle_compare_with_amount,
+    handle_compare_pdf,
+)

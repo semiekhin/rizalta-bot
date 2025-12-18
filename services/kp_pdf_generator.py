@@ -132,7 +132,7 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 
 .detail-table {{ width: 100%; border-collapse: collapse; }}
 .detail-table td {{ padding: 12px 0; border-bottom: 1px solid rgba(49, 61, 32, 0.15); }}
-.detail-label {{ color: #313D20; opacity: 0.7; font-size: 15px; }}
+.detail-label {{ color: #313D20; font-size: 15px; }}
 .detail-value {{ text-align: right; font-weight: 600; font-size: 15px; }}
 
 .installment-section {{ padding: 22px 25px; background: #F6F0E3; }}
@@ -190,6 +190,10 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <tr><td class="detail-label">Сдача</td><td class="detail-value">4 кв. 2027</td></tr>
 <tr><td class="detail-label">Цена за м²</td><td class="detail-value">{fmt(ppm2)}</td></tr>
 </table>
+<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+<span style="color: #313D20; font-size: 15px;">Стоимость лота без рассрочки</span>
+<span style="float: right; font-weight: 600; font-size: 18px; color: #313D20;">{fmt(lot["price"])}</span>
+</div>
 </div>
 <div style="clear:both"></div>
 </div>

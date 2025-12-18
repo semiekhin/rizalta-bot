@@ -548,6 +548,91 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.news import handle_flights
         await handle_flights(chat_id)
 
+    # ===== Сравнение депозит vs RIZALTA =====
+
+    elif data == "compare_menu":
+        from handlers.compare import handle_compare_menu
+        await handle_compare_menu(chat_id)
+
+    elif data == "compare_by_area":
+        from handlers.compare import handle_compare_by_area_menu
+        await handle_compare_by_area_menu(chat_id)
+
+    elif data == "compare_by_budget":
+        from handlers.compare import handle_compare_by_budget_menu
+        await handle_compare_by_budget_menu(chat_id)
+
+    elif data == "compare_quick":
+        from handlers.compare import handle_compare_quick
+        await handle_compare_quick(chat_id)
+
+    elif data.startswith("compare_area_"):
+        from handlers.compare import handle_compare_area_range
+        parts = data.split("_")
+        min_area = float(parts[2])
+        max_area = float(parts[3])
+        await handle_compare_area_range(chat_id, min_area, max_area)
+
+    elif data.startswith("compare_budget_"):
+        from handlers.compare import handle_compare_budget_range
+        parts = data.split("_")
+        min_budget = int(parts[2]) * 1_000_000
+        max_budget = int(parts[3]) * 1_000_000
+        await handle_compare_budget_range(chat_id, min_budget, max_budget)
+
+    elif data.startswith("compare_lot_back_"):
+        from handlers.compare import handle_compare_lot
+        amount = int(data.split("_")[3])
+        await handle_compare_lot(chat_id, "выбранный", amount)
+
+    elif data.startswith("compare_lot_"):
+        from handlers.compare import handle_compare_lot
+        parts = data.split("_")
+        lot_code = parts[2]
+        price = int(parts[3]) * 1000
+        await handle_compare_lot(chat_id, lot_code, price)
+
+    elif data.startswith("compare_table_"):
+        from handlers.compare import handle_compare_table
+        amount = int(data.split("_")[2])
+        await handle_compare_table(chat_id, amount)
+
+    elif data == "compare_table":
+        from handlers.compare import handle_compare_table
+        await handle_compare_table(chat_id)
+
+    elif data.startswith("compare_period_"):
+        from handlers.compare import handle_compare_period
+        parts = data.split("_")
+        years = int(parts[2])
+        amount = int(parts[3]) if len(parts) > 3 else 15_000_000
+        await handle_compare_period(chat_id, years, amount)
+
+    elif data.startswith("compare_full_"):
+        from handlers.compare import handle_compare_full
+        parts = data.split("_")
+        years = int(parts[2])
+        amount = int(parts[3]) if len(parts) > 3 else 15_000_000
+        await handle_compare_full(chat_id, years, amount)
+
+    elif data.startswith("compare_amount_"):
+        from handlers.compare import handle_compare_amount_menu
+        context = data.split("_")[2]
+        await handle_compare_amount_menu(chat_id, context)
+
+    elif data.startswith("compare_sum_"):
+        from handlers.compare import handle_compare_with_amount
+        parts = data.split("_")
+        amount_mln = int(parts[2])
+        context = parts[3]
+        await handle_compare_with_amount(chat_id, amount_mln, context)
+
+    elif data.startswith("compare_pdf_"):
+        from handlers.compare import handle_compare_pdf
+        parts = data.split("_")
+        years = int(parts[2])
+        amount = int(parts[3])
+        await handle_compare_pdf(chat_id, years, amount, username)
 
 
 # Кеш подборок domoplaner
@@ -679,6 +764,11 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     
     if "💰 Расчёты" in text or text == "Расчёты":
         await handle_calculations_menu_new(chat_id)
+        return
+
+    if "📊 Депозит vs RIZALTA" in text or "депозит" in text.lower():
+        from handlers.compare import handle_compare_menu
+        await handle_compare_menu(chat_id)
         return
     
     if "📋 КП (JPG)" in text:
