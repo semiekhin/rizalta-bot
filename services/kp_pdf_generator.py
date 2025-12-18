@@ -87,7 +87,7 @@ def calc_24(price: int) -> Dict:
         "pv_50": pv_50, "last_50": (r50 + m50) - (150_000 * 11) - payment_12 - (150_000 * 11), "markup_50": m50, "final_50": price + m50,
     }
 
-def generate_html(lot: Dict[str, Any], include_24m: bool = True) -> str:
+def generate_html(lot: Dict[str, Any], include_24m: bool = True, full_payment: bool = False) -> str:
     layout_b64 = download_layout(lot.get("layout_url", ""))
     logo_b64 = load_resource("logo_mono_trim_base64.txt")
     font_regular = load_resource("montserrat_regular_base64.txt")
@@ -127,6 +127,12 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 
 .unit-body {{ background: white; padding: 22px 25px; overflow: hidden; }}
 .unit-image {{ float: left; width: 380px; }}
+.unit-image-full {{ width: 100%; margin-bottom: 25px; text-align: center; }}
+.unit-image-full img {{ max-width: 500px; max-height: 450px; }}
+.unit-details-full {{ margin-left: 0; font-size: 17px; }}
+.unit-details-full .detail-table td {{ padding: 15px 0; }}
+.unit-details-full .detail-label {{ font-size: 17px; }}
+.unit-details-full .detail-value {{ font-size: 17px; }}
 .unit-image img {{ width: 100%; display: block; }}
 .unit-details {{ margin-left: 410px; }}
 
@@ -172,16 +178,16 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <div class="unit-card">
 
 <div class="unit-header">
-<div class="unit-code">Лот {lot["code"]}</div>
+<div class="unit-code">Гостиничный номер, {lot["code"]}</div>
 <div class="unit-price">{fmt(lot["price"])}</div>
 <div style="clear:both"></div>
 </div>
 
 <div class="unit-body">
-<div class="unit-image">
+<div class="{'unit-image-full' if full_payment else 'unit-image'}">
 {"<img src='data:image/jpeg;base64," + layout_b64 + "'>" if layout_b64 else ""}
 </div>
-<div class="unit-details">
+<div class="{'unit-details-full' if full_payment else 'unit-details'}">
 <table class="detail-table">
 <tr><td class="detail-label">Корпус</td><td class="detail-value">{bname}</td></tr>
 <tr><td class="detail-label">Этаж</td><td class="detail-value">{lot["floor"]}</td></tr>
@@ -191,14 +197,23 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <tr><td class="detail-label">Цена за м²</td><td class="detail-value">{fmt(ppm2)}</td></tr>
 </table>
 <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-<span style="color: #313D20; font-size: 15px;">Стоимость лота без рассрочки</span>
-<span style="float: right; font-weight: 600; font-size: 18px; color: #313D20;">{fmt(lot["price"])}</span>
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span style="color: #666; font-size: 14px;">Базовая стоимость</span>
+<span style="font-size: 14px; color: #666;">{fmt(lot["price"])}</span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<span style="color: #313D20; font-size: 15px; font-weight: 500;">При 100% оплате <span style="color: #4a7c23;">(–5%)</span></span>
+<span style="font-weight: 700; font-size: 20px; color: #4a7c23;">{fmt(int((lot["price"] - 150000) * 0.95))}</span>
+</div>
 </div>
 </div>
 <div style="clear:both"></div>
 </div>
 
-<div class="installment-section">
+'''
+
+    if not full_payment:
+        html += f'''<div class="installment-section">
 <div class="installment-title">Рассрочка 0% на 12 месяцев</div>
 <table class="options-table"><tr>
 <td class="option-card">
@@ -209,17 +224,17 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <td class="option-card option-card-mid">
 <div class="option-pv">Первый взнос 40%</div>
 <div class="option-amount">{fmt(i12["pv_40"])}</div>
-<div class="option-monthly">11 × 200 000 ₽<br>12-й: {fmt(i12["last_40"])}</div>
+<div class="option-monthly">11 мес. × 200 000 ₽<br>12-й: {fmt(i12["last_40"])}</div>
 </td>
 <td class="option-card">
 <div class="option-pv">Первый взнос 50%</div>
 <div class="option-amount">{fmt(i12["pv_50"])}</div>
-<div class="option-monthly">11 × 100 000 ₽<br>12-й: {fmt(i12["last_50"])}</div>
+<div class="option-monthly">11 мес. × 100 000 ₽<br>12-й: {fmt(i12["last_50"])}</div>
 </td>
 </tr></table>
 </div>'''
 
-    if include_24m:
+    if include_24m and not full_payment:
         html += f'''
 <div class="installment-section installment-section-24">
 <div class="installment-title">Рассрочка на 24 месяца</div>
@@ -227,19 +242,19 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <td class="option-card-24">
 <div class="option-pv">Первый взнос 30% <span class="option-badge">+12%</span></div>
 <div class="option-amount">{fmt(i24["pv_30"])}</div>
-<div class="option-monthly">24 × {fmt(i24["monthly_30"])}</div>
+<div class="option-monthly">24 мес. × {fmt(i24["monthly_30"])}</div>
 <div class="option-total">Удорожание: +{fmt(i24["markup_30"])}<div class="option-total-sum">Итого: {fmt(i24["final_30"])}</div></div>
 </td>
 <td class="option-card-24 option-card-24-mid">
 <div class="option-pv">Первый взнос 40% <span class="option-badge">+9%</span></div>
 <div class="option-amount">{fmt(i24["pv_40"])}</div>
-<div class="option-monthly">11 × 250 000 ₽<br>12-й: {fmt(i24["p12"])}<br>11 × 250 000 ₽<br>24-й: {fmt(i24["last_40"])}</div>
+<div class="option-monthly">11 мес. × 250 000 ₽<br>12-й: {fmt(i24["p12"])}<br>11 мес. × 250 000 ₽<br>24-й: {fmt(i24["last_40"])}</div>
 <div class="option-total">Удорожание: +{fmt(i24["markup_40"])}<div class="option-total-sum">Итого: {fmt(i24["final_40"])}</div></div>
 </td>
 <td class="option-card-24">
 <div class="option-pv">Первый взнос 50% <span class="option-badge">+6%</span></div>
 <div class="option-amount">{fmt(i24["pv_50"])}</div>
-<div class="option-monthly">11 × 150 000 ₽<br>12-й: {fmt(i24["p12"])}<br>11 × 150 000 ₽<br>24-й: {fmt(i24["last_50"])}</div>
+<div class="option-monthly">11 мес. × 150 000 ₽<br>12-й: {fmt(i24["p12"])}<br>11 мес. × 150 000 ₽<br>24-й: {fmt(i24["last_50"])}</div>
 <div class="option-total">Удорожание: +{fmt(i24["markup_50"])}<div class="option-total-sum">Итого: {fmt(i24["final_50"])}</div></div>
 </td>
 </tr></table>
@@ -256,19 +271,19 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 </body></html>'''
     return html
 
-def generate_kp_pdf(area: float = 0, code: str = "", include_24m: bool = True, output_dir: str = None) -> Optional[str]:
+def generate_kp_pdf(area: float = 0, code: str = "", include_24m: bool = True, full_payment: bool = False, output_dir: str = None) -> Optional[str]:
     lot = get_lot_from_db(area=area, code=code)
     if not lot:
         print(f"[KP PDF] Лот не найден: area={area}, code={code}")
         return None
     print(f"[KP PDF] Генерируем КП для {lot['code']} ({lot['area']} м²)")
-    html = generate_html(lot, include_24m=include_24m)
+    html = generate_html(lot, include_24m=include_24m, full_payment=full_payment)
     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
         f.write(html)
         html_path = f.name
     if output_dir is None:
         output_dir = tempfile.gettempdir()
-    suffix = "_12m_24m" if include_24m else "_12m"
+    suffix = "_100" if full_payment else ("_12m_24m" if include_24m else "_12m")
     pdf_path = os.path.join(output_dir, f"KP_{lot['code']}{suffix}.pdf")
     try:
         cmd = ['wkhtmltopdf', '--page-size', 'A4', '--orientation', 'Portrait', '--margin-top', '0', '--margin-bottom', '0', '--margin-left', '0', '--margin-right', '0', '--enable-local-file-access', '--disable-smart-shrinking', '--quiet', html_path, pdf_path]

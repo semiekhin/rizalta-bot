@@ -367,8 +367,8 @@ async def process_callback(callback: Dict[str, Any]):
         parts = data.replace("kp_gen_", "").rsplit("_", 1)
         if len(parts) == 2:
             area_x10 = int(parts[0])
-            include_24m = (parts[1] == "24")
-            await handle_kp_generate_pdf(chat_id, area_x10, include_24m)
+            mode = parts[1]  # "100", "12", или "24"
+            await handle_kp_generate_pdf(chat_id, area_x10, mode)
 
     # ===== Документы =====
 

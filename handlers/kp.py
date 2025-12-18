@@ -255,6 +255,8 @@ async def handle_kp_select_lot(chat_id: int, area_x10: int):
     
     inline_buttons = [
         [
+            {"text": "💯 100% оплата", "callback_data": f"kp_gen_{area_x10}_100"}],
+        [
             {"text": "📄 12 месяцев", "callback_data": f"kp_gen_{area_x10}_12"},
             {"text": "📄 12 и 24 месяца", "callback_data": f"kp_gen_{area_x10}_24"},
         ],
@@ -264,7 +266,7 @@ async def handle_kp_select_lot(chat_id: int, area_x10: int):
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_kp_generate_pdf(chat_id: int, area_x10: int, include_24m: bool):
+async def handle_kp_generate_pdf(chat_id: int, area_x10: int, mode: str = "24"):
     """
     Генерирует и отправляет PDF КП.
     area_x10: площадь * 10 (например 287 для 28.7 м²)
@@ -285,12 +287,15 @@ async def handle_kp_generate_pdf(chat_id: int, area_x10: int, include_24m: bool)
     await send_message(chat_id, "⏳ Генерирую PDF...")
     
     # Генерируем PDF
-    pdf_path = generate_kp_pdf(area=lot["area"], include_24m=include_24m)
+    # Режим: "100" - 100% оплата, "12" - 12 мес, "24" - 12+24 мес
+    full_payment = (mode == "100")
+    include_24m = (mode == "24")
+    pdf_path = generate_kp_pdf(area=lot["area"], include_24m=include_24m, full_payment=full_payment)
     
     if pdf_path and os.path.exists(pdf_path):
         # Отправляем PDF
-        mode_text = "12 и 24 месяца" if include_24m else "12 месяцев"
-        caption = f"📋 КП: {lot['code']} ({lot['area']} м²)\n💰 {format_price_short(lot['price'])}\n📅 Рассрочка: {mode_text}"
+        mode_text = "100% оплата (скидка 5%)" if full_payment else ("12 и 24 месяца" if include_24m else "12 месяцев")
+        caption = f"📋 КП: {lot['code']} ({lot['area']} м²)\n💰 {format_price_short(lot['price'])}\n📅 {mode_text}"
         
         await send_document(chat_id, pdf_path, caption)
         

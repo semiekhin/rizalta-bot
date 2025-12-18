@@ -24,25 +24,19 @@ Python 3.12 · FastAPI · OpenAI GPT-4o-mini · Whisper · SQLite · Cloudflare 
 - `handlers/booking_fixation.py` — фиксация клиентов через ri.rclick.ru
 - `services/` — бизнес-логика
 - `services/rclick_service.py` — интеграция с ri.rclick.ru
-- `services/deposit_calculator.py` — калькулятор депозита (данные ЦБ)
-- `services/investment_compare.py` — сравнение инвестиций
-- `services/compare_pdf_generator.py` — PDF отчёт сравнения
-- `services/calc_xlsx_generator.py` — Excel ROI калькулятор
 - `services/kp_pdf_generator.py` — PDF коммерческое предложение
+- `services/compare_pdf_generator.py` — PDF отчёт сравнения
 - `data/rizalta_knowledge_base.txt` — база знаний AI
 
-## Версия: 1.9.4
+## Версия: 1.9.5
 
 ## Последняя сессия: 18.12.2025
+- ✅ КП: 3 варианта (100% оплата, 12 мес, 12+24 мес)
+- ✅ КП: "Гостиничный номер" вместо "Лот"
+- ✅ КП: Скидка 5% при 100% оплате (от price - 150000)
+- ✅ КП: "11 мес. ×" и "24 мес. ×" в рассрочке
 - ✅ Фиксация клиентов через ri.rclick.ru
-  - Авторизация риэлтора (телефон + пароль → токен)
-  - Токен хранится 90 дней в SQLite
-  - Фиксация без перехода на сайт
 - ✅ Сравнение депозит vs RIZALTA (данные ЦБ РФ)
-  - 3 сценария ключевой ставки
-  - PDF генератор
-  - Выбор лота по площади/бюджету
-- ✅ Улучшения КП (логотип, чёткость, цена без рассрочки)
 
 ## Предыдущие сессии
 - 11-12.12.2025: Excel генератор, SSH безопасность, мониторинг
@@ -50,14 +44,15 @@ Python 3.12 · FastAPI · OpenAI GPT-4o-mini · Whisper · SQLite · Cloudflare 
 ## TODO
 - [ ] Специалисты для календаря (реальные ФИО, telegram_id)
 - [ ] UptimeRobot (внешний мониторинг)
-- [ ] GitHub 2FA
 - [ ] Синхронизация данных (properties.db, rizalta_finance.json, units.json)
 
-## Фиксация клиентов
-- Endpoint авторизации: POST https://ri.rclick.ru/auth/login/
-- Endpoint фиксации: POST https://ri.rclick.ru/notice/newbooking/
-- Токен в cookie: rClick_token (срок ~100 дней)
-- project_id = 340 (RIZALTA)
+## КП варианты
+- **100% оплата** — планировка крупно, без рассрочки, скидка 5%
+- **12 месяцев** — рассрочка 0% на 12 мес
+- **12+24 месяца** — обе рассрочки
+
+## Формула скидки
+`(price - 150000) * 0.95`
 
 ## Важные правила
 - Токены НЕ коммитить (только в .env)
