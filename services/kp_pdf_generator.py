@@ -136,6 +136,17 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 .unit-image img {{ width: 100%; display: block; }}
 .unit-details {{ margin-left: 410px; }}
 
+.fp-layout {{ overflow: hidden; margin-bottom: 20px; }}
+.fp-image {{ float: left; width: 380px; }}
+.fp-image img {{ width: 100%; display: block; }}
+.fp-benefit {{ margin-left: 405px; margin-top: 20px; background: #F6F0E3; border-radius: 12px; padding: 30px; min-height: 320px; padding-top: 50px; }}
+.fp-benefit-title {{ font-size: 13px; font-weight: 600; color: #313D20; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; }}
+.fp-benefit-old {{ font-size: 18px; color: #313D20; text-decoration: line-through; opacity: 0.6; margin-bottom: 8px; }}
+.fp-benefit-badge {{ display: block; background: #313D20; color: #F6F0E3; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 4px; margin-bottom: 15px; }}
+.fp-benefit-price {{ font-size: 36px; font-weight: 700; color: #313D20; margin-bottom: 15px; line-height: 1.1; }}
+.fp-benefit-saving {{ font-size: 19px; margin-bottom: 20px; margin-top: -10px; color: #313D20; }}
+.fp-benefit-saving span {{ font-weight: 700; font-size: 28px; }}
+
 .detail-table {{ width: 100%; border-collapse: collapse; }}
 .detail-table td {{ padding: 12px 0; border-bottom: 1px solid rgba(49, 61, 32, 0.15); }}
 .detail-label {{ color: #313D20; font-size: 15px; }}
@@ -184,9 +195,10 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 </div>
 
 <div class="unit-body">
-<div class="{'unit-image-full' if full_payment else 'unit-image'}">
+{'<div class="fp-layout"><div class="fp-image">' if full_payment else '<div class="unit-image">'}
 {"<img src='data:image/jpeg;base64," + layout_b64 + "'>" if layout_b64 else ""}
 </div>
+{'<div class="fp-benefit"><div class="fp-benefit-title">Ваша выгода<span style="display: block; font-size: 44px; font-weight: 700; text-transform: none; letter-spacing: 0; margin-top: 5px;">при 100% оплате</span></div><div class="fp-benefit-saving"><span>' + fmt(int(lot["price"] * 0.05)) + '</span></div><div class="fp-benefit-badge">Скидка 5%</div><div class="fp-benefit-price">' + fmt(int(lot["price"] * 0.95)) + '</div><span style="font-size: 23px; font-weight: 700; color: #313D20;">Вместо</span><span class="fp-benefit-old" style="margin-left: 10px;">' + fmt(lot["price"]) + '</span></div></div>' if full_payment else ''}
 <div class="{'unit-details-full' if full_payment else 'unit-details'}">
 <table class="detail-table">
 <tr><td class="detail-label">Корпус</td><td class="detail-value">{bname}</td></tr>
@@ -196,16 +208,16 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <tr><td class="detail-label">Сдача</td><td class="detail-value">4 кв. 2027</td></tr>
 <tr><td class="detail-label">Цена за м²</td><td class="detail-value">{fmt(ppm2)}</td></tr>
 </table>
-<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+{'' if full_payment else '''<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-<span style="color: #666; font-size: 14px;">Базовая стоимость</span>
-<span style="font-size: 14px; color: #666;">{fmt(lot["price"])}</span>
+<span style="color: #666; font-size: 14px;">Стоимость номера</span>
+<span style="font-size: 14px; color: #666;">''' + fmt(lot["price"]) + '''</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center;">
 <span style="color: #313D20; font-size: 15px; font-weight: 500;">При 100% оплате <span style="color: #4a7c23;">(–5%)</span></span>
-<span style="font-weight: 700; font-size: 20px; color: #4a7c23;">{fmt(int(lot["price"] * 0.95))}</span>
+<span style="font-weight: 700; font-size: 20px; color: #4a7c23;">''' + fmt(int(lot["price"] * 0.95)) + '''</span>
 </div>
-</div>
+</div>'''}
 </div>
 <div style="clear:both"></div>
 </div>
@@ -224,12 +236,12 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <td class="option-card option-card-mid">
 <div class="option-pv">Первый взнос 40%</div>
 <div class="option-amount">{fmt(i12["pv_40"])}</div>
-<div class="option-monthly">11 мес. × 200 000 ₽<br>12-й: {fmt(i12["last_40"])}</div>
+<div class="option-monthly">11 платежей × 200 000 ₽<br>12-й платёж: {fmt(i12["last_40"])}</div>
 </td>
 <td class="option-card">
 <div class="option-pv">Первый взнос 50%</div>
 <div class="option-amount">{fmt(i12["pv_50"])}</div>
-<div class="option-monthly">11 мес. × 100 000 ₽<br>12-й: {fmt(i12["last_50"])}</div>
+<div class="option-monthly">11 платежей × 100 000 ₽<br>12-й платёж: {fmt(i12["last_50"])}</div>
 </td>
 </tr></table>
 </div>'''
@@ -242,19 +254,19 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <td class="option-card-24">
 <div class="option-pv">Первый взнос 30% <span class="option-badge">+12%</span></div>
 <div class="option-amount">{fmt(i24["pv_30"])}</div>
-<div class="option-monthly">24 мес. × {fmt(i24["monthly_30"])}</div>
+<div class="option-monthly">24 платежа × {fmt(i24["monthly_30"])}</div>
 <div class="option-total">Удорожание: +{fmt(i24["markup_30"])}<div class="option-total-sum">Итого: {fmt(i24["final_30"])}</div></div>
 </td>
 <td class="option-card-24 option-card-24-mid">
 <div class="option-pv">Первый взнос 40% <span class="option-badge">+9%</span></div>
 <div class="option-amount">{fmt(i24["pv_40"])}</div>
-<div class="option-monthly">11 мес. × 250 000 ₽<br>12-й: {fmt(i24["p12"])}<br>11 мес. × 250 000 ₽<br>24-й: {fmt(i24["last_40"])}</div>
+<div class="option-monthly">11 платежей × 250 000 ₽<br>12-й платёж: {fmt(i24["p12"])}<br>11 платежей × 250 000 ₽<br>24-й платёж: {fmt(i24["last_40"])}</div>
 <div class="option-total">Удорожание: +{fmt(i24["markup_40"])}<div class="option-total-sum">Итого: {fmt(i24["final_40"])}</div></div>
 </td>
 <td class="option-card-24">
 <div class="option-pv">Первый взнос 50% <span class="option-badge">+6%</span></div>
 <div class="option-amount">{fmt(i24["pv_50"])}</div>
-<div class="option-monthly">11 мес. × 150 000 ₽<br>12-й: {fmt(i24["p12"])}<br>11 мес. × 150 000 ₽<br>24-й: {fmt(i24["last_50"])}</div>
+<div class="option-monthly">11 платежей × 150 000 ₽<br>12-й платёж: {fmt(i24["p12"])}<br>11 платежей × 150 000 ₽<br>24-й платёж: {fmt(i24["last_50"])}</div>
 <div class="option-total">Удорожание: +{fmt(i24["markup_50"])}<div class="option-total-sum">Итого: {fmt(i24["final_50"])}</div></div>
 </td>
 </tr></table>
