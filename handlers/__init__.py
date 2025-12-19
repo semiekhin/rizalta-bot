@@ -90,6 +90,9 @@ from .docs import (
 from .media import (
     handle_media_menu,
     handle_send_presentation,
+    handle_send_presentation_file,
+    handle_video_menu,
+    handle_send_video,
 )
 
 # Сравнение депозит vs RIZALTA

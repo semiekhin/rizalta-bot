@@ -96,6 +96,9 @@ from handlers import (
     # Медиа
     handle_media_menu,
     handle_send_presentation,
+    handle_send_presentation_file,
+    handle_video_menu,
+    handle_send_video,
 )
 
 
@@ -302,6 +305,12 @@ async def process_callback(callback: Dict[str, Any]):
     
     elif data == "media_presentation":
         await handle_send_presentation(chat_id)
+    elif data.startswith("pres_"):
+        await handle_send_presentation_file(chat_id, data)
+    elif data == "media_video":
+        await handle_video_menu(chat_id)
+    elif data.startswith("video_"):
+        await handle_send_video(chat_id, data)
     
     elif data == "back_to_menu":
         await handle_main_menu(chat_id)

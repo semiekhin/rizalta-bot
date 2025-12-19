@@ -168,6 +168,55 @@ async def send_document(
         return False
 
 
+
+
+async def send_video(
+    chat_id: int,
+    filepath: str,
+    caption: Optional[str] = None,
+) -> bool:
+    """Отправляет видео с превью в чате."""
+    token = get_token()
+    if not token:
+        print("⚠️ TELEGRAM_BOT_TOKEN не задан")
+        return False
+    
+    if not os.path.exists(filepath):
+        print(f"⚠️ Файл не найден: {filepath}")
+        return False
+    
+    url = f"https://api.telegram.org/bot{token}/sendVideo"
+    filename = os.path.basename(filepath)
+    
+    try:
+        loop = asyncio.get_event_loop()
+        
+        def _post():
+            try:
+                with open(filepath, "rb") as f:
+                    data = {"chat_id": chat_id, "supports_streaming": True}
+                    if caption:
+                        data["caption"] = caption
+                        data["parse_mode"] = "HTML"
+                    
+                    r = requests.post(
+                        url,
+                        data=data,
+                        files={"video": (filename, f)},
+                        timeout=300,
+                    )
+                    r.raise_for_status()
+                    print(f"[TG] sendVideo {filename} status={r.status_code}")
+                    return True
+            except Exception as e:
+                print(f"⚠️ Ошибка отправки видео: {e}")
+                return False
+        
+        return await loop.run_in_executor(None, _post)
+    except Exception as e:
+        print(f"⚠️ send_video error: {e}")
+        return False
+
 async def answer_callback_query(callback_id: str, text: Optional[str] = None) -> bool:
     """Отвечает на callback query (убирает часики на кнопке)."""
     token = get_token()
