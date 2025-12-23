@@ -1,60 +1,48 @@
-# RIZALTA Bot
+# RIZALTA Bot — Быстрый старт
 
-## Что это
-AI-консультант для риэлторов. Инвестиционная недвижимость RIZALTA Resort Belokurikha (Алтай).
+## Версия
+**v2.1.0** (24.12.2024)
 
-## Боты
-- Prod: @RealtMeAI_bot
-- Dev: @rizaltatestdevop_bot
-
-## Сервер
+## Доступ к серверу
 ```bash
 ssh -p 2222 root@72.56.64.91
 ```
-- `/opt/bot` — prod (порт 8000, webhook)
-- `/opt/bot-dev` — dev (polling)
 
-## Стек
-Python 3.12 · FastAPI · OpenAI GPT-4o-mini · Whisper · SQLite · Cloudflare Tunnel
+## Структура
+- `/opt/bot-dev` — DEV (@rizaltatestdevop_bot, polling)
+- `/opt/bot` — PROD (@RealtMeAI_bot, webhook:8000)
 
-## Ключевые файлы
-- `app.py` — webhook, роутинг
-- `handlers/` — команды бота
-- `handlers/compare.py` — сравнение депозит vs RIZALTA
-- `handlers/booking_fixation.py` — фиксация клиентов через ri.rclick.ru
-- `services/` — бизнес-логика
-- `services/rclick_service.py` — интеграция с ri.rclick.ru
-- `services/kp_pdf_generator.py` — PDF коммерческое предложение
-- `services/compare_pdf_generator.py` — PDF отчёт сравнения
-- `data/rizalta_knowledge_base.txt` — база знаний AI
+## Ключевые файлы v2.1.0
+- `app.py` — главный роутер
+- `handlers/kp.py` — КП + универсальная навигация (Корпус→Этаж→Лоты)
+- `services/intent_router.py` — GPT классификатор с приоритетами
+- `services/units_db.py` — работа с 348 лотами
+- `services/calc_universal.py` — рассрочка 18 мес, новые проценты
+- `services/kp_pdf_generator.py` — генерация PDF с поддержкой building
 
-## Версия: 1.9.5
+## Основные фичи
+1. **348 лотов** — все актуальные лоты с сайта застройщика
+2. **Навигация** — По корпусу / По площади / По бюджету / По коду лота
+3. **Дубли кодов** — 70 лотов есть в обоих корпусах, показывается выбор
+4. **Универсальное меню** — КП, Расчёты, Сравнение используют одну навигацию
+5. **Голосовое управление** — "что есть на 5 этаже 2 корпуса до 25 млн"
 
-## Последняя сессия: 18.12.2025
-- ✅ КП: 3 варианта (100% оплата, 12 мес, 12+24 мес)
-- ✅ КП: "Гостиничный номер" вместо "Лот"
-- ✅ КП: Скидка 5% при 100% оплате (от price - 150000)
-- ✅ КП: "11 мес. ×" и "24 мес. ×" в рассрочке
-- ✅ Фиксация клиентов через ri.rclick.ru
-- ✅ Сравнение депозит vs RIZALTA (данные ЦБ РФ)
+## Команды
+```bash
+# DEV
+systemctl restart rizalta-bot-dev
+journalctl -u rizalta-bot-dev -f
 
-## Предыдущие сессии
-- 11-12.12.2025: Excel генератор, SSH безопасность, мониторинг
+# PROD  
+systemctl restart rizalta-bot
+journalctl -u rizalta-bot -f
 
-## TODO
-- [ ] Специалисты для календаря (реальные ФИО, telegram_id)
-- [ ] UptimeRobot (внешний мониторинг)
-- [ ] Синхронизация данных (properties.db, rizalta_finance.json, units.json)
+# Синхронизация базы
+cd /opt/bot-dev && python3 services/parser_rclick.py
+```
 
-## КП варианты
-- **100% оплата** — планировка крупно, без рассрочки, скидка 5%
-- **12 месяцев** — рассрочка 0% на 12 мес
-- **12+24 месяца** — обе рассрочки
-
-## Формула скидки
-`(price - 150000) * 0.95`
-
-## Важные правила
-- Токены НЕ коммитить (только в .env)
-- Ставки аренды: база 26.8 м² (не 22!)
-- start_year = 2026 в калькуляторах
+## Деплой DEV → PROD
+```bash
+cp /opt/bot-dev/{app.py,handlers/kp.py,services/*.py,properties.db} /opt/bot/
+cd /opt/bot && python3 -c "import app" && systemctl restart rizalta-bot
+```
