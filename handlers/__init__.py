@@ -122,3 +122,17 @@ from .booking_fixation import (
     handle_booking_input,
     has_active_booking_state,
 )
+
+from .secretary import (
+    handle_secretary_menu,
+    handle_secretary_day,
+    handle_secretary_week,
+    handle_secretary_task_detail,
+    handle_secretary_done,
+    handle_secretary_undone,
+    handle_secretary_delete,
+    handle_secretary_move_menu,
+    handle_secretary_move_to,
+    handle_secretary_add_prompt,
+    process_secretary_input,
+)
