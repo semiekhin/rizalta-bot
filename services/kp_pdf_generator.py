@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""ГЕНЕРАТОР PDF КП RIZALTA v3.1"""
+"""ГЕНЕРАТОР PDF КП RIZALTA v3.2
+
+Изменения v3.2 (23.12.2025):
+- Рассрочка 24 месяца → 18 месяцев
+- Новые проценты удорожания: ПВ30%→+9%, ПВ40%→+7%, ПВ50%→+4%
+"""
 
 import os, sqlite3, subprocess, tempfile, requests, base64
 from pathlib import Path
@@ -14,7 +19,7 @@ def load_resource(filename: str) -> str:
     path = RESOURCES_DIR / filename
     return path.read_text().strip() if path.exists() else ""
 
-def get_lot_from_db(area: float = 0, code: str = "") -> Optional[Dict[str, Any]]:
+def get_lot_from_db(area: float = 0, code: str = "", building: int = None) -> Optional[Dict[str, Any]]:
     if not DB_PATH.exists():
         return None
     conn = sqlite3.connect(str(DB_PATH))
@@ -23,7 +28,10 @@ def get_lot_from_db(area: float = 0, code: str = "") -> Optional[Dict[str, Any]]
         code_upper = code.strip().upper()
         table = str.maketrans({"А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "S", "Т": "T"})
         code_latin = code_upper.translate(table)
-        cursor.execute("SELECT code, building, floor, rooms, area_m2, price_rub, layout_url, block_section FROM units WHERE code = ? OR code = ? LIMIT 1", (code_upper, code_latin))
+        if building:
+            cursor.execute("SELECT code, building, floor, rooms, area_m2, price_rub, layout_url, block_section FROM units WHERE (code = ? OR code = ?) AND building = ? LIMIT 1", (code_upper, code_latin, building))
+        else:
+            cursor.execute("SELECT code, building, floor, rooms, area_m2, price_rub, layout_url, block_section FROM units WHERE code = ? OR code = ? LIMIT 1", (code_upper, code_latin))
     elif area > 0:
         cursor.execute("SELECT code, building, floor, rooms, area_m2, price_rub, layout_url, block_section FROM units WHERE ABS(area_m2 - ?) < 0.1 ORDER BY price_rub LIMIT 1", (area,))
     else:
@@ -68,26 +76,34 @@ def calc_12(price: int) -> Dict:
         "pv_50": pv_50, "last_50": (base - pv_50) - (100_000 * 11),
     }
 
-def calc_24(price: int) -> Dict:
+def calc_18(price: int) -> Dict:
+    """Рассрочка на 18 месяцев с новыми процентами удорожания (v3.2)."""
     base = price - SERVICE_FEE
     payment_12 = int(base * 0.10)
+    
+    # ПВ 30% → удорожание 9%
     pv_30 = int(base * 0.30)
     r30 = base - pv_30
-    m30 = int(r30 * 0.12)
+    m30 = int(r30 * 0.09)
+    
+    # ПВ 40% → удорожание 7%
     pv_40 = int(base * 0.40)
     r40 = base - pv_40
-    m40 = int(r40 * 0.09)
+    m40 = int(r40 * 0.07)
+    
+    # ПВ 50% → удорожание 4%
     pv_50 = int(base * 0.50)
     r50 = base - pv_50
-    m50 = int(r50 * 0.06)
+    m50 = int(r50 * 0.04)
+    
     return {
         "p12": payment_12,
-        "pv_30": pv_30, "monthly_30": int((r30 + m30) / 24), "markup_30": m30, "final_30": price + m30,
-        "pv_40": pv_40, "last_40": (r40 + m40) - (250_000 * 11) - payment_12 - (250_000 * 11), "markup_40": m40, "final_40": price + m40,
-        "pv_50": pv_50, "last_50": (r50 + m50) - (150_000 * 11) - payment_12 - (150_000 * 11), "markup_50": m50, "final_50": price + m50,
+        "pv_30": pv_30, "monthly_30": int((r30 + m30) / 18), "markup_30": m30, "final_30": price + m30,
+        "pv_40": pv_40, "last_40": (r40 + m40) - (250_000 * 11) - payment_12 - (250_000 * 5), "markup_40": m40, "final_40": price + m40,
+        "pv_50": pv_50, "last_50": (r50 + m50) - (150_000 * 11) - payment_12 - (150_000 * 5), "markup_50": m50, "final_50": price + m50,
     }
 
-def generate_html(lot: Dict[str, Any], include_24m: bool = True, full_payment: bool = False) -> str:
+def generate_html(lot: Dict[str, Any], include_18m: bool = True, full_payment: bool = False) -> str:
     layout_b64 = download_layout(lot.get("layout_url", ""))
     logo_b64 = load_resource("logo_mono_trim_base64.txt")
     font_regular = load_resource("montserrat_regular_base64.txt")
@@ -95,7 +111,7 @@ def generate_html(lot: Dict[str, Any], include_24m: bool = True, full_payment: b
     font_semibold = load_resource("montserrat_semibold_base64.txt")
     
     i12 = calc_12(lot["price"])
-    i24 = calc_24(lot["price"]) if include_24m else {}
+    i18 = calc_18(lot["price"]) if include_18m else {}
     bname = get_building_name(lot.get("block_section", 2))
     ltype = get_lot_type(lot["area"], lot.get("rooms", 1))
     ppm2 = int(lot["price"] / lot["area"])
@@ -153,14 +169,14 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 .detail-value {{ text-align: right; font-weight: 600; font-size: 15px; }}
 
 .installment-section {{ padding: 22px 25px; background: #F6F0E3; }}
-.installment-section-24 {{ padding-top: 8px; }}
+.installment-section-18 {{ padding-top: 8px; }}
 .installment-title {{ font-size: 22px; font-weight: 500; margin-bottom: 18px; color: #313D20; }}
 
 .options-table {{ width: 100%; border-collapse: collapse; }}
 .option-card {{ background: white; border: 2px solid #313D20; padding: 18px; text-align: center; vertical-align: top; }}
 .option-card-mid {{ border-left: none; border-right: none; }}
-.option-card-24 {{ background: white; border: 2px solid #DCB764; padding: 18px; text-align: center; vertical-align: top; }}
-.option-card-24-mid {{ border-left: none; border-right: none; }}
+.option-card-18 {{ background: white; border: 2px solid #DCB764; padding: 18px; text-align: center; vertical-align: top; }}
+.option-card-18-mid {{ border-left: none; border-right: none; }}
 
 .option-pv {{ font-size: 14px; color: #313D20; margin-bottom: 10px; font-weight: 500; }}
 .option-badge {{ display: inline-block; background: #DCB764; color: #313D20; font-size: 11px; font-weight: 600; padding: 3px 7px; margin-left: 6px; }}
@@ -246,28 +262,28 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 </tr></table>
 </div>'''
 
-    if include_24m and not full_payment:
+    if include_18m and not full_payment:
         html += f'''
-<div class="installment-section installment-section-24">
-<div class="installment-title">Рассрочка на 24 месяца</div>
+<div class="installment-section installment-section-18">
+<div class="installment-title">Рассрочка на 18 месяцев</div>
 <table class="options-table"><tr>
-<td class="option-card-24">
-<div class="option-pv">Первый взнос 30% <span class="option-badge">+12%</span></div>
-<div class="option-amount">{fmt(i24["pv_30"])}</div>
-<div class="option-monthly">24 платежа × {fmt(i24["monthly_30"])}</div>
-<div class="option-total">Удорожание: +{fmt(i24["markup_30"])}<div class="option-total-sum">Итого: {fmt(i24["final_30"])}</div></div>
+<td class="option-card-18">
+<div class="option-pv">Первый взнос 30% <span class="option-badge">+9%</span></div>
+<div class="option-amount">{fmt(i18["pv_30"])}</div>
+<div class="option-monthly">18 платежей × {fmt(i18["monthly_30"])}</div>
+<div class="option-total">Удорожание: +{fmt(i18["markup_30"])}<div class="option-total-sum">Итого: {fmt(i18["final_30"])}</div></div>
 </td>
-<td class="option-card-24 option-card-24-mid">
-<div class="option-pv">Первый взнос 40% <span class="option-badge">+9%</span></div>
-<div class="option-amount">{fmt(i24["pv_40"])}</div>
-<div class="option-monthly">11 платежей × 250 000 ₽<br>12-й платёж: {fmt(i24["p12"])}<br>11 платежей × 250 000 ₽<br>24-й платёж: {fmt(i24["last_40"])}</div>
-<div class="option-total">Удорожание: +{fmt(i24["markup_40"])}<div class="option-total-sum">Итого: {fmt(i24["final_40"])}</div></div>
+<td class="option-card-18 option-card-18-mid">
+<div class="option-pv">Первый взнос 40% <span class="option-badge">+7%</span></div>
+<div class="option-amount">{fmt(i18["pv_40"])}</div>
+<div class="option-monthly">11 платежей × 250 000 ₽<br>12-й платёж: {fmt(i18["p12"])}<br>5 платежей × 250 000 ₽<br>18-й платёж: {fmt(i18["last_40"])}</div>
+<div class="option-total">Удорожание: +{fmt(i18["markup_40"])}<div class="option-total-sum">Итого: {fmt(i18["final_40"])}</div></div>
 </td>
-<td class="option-card-24">
-<div class="option-pv">Первый взнос 50% <span class="option-badge">+6%</span></div>
-<div class="option-amount">{fmt(i24["pv_50"])}</div>
-<div class="option-monthly">11 платежей × 150 000 ₽<br>12-й платёж: {fmt(i24["p12"])}<br>11 платежей × 150 000 ₽<br>24-й платёж: {fmt(i24["last_50"])}</div>
-<div class="option-total">Удорожание: +{fmt(i24["markup_50"])}<div class="option-total-sum">Итого: {fmt(i24["final_50"])}</div></div>
+<td class="option-card-18">
+<div class="option-pv">Первый взнос 50% <span class="option-badge">+4%</span></div>
+<div class="option-amount">{fmt(i18["pv_50"])}</div>
+<div class="option-monthly">11 платежей × 150 000 ₽<br>12-й платёж: {fmt(i18["p12"])}<br>5 платежей × 150 000 ₽<br>18-й платёж: {fmt(i18["last_50"])}</div>
+<div class="option-total">Удорожание: +{fmt(i18["markup_50"])}<div class="option-total-sum">Итого: {fmt(i18["final_50"])}</div></div>
 </td>
 </tr></table>
 </div>'''
@@ -283,19 +299,19 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 </body></html>'''
     return html
 
-def generate_kp_pdf(area: float = 0, code: str = "", include_24m: bool = True, full_payment: bool = False, output_dir: str = None) -> Optional[str]:
-    lot = get_lot_from_db(area=area, code=code)
+def generate_kp_pdf(area: float = 0, code: str = "", building: int = None, include_18m: bool = True, full_payment: bool = False, output_dir: str = None) -> Optional[str]:
+    lot = get_lot_from_db(area=area, code=code, building=building)
     if not lot:
         print(f"[KP PDF] Лот не найден: area={area}, code={code}")
         return None
     print(f"[KP PDF] Генерируем КП для {lot['code']} ({lot['area']} м²)")
-    html = generate_html(lot, include_24m=include_24m, full_payment=full_payment)
+    html = generate_html(lot, include_18m=include_18m, full_payment=full_payment)
     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
         f.write(html)
         html_path = f.name
     if output_dir is None:
         output_dir = tempfile.gettempdir()
-    suffix = "_100" if full_payment else ("_12m_24m" if include_24m else "_12m")
+    suffix = "_100" if full_payment else ("_12m_18m" if include_18m else "_12m")
     pdf_path = os.path.join(output_dir, f"KP_{lot['code']}{suffix}.pdf")
     try:
         cmd = ['wkhtmltopdf', '--page-size', 'A4', '--orientation', 'Portrait', '--margin-top', '0', '--margin-bottom', '0', '--margin-left', '0', '--margin-right', '0', '--enable-local-file-access', '--disable-smart-shrinking', '--quiet', html_path, pdf_path]
@@ -315,4 +331,4 @@ def generate_kp_pdf(area: float = 0, code: str = "", include_24m: bool = True, f
 if __name__ == "__main__":
     import sys
     code = sys.argv[1] if len(sys.argv) > 1 else "В101"
-    generate_kp_pdf(code=code, include_24m=True, output_dir="/tmp")
+    generate_kp_pdf(code=code, include_18m=True, output_dir="/tmp")

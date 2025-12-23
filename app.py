@@ -1,6 +1,12 @@
 """
-RIZALTA Telegram Bot v2.0
+RIZALTA Telegram Bot v2.1.0
 Главный файл приложения с GPT Intent Router.
+
+Изменения v2.1.0:
+- Показ ВСЕХ 348 актуальных лотов (вместо 69 уникальных)
+- UI: Корпус → Этаж → Лоты
+- Голосовое управление с параметрами building, floor, code
+- Нормализация кодов А↔A, В↔B
 
 Изменения v2.0:
 - Убраны regex паттерны
@@ -116,7 +122,7 @@ from handlers import (
 )
 
 
-app = FastAPI(title="RIZALTA Bot v2.0")
+app = FastAPI(title="RIZALTA Bot v2.1.0")
 
 
 # ====== Health check ======
@@ -124,7 +130,7 @@ app = FastAPI(title="RIZALTA Bot v2.0")
 @app.get("/")
 async def health():
     """Health check."""
-    return {"ok": True, "bot": "RIZALTA", "version": "2.0"}
+    return {"ok": True, "bot": "RIZALTA", "version": "2.1.0"}
 
 
 # ====== Telegram Webhook ======
@@ -288,13 +294,181 @@ async def process_callback(callback: Dict[str, Any]):
     elif data == "back_to_menu":
         await handle_main_menu(chat_id)
     
-    # ===== КП =====
+    # ===== КП v2.1.0 - НОВЫЕ CALLBACK'И =====
     
     elif data == "kp_menu":
+        from handlers.kp import handle_kp_menu
         await handle_kp_menu(chat_id)
     
     elif data == "kp_refine":
+        from handlers.kp import handle_kp_menu
         await handle_kp_menu(chat_id)
+    
+    elif data == "kp_by_building":
+        from handlers.kp import handle_kp_by_building_menu
+        await handle_kp_by_building_menu(chat_id)
+    
+    elif data.startswith("kp_building_all_"):
+        from handlers.kp import handle_kp_building_all
+        building = int(data.replace("kp_building_all_", ""))
+        await handle_kp_building_all(chat_id, building)
+    
+    elif data.startswith("kp_building_"):
+        from handlers.kp import handle_kp_building
+        building = int(data.replace("kp_building_", ""))
+        await handle_kp_building(chat_id, building)
+    
+    elif data.startswith("kp_floors_"):
+        from handlers.kp import handle_kp_floors_range
+        parts = data.replace("kp_floors_", "").split("_")
+        building = int(parts[0])
+        floor_range = parts[1]  # "upper", "lower", "middle"
+        await handle_kp_floors_range(chat_id, building, floor_range)
+    
+    elif data.startswith("kp_floor_all_"):
+        from handlers.kp import handle_kp_floor_all
+        parts = data.replace("kp_floor_all_", "").split("_")
+        building = int(parts[0])
+        floor = int(parts[1])
+        await handle_kp_floor_all(chat_id, building, floor)
+    
+    elif data.startswith("kp_floor_"):
+        from handlers.kp import handle_kp_floor
+        parts = data.replace("kp_floor_", "").split("_")
+        building = int(parts[0])
+        floor = int(parts[1])
+        await handle_kp_floor(chat_id, building, floor)
+    
+    elif data.startswith("kp_lot_"):
+        from handlers.kp import handle_kp_lot
+        parts = data.replace("kp_lot_", "").split("_")
+        code = parts[0]
+        building = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+        await handle_kp_lot(chat_id, code, building)
+    
+    elif data.startswith("kp_gen_"):
+        from handlers.kp import handle_kp_generate
+        # Формат: kp_gen_{code}_{building}_{mode} или kp_gen_{code}_{mode}
+        raw = data.replace("kp_gen_", "")
+        parts = raw.rsplit("_", 1)  # Отделяем mode от остального
+        if len(parts) == 2:
+            code_part = parts[0]  # Может быть "В708" или "В708_1"
+            mode = parts[1]       # "100", "12", "full"
+            await handle_kp_generate(chat_id, code_part, mode)
+    
+    elif data == "kp_by_code":
+        from handlers.kp import handle_kp_by_code_menu
+        await handle_kp_by_code_menu(chat_id)
+    
+    elif data == "kp_show_more":
+        from handlers.kp import handle_kp_show_more
+        await handle_kp_show_more(chat_id)
+    
+    # ===== Расчёты через универсальную навигацию =====
+    
+    elif data == "calc_nav_menu":
+        from handlers.kp import handle_nav_menu
+        await handle_nav_menu(chat_id, mode="calc")
+    
+    elif data == "calc_nav_by_building":
+        from handlers.kp import handle_nav_by_building_menu
+        await handle_nav_by_building_menu(chat_id, mode="calc")
+    
+    elif data == "calc_nav_by_area":
+        from handlers.kp import handle_kp_by_area_menu
+        await handle_kp_by_area_menu(chat_id)
+    
+    elif data == "calc_nav_by_budget":
+        from handlers.kp import handle_kp_by_budget_menu
+        await handle_kp_by_budget_menu(chat_id)
+    
+    elif data == "calc_nav_by_code":
+        from handlers.kp import handle_kp_by_code_menu
+        await handle_kp_by_code_menu(chat_id)
+    
+    elif data.startswith("calc_nav_building_all_"):
+        from handlers.kp import handle_kp_building_all
+        building = int(data.replace("calc_nav_building_all_", ""))
+        await handle_kp_building_all(chat_id, building)
+    
+    elif data.startswith("calc_nav_building_"):
+        from handlers.kp import handle_nav_building
+        building = int(data.replace("calc_nav_building_", ""))
+        await handle_nav_building(chat_id, building, mode="calc")
+    
+    elif data.startswith("calc_nav_floors_"):
+        from handlers.kp import handle_kp_floors_range
+        parts = data.replace("calc_nav_floors_", "").split("_")
+        building = int(parts[0])
+        floor_range = parts[1]
+        await handle_kp_floors_range(chat_id, building, floor_range)
+    
+    elif data.startswith("calc_nav_floor_"):
+        from handlers.kp import handle_nav_floor
+        parts = data.replace("calc_nav_floor_", "").split("_")
+        building = int(parts[0])
+        floor = int(parts[1])
+        await handle_nav_floor(chat_id, building, floor, mode="calc")
+    
+    elif data.startswith("calc_nav_lot_"):
+        from handlers.kp import handle_nav_lot
+        parts = data.replace("calc_nav_lot_", "").split("_")
+        code = parts[0]
+        building = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+        await handle_nav_lot(chat_id, code, building, mode="calc")
+    
+    # ===== Сравнение через универсальную навигацию =====
+    
+    elif data == "compare_nav_menu":
+        from handlers.kp import handle_nav_menu
+        await handle_nav_menu(chat_id, mode="compare")
+    
+    elif data == "compare_nav_by_building":
+        from handlers.kp import handle_nav_by_building_menu
+        await handle_nav_by_building_menu(chat_id, mode="compare")
+    
+    elif data == "compare_nav_by_area":
+        from handlers.kp import handle_kp_by_area_menu
+        await handle_kp_by_area_menu(chat_id)
+    
+    elif data == "compare_nav_by_budget":
+        from handlers.kp import handle_kp_by_budget_menu
+        await handle_kp_by_budget_menu(chat_id)
+    
+    elif data == "compare_nav_by_code":
+        from handlers.kp import handle_kp_by_code_menu
+        await handle_kp_by_code_menu(chat_id)
+    
+    elif data.startswith("compare_nav_building_all_"):
+        from handlers.kp import handle_kp_building_all
+        building = int(data.replace("compare_nav_building_all_", ""))
+        await handle_kp_building_all(chat_id, building)
+    
+    elif data.startswith("compare_nav_building_"):
+        from handlers.kp import handle_nav_building
+        building = int(data.replace("compare_nav_building_", ""))
+        await handle_nav_building(chat_id, building, mode="compare")
+    
+    elif data.startswith("compare_nav_floors_"):
+        from handlers.kp import handle_kp_floors_range
+        parts = data.replace("compare_nav_floors_", "").split("_")
+        building = int(parts[0])
+        floor_range = parts[1]
+        await handle_kp_floors_range(chat_id, building, floor_range)
+    
+    elif data.startswith("compare_nav_floor_"):
+        from handlers.kp import handle_nav_floor
+        parts = data.replace("compare_nav_floor_", "").split("_")
+        building = int(parts[0])
+        floor = int(parts[1])
+        await handle_nav_floor(chat_id, building, floor, mode="compare")
+    
+    elif data.startswith("compare_nav_lot_"):
+        from handlers.kp import handle_nav_lot
+        parts = data.replace("compare_nav_lot_", "").split("_")
+        code = parts[0]
+        building = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+        await handle_nav_lot(chat_id, code, building, mode="compare")
     
     elif data == "kp_by_area":
         from handlers.kp import handle_kp_by_area_menu
@@ -339,14 +513,6 @@ async def process_callback(callback: Dict[str, Any]):
         area_x10 = int(data.replace("kp_select_", ""))
         await handle_kp_select_lot(chat_id, area_x10)
 
-    elif data.startswith("kp_gen_"):
-        from handlers.kp import handle_kp_generate_pdf
-        parts = data.replace("kp_gen_", "").rsplit("_", 1)
-        if len(parts) == 2:
-            area_x10 = int(parts[0])
-            mode = parts[1]
-            await handle_kp_generate_pdf(chat_id, area_x10, mode)
-
     # ===== Документы =====
 
     elif data == "doc_menu":
@@ -368,7 +534,8 @@ async def process_callback(callback: Dict[str, Any]):
     # ===== Динамические расчёты =====
 
     elif data == "calc_main_menu":
-        await handle_calculations_menu_new(chat_id)
+        from handlers.kp import handle_nav_menu
+        await handle_nav_menu(chat_id, mode="calc")
 
     elif data == "calc_roi_menu":
         await handle_calc_roi_menu(chat_id)
@@ -487,7 +654,7 @@ async def process_callback(callback: Dict[str, Any]):
             from services.kp_pdf_generator import generate_kp_pdf
             success = 0
             for flat in flats:
-                pdf_path = generate_kp_pdf(code=flat["code"], include_24m=True)
+                pdf_path = generate_kp_pdf(code=flat["code"], include_18m=True)
                 if pdf_path:
                     await send_document(chat_id, pdf_path, f"КП_{flat['code']}.pdf")
                     success += 1
@@ -498,7 +665,7 @@ async def process_callback(callback: Dict[str, Any]):
         lot_code = data.replace("domo_", "")
         await send_message(chat_id, f"⏳ Генерирую КП для {lot_code}...")
         from services.kp_pdf_generator import generate_kp_pdf
-        pdf_path = generate_kp_pdf(code=lot_code, include_24m=True)
+        pdf_path = generate_kp_pdf(code=lot_code, include_18m=True)
         if pdf_path:
             await send_document(chat_id, pdf_path, f"КП_{lot_code}.pdf")
         else:
@@ -529,8 +696,8 @@ async def process_callback(callback: Dict[str, Any]):
     # ===== Сравнение депозит vs RIZALTA =====
 
     elif data == "compare_menu":
-        from handlers.compare import handle_compare_menu
-        await handle_compare_menu(chat_id)
+        from handlers.kp import handle_nav_menu
+        await handle_nav_menu(chat_id, mode="compare")
 
     elif data == "compare_by_area":
         from handlers.compare import handle_compare_by_area_menu
@@ -676,6 +843,7 @@ async def handle_domoplaner_link(chat_id: int, url: str):
 async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: Dict[str, Any]):
     """
     Диспетчер намерений — направляет на нужный handler.
+    v2.1.0: Добавлена поддержка building, floor, code для КП.
     """
     intent = intent_result.get("intent", "chat")
     params = intent_result.get("params", {})
@@ -706,41 +874,39 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
         return
     
     if intent == "calculations_menu":
-        await handle_calculations_menu_new(chat_id)
+        from handlers.kp import handle_nav_menu
+        await handle_nav_menu(chat_id, mode="calc")
         return
     
-    # === КП ===
+    # === КП v2.1.0 - ОБНОВЛЁННАЯ ЛОГИКА ===
     
     if intent in ("kp_menu", "get_kp"):
         from handlers.kp import (
-            handle_kp_menu, handle_kp_area_range, 
-            handle_kp_budget_range, handle_kp_send_one
+            handle_kp_menu, 
+            handle_kp_smart_search,
+            handle_kp_lot,
         )
-        from services.units_db import get_lot_by_code
         
-        area = params.get("area")
-        budget = params.get("budget")
+        # Извлекаем параметры
         code = params.get("code")
+        building = params.get("building")
+        floor = params.get("floor")
+        budget = params.get("budget")
+        area = params.get("area")
         
-        if code:
-            lot = get_lot_by_code(code)
-            if lot:
-                await handle_kp_send_one(chat_id, area=lot["area"])
-            else:
-                await send_message(chat_id, f"❌ Лот {code} не найден")
-            return
-        
-        if area:
-            await handle_kp_area_range(chat_id, area - 2, area + 2)
-            return
-        
-        if budget:
-            min_b = int(budget * 0.9 / 1_000_000)
-            max_b = int(budget * 1.1 / 1_000_000)
-            await handle_kp_budget_range(chat_id, min_b, max_b)
-            return
-        
-        await handle_kp_menu(chat_id)
+        # Если есть любые параметры — используем умный поиск
+        if code or building or floor or budget or area:
+            await handle_kp_smart_search(
+                chat_id, 
+                code=code, 
+                building=building, 
+                floor=floor, 
+                budget=budget, 
+                area=area
+            )
+        else:
+            # Без параметров — главное меню КП
+            await handle_kp_menu(chat_id)
         return
     
     # === РАСЧЁТЫ ===
@@ -770,8 +936,8 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
         return
     
     if intent in ("compare_deposit", "compare_menu"):
-        from handlers.compare import handle_compare_menu
-        await handle_compare_menu(chat_id)
+        from handlers.kp import handle_nav_menu
+        await handle_nav_menu(chat_id, mode="compare")
         return
     
     # === ФИКСАЦИЯ И ШАХМАТКА ===
@@ -919,12 +1085,12 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
     await handle_free_text(chat_id, original_text)
 
 
-# ====== ГЛАВНЫЙ РОУТЕР СООБЩЕНИЙ (v2.0) ======
+# ====== ГЛАВНЫЙ РОУТЕР СООБЩЕНИЙ (v2.1) ======
 
 async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     """
     Новый роутер сообщений с GPT Intent Classification.
-    Версия 2.0 — без regex паттернов.
+    Версия 2.1 — поддержка корпусов, этажей, кодов лотов.
     """
     
     # === Обработка диалоговых состояний (фиксация) ===

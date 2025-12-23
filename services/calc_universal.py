@@ -129,33 +129,33 @@ def calculate_installment_for_lot(price: int, area: float, code: str) -> Dict[st
     remaining_50_12 = base - pv_50_12
     last_50_12 = remaining_50_12 - (100_000 * 11)
     
-    # === РАССРОЧКА 24 МЕСЯЦА (с удорожанием) ===
+    # === РАССРОЧКА 18 МЕСЯЦЕВ (с удорожанием) ===
     payment_12th = int(base * 0.10)  # 12-й платёж = 10% от базы
     
-    # ПВ 30% + 12% удорожание: 24 равных платежа
-    pv_30_24 = int(base * 0.30)
-    remaining_30_24 = base - pv_30_24
-    markup_30 = int(remaining_30_24 * 0.12)
-    total_30_24 = remaining_30_24 + markup_30
-    monthly_30_24 = int(total_30_24 / 24)
+    # ПВ 30% + 12% удорожание: 18 равных платежа
+    pv_30_18 = int(base * 0.30)
+    remaining_30_18 = base - pv_30_18
+    markup_30 = int(remaining_30_18 * 0.09)
+    total_30_18 = remaining_30_18 + markup_30
+    monthly_30_18 = int(total_30_18 / 18)
     final_price_30 = price + markup_30
     
-    # ПВ 40% + 9% удорожание: 11×250К, 12-й, 11×250К, 24-й остаток
-    pv_40_24 = int(base * 0.40)
-    remaining_40_24 = base - pv_40_24
-    markup_40 = int(remaining_40_24 * 0.09)
-    total_40_24 = remaining_40_24 + markup_40
-    paid_40_24 = (250_000 * 11) + payment_12th + (250_000 * 11)
-    last_40_24 = total_40_24 - paid_40_24
+    # ПВ 40% + 9% удорожание: 11×250К, 12-й, 11×250К, 18-й остаток
+    pv_40_18 = int(base * 0.40)
+    remaining_40_18 = base - pv_40_18
+    markup_40 = int(remaining_40_18 * 0.07)
+    total_40_18 = remaining_40_18 + markup_40
+    paid_40_18 = (250_000 * 11) + payment_12th + (250_000 * 5)
+    last_40_18 = total_40_18 - paid_40_18
     final_price_40 = price + markup_40
     
-    # ПВ 50% + 6% удорожание: 11×150К, 12-й, 11×150К, 24-й остаток
-    pv_50_24 = int(base * 0.50)
-    remaining_50_24 = base - pv_50_24
-    markup_50 = int(remaining_50_24 * 0.06)
-    total_50_24 = remaining_50_24 + markup_50
-    paid_50_24 = (150_000 * 11) + payment_12th + (150_000 * 11)
-    last_50_24 = total_50_24 - paid_50_24
+    # ПВ 50% + 6% удорожание: 11×150К, 12-й, 11×150К, 18-й остаток
+    pv_50_18 = int(base * 0.50)
+    remaining_50_18 = base - pv_50_18
+    markup_50 = int(remaining_50_18 * 0.04)
+    total_50_18 = remaining_50_18 + markup_50
+    paid_50_18 = (150_000 * 11) + payment_12th + (150_000 * 5)
+    last_50_18 = total_50_18 - paid_50_18
     final_price_50 = price + markup_50
     
     return {
@@ -166,9 +166,9 @@ def calculate_installment_for_lot(price: int, area: float, code: str) -> Dict[st
         "pv_50_12": pv_50_12, "last_50_12": last_50_12,
         # 24 мес
         "payment_12th": payment_12th,
-        "pv_30_24": pv_30_24, "monthly_30_24": monthly_30_24, "markup_30": markup_30, "final_price_30": final_price_30,
-        "pv_40_24": pv_40_24, "last_40_24": last_40_24, "markup_40": markup_40, "final_price_40": final_price_40,
-        "pv_50_24": pv_50_24, "last_50_24": last_50_24, "markup_50": markup_50, "final_price_50": final_price_50,
+        "pv_30_18": pv_30_18, "monthly_30_18": monthly_30_18, "markup_30": markup_30, "final_price_30": final_price_30,
+        "pv_40_18": pv_40_18, "last_40_18": last_40_18, "markup_40": markup_40, "final_price_40": final_price_40,
+        "pv_50_18": pv_50_18, "last_50_18": last_50_18, "markup_50": markup_50, "final_price_50": final_price_50,
     }
 
 
@@ -195,19 +195,19 @@ def format_installment_text(calc: Dict[str, Any]) -> str:
     lines.append(f"   → 11 мес по 100 000 ₽, 12-й: {fmt_rub(calc['last_50_12'])}")
     lines.append("")
     
-    # 24 месяца
-    lines.append("📅 <b>РАССРОЧКА 24 МЕСЯЦА</b>")
+    # 18 месяцев
+    lines.append("📅 <b>РАССРОЧКА 18 МЕСЯЦЕВ</b>")
     lines.append("")
-    lines.append(f"1️⃣ <b>ПВ 30% (+12%)</b> — {fmt_rub(calc['pv_30_24'])}")
-    lines.append(f"   → 24 мес по {fmt_rub(calc['monthly_30_24'])}")
+    lines.append(f"1️⃣ <b>ПВ 30% (+9%)</b> — {fmt_rub(calc['pv_30_18'])}")
+    lines.append(f"   → 18 мес по {fmt_rub(calc['monthly_30_18'])}")
     lines.append(f"   → Итого: {fmt_rub(calc['final_price_30'])} (+{fmt_rub(calc['markup_30'])})")
     lines.append("")
-    lines.append(f"2️⃣ <b>ПВ 40% (+9%)</b> — {fmt_rub(calc['pv_40_24'])}")
-    lines.append(f"   → 11×250К, 12-й: {fmt_rub(calc['payment_12th'])}, 11×250К, 24-й: {fmt_rub(calc['last_40_24'])}")
+    lines.append(f"2️⃣ <b>ПВ 40% (+7%)</b> — {fmt_rub(calc['pv_40_18'])}")
+    lines.append(f"   → 11×250К, 12-й: {fmt_rub(calc['payment_12th'])}, 5×250К, 18-й: {fmt_rub(calc['last_40_18'])}")
     lines.append(f"   → Итого: {fmt_rub(calc['final_price_40'])} (+{fmt_rub(calc['markup_40'])})")
     lines.append("")
-    lines.append(f"3️⃣ <b>ПВ 50% (+6%)</b> — {fmt_rub(calc['pv_50_24'])}")
-    lines.append(f"   → 11×150К, 12-й: {fmt_rub(calc['payment_12th'])}, 11×150К, 24-й: {fmt_rub(calc['last_50_24'])}")
+    lines.append(f"3️⃣ <b>ПВ 50% (+4%)</b> — {fmt_rub(calc['pv_50_18'])}")
+    lines.append(f"   → 11×150К, 12-й: {fmt_rub(calc['payment_12th'])}, 5×150К, 18-й: {fmt_rub(calc['last_50_18'])}")
     lines.append(f"   → Итого: {fmt_rub(calc['final_price_50'])} (+{fmt_rub(calc['markup_50'])})")
     
     return "\n".join(lines)
