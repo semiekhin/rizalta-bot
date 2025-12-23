@@ -757,9 +757,9 @@ async def handle_kp_smart_search(
     min_price = None
     max_price = None
     if budget:
-        # Интерпретируем как максимальный бюджет
-        max_price = budget
-        # Без нижней границы — показываем ВСЕ до указанного бюджета
+        # ±10% от указанной суммы
+        min_price = int(budget * 0.9)
+        max_price = int(budget * 1.1)
     
     min_area_val = None
     max_area_val = None
