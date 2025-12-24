@@ -129,8 +129,8 @@ app = FastAPI(title="RIZALTA Bot v2.1.0")
 # ====== Фоновая задача напоминаний ======
 
 async def reminder_loop():
-    """Проверяет и отправляет напоминания каждую минуту."""
     import os
+    """Проверяет и отправляет напоминания каждую минуту."""
     import sqlite3
     import aiohttp
     from datetime import datetime, timedelta
@@ -409,11 +409,11 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_kp_floors_range(chat_id, building, floor_range)
     
     elif data.startswith("kp_floor_all_"):
-        from handlers.kp import handle_kp_floor_all
+        from handlers.kp import handle_kp_floor
         parts = data.replace("kp_floor_all_", "").split("_")
         building = int(parts[0])
         floor = int(parts[1])
-        await handle_kp_floor_all(chat_id, building, floor)
+        await handle_kp_floor(chat_id, building, floor)
     
     elif data.startswith("kp_floor_"):
         from handlers.kp import handle_kp_floor

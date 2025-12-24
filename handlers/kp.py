@@ -158,7 +158,10 @@ async def handle_nav_floor(chat_id: int, building: int, floor: int, mode: str = 
         inline_buttons.append([{"text": btn_text, "callback_data": f"{cb}_lot_{lot['code']}_{building}"}])
     
     if len(lots) > MAX_BUTTONS_PER_MESSAGE:
-        inline_buttons.append([{"text": f"... ещё {len(lots) - MAX_BUTTONS_PER_MESSAGE} лотов", "callback_data": "noop"}])
+        # Сохраняем в кеш для пагинации
+        _search_cache[chat_id] = {"lots": lots, "offset": MAX_BUTTONS_PER_MESSAGE, "mode": mode, "back_callback": f"{cb}_building_{building}"}
+        remaining = len(lots) - MAX_BUTTONS_PER_MESSAGE
+        inline_buttons.append([{"text": f"📋 Показать ещё {remaining} лотов", "callback_data": "kp_show_more"}])
     
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"{cb}_building_{building}"}])
     
@@ -359,11 +362,10 @@ async def handle_kp_floor(chat_id: int, building: int, floor: int):
         inline_buttons.append([{"text": btn_text, "callback_data": f"kp_lot_{lot['code']}"}])
     
     if len(lots) > MAX_BUTTONS_PER_MESSAGE:
-        inline_buttons.append([{"text": f"... ещё {len(lots) - MAX_BUTTONS_PER_MESSAGE} лотов", "callback_data": "noop"}])
-    
-    # Кнопка "Все КП этажа"
-    if len(lots) > 1:
-        inline_buttons.append([{"text": f"📦 Все КП этажа ({len(lots)} шт.)", "callback_data": f"kp_floor_all_{building}_{floor}"}])
+        # Сохраняем в кеш для пагинации
+        _search_cache[chat_id] = {"lots": lots, "offset": MAX_BUTTONS_PER_MESSAGE, "back_callback": f"kp_building_{building}"}
+        remaining = len(lots) - MAX_BUTTONS_PER_MESSAGE
+        inline_buttons.append([{"text": f"📋 Показать ещё {remaining} лотов", "callback_data": "kp_show_more"}])
     
     inline_buttons.append([{"text": "🔙 К этажам", "callback_data": f"kp_building_{building}"}])
     
