@@ -69,10 +69,99 @@ async def handle_update(upd):
     user_info = msg.get("from", {})
     await process_message(chat_id, text, user_info)
 
+async def reminder_loop():
+    """Проверяет и отправляет напоминания каждую минуту."""
+    import sqlite3
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    
+    DB_PATH = Path("/opt/bot-dev/secretary.db")
+    
+    await asyncio.sleep(5)  # Даём боту запуститься
+    print("[DEV] Фоновая задача напоминаний запущена")
+    
+    def get_user_tz(cursor, user_id):
+        cursor.execute("SELECT timezone FROM users WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        return row[0] if row else 3  # По умолчанию Москва
+    
+    while True:
+        try:
+            if DB_PATH.exists():
+                conn = sqlite3.connect(str(DB_PATH))
+                cursor = conn.cursor()
+                
+                # Получаем все pending задачи с временем
+                cursor.execute("""
+                    SELECT id, user_id, task_text, due_date, due_time, client_name
+                    FROM tasks 
+                    WHERE status = 'pending' 
+                    AND reminder_sent = 0
+                    AND due_time IS NOT NULL
+                """)
+                
+                all_tasks = cursor.fetchall()
+                tasks = []
+                
+                now_utc = datetime.utcnow()
+                
+                for task in all_tasks:
+                    task_id, user_id, task_text, due_date, due_time, client_name = task
+                    
+                    # Получаем timezone пользователя
+                    user_tz = get_user_tz(cursor, user_id)
+                    
+                    # Текущее время по timezone пользователя
+                    now_user = now_utc + timedelta(hours=user_tz)
+                    today_user = now_user.strftime("%Y-%m-%d")
+                    current_time_user = now_user.strftime("%H:%M")
+                    remind_time_user = (now_user + timedelta(minutes=15)).strftime("%H:%M")
+                    
+                    # Проверяем нужно ли напоминание
+                    if due_date == today_user and due_time <= remind_time_user and due_time > current_time_user:
+                        tasks.append(task)
+                
+                for task in tasks:
+                    task_id, user_id, task_text, due_date, due_time, client_name = task
+                    
+                    client_info = f"\n👤 Клиент: {client_name}" if client_name else ""
+                    message = f"""⏰ <b>Напоминание!</b>
+
+📋 {task_text}{client_info}
+🕐 Через 15 минут ({due_time})"""
+                    
+                    url = f"{TG_API}/sendMessage"
+                    payload = {
+                        "chat_id": user_id,
+                        "text": message,
+                        "parse_mode": "HTML",
+                        "disable_notification": False
+                    }
+                    
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(url, json=payload) as resp:
+                            result = await resp.json()
+                            if result.get("ok"):
+                                cursor.execute("UPDATE tasks SET reminder_sent = 1 WHERE id = ?", (task_id,))
+                                conn.commit()
+                                print(f"[REMINDER] ✅ {user_id}: {task_text}")
+                            else:
+                                print(f"[REMINDER] ❌ {user_id}: {result}")
+                
+                conn.close()
+        except Exception as e:
+            print(f"[REMINDER] Error: {e}")
+        
+        await asyncio.sleep(60)
+
+
 async def main():
     print("[DEV] RIZALTA Bot — режим polling")
     print("[DEV] Ctrl+C для остановки")
     print("=" * 40)
+    
+    # Запускаем фоновую задачу напоминаний
+    asyncio.create_task(reminder_loop())
     
     async with aiohttp.ClientSession() as session:
         await delete_webhook(session)

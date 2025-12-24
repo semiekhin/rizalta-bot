@@ -210,3 +210,48 @@ def mark_reminder_sent(task_id):
 
 
 init_db()
+
+
+# ===== Timezone функции =====
+
+TIMEZONES = {
+    2: "Калининград (UTC+2)",
+    3: "Москва (UTC+3)",
+    4: "Самара (UTC+4)",
+    5: "Екатеринбург (UTC+5)",
+    6: "Омск (UTC+6)",
+    7: "Красноярск/Алтай (UTC+7)",
+    8: "Иркутск (UTC+8)",
+    9: "Якутск (UTC+9)",
+    10: "Владивосток (UTC+10)",
+    11: "Магадан (UTC+11)",
+    12: "Камчатка (UTC+12)",
+}
+
+
+def get_user_timezone(user_id: int) -> int:
+    """Возвращает timezone пользователя (по умолчанию 3 = Москва)."""
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    cursor.execute("SELECT timezone FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 3
+
+
+def set_user_timezone(user_id: int, timezone: int) -> bool:
+    """Устанавливает timezone пользователя."""
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO users (user_id, timezone) VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET timezone = ?
+    """, (user_id, timezone, timezone))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def get_timezone_name(tz: int) -> str:
+    """Возвращает название timezone."""
+    return TIMEZONES.get(tz, f"UTC+{tz}")

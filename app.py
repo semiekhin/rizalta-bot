@@ -60,6 +60,8 @@ from handlers import (
     handle_secretary_move_menu,
     handle_secretary_move_to,
     handle_secretary_add_prompt,
+    handle_timezone_menu,
+    handle_set_timezone,
     process_secretary_input,
     # Динамические расчёты
     handle_calculations_menu_new,
@@ -368,6 +370,13 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_secretary_move_to(chat_id, task_id, new_date)
     elif data == "sec_add":
         await handle_secretary_add_prompt(chat_id)
+    
+    elif data == "sec_timezone":
+        await handle_timezone_menu(chat_id)
+    
+    elif data.startswith("sec_set_tz_"):
+        tz = int(data.replace("sec_set_tz_", ""))
+        await handle_set_timezone(chat_id, tz)
     elif data.startswith("sec_add_"):
         preset_date = data.replace("sec_add_", "")
         await handle_secretary_add_prompt(chat_id, preset_date)

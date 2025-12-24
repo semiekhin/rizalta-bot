@@ -6,7 +6,7 @@ AI-Секретарь — личный ежедневник с голосовы�
 from datetime import datetime, timedelta
 from services.telegram import send_message, send_message_inline
 from services.secretary_db import (
-    add_task, get_tasks_for_date, get_tasks_for_week, get_task_by_id,
+    get_user_timezone, get_timezone_name, add_task, get_tasks_for_date, get_tasks_for_week, get_task_by_id,
     update_task_status, update_task_date, delete_task, count_tasks_for_date
 )
 from services.secretary_ai import analyze_workload
@@ -58,12 +58,17 @@ async def handle_secretary_menu(chat_id: int):
 
 🎤 Голосовые сообщения работают из любого места!"""
 
+    # Получаем timezone пользователя
+    user_tz = get_user_timezone(chat_id)
+    tz_name = get_timezone_name(user_tz)
+    
     inline_buttons = [
         [{"text": "📅 Сегодня", "callback_data": f"sec_day_{today_str}"},
          {"text": "📅 Завтра", "callback_data": f"sec_day_{tomorrow_str}"}],
         [{"text": "📆 Текущая неделя", "callback_data": f"sec_week_{monday_current.strftime('%Y-%m-%d')}"}],
         [{"text": "📆 Следующая неделя", "callback_data": f"sec_week_{monday_next.strftime('%Y-%m-%d')}"}],
         [{"text": "➕ Добавить задачу", "callback_data": "sec_add"}],
+        [{"text": f"🕐 Часовой пояс: {tz_name}", "callback_data": "sec_timezone"}],
         [{"text": "🔙 Главное меню", "callback_data": "back_to_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -313,3 +318,36 @@ async def process_secretary_input(chat_id: int, text: str) -> bool:
     Оставлена для обратной совместимости.
     """
     return False
+
+
+async def handle_timezone_menu(chat_id: int):
+    """Меню выбора часового пояса."""
+    from services.secretary_db import TIMEZONES, get_user_timezone
+    
+    current_tz = get_user_timezone(chat_id)
+    
+    text = f"""🕐 <b>Выберите часовой пояс</b>
+
+Текущий: <b>{TIMEZONES.get(current_tz, f'UTC+{current_tz}')}</b>
+
+Напоминания будут приходить по вашему местному времени."""
+
+    inline_buttons = []
+    for tz, name in sorted(TIMEZONES.items()):
+        mark = "✅ " if tz == current_tz else ""
+        inline_buttons.append([{"text": f"{mark}{name}", "callback_data": f"sec_set_tz_{tz}"}])
+    
+    inline_buttons.append([{"text": "🔙 Назад", "callback_data": "secretary_menu"}])
+    
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_set_timezone(chat_id: int, timezone: int):
+    """Устанавливает часовой пояс."""
+    from services.secretary_db import set_user_timezone, get_timezone_name
+    
+    set_user_timezone(chat_id, timezone)
+    tz_name = get_timezone_name(timezone)
+    
+    await send_message(chat_id, f"✅ Часовой пояс установлен: <b>{tz_name}</b>\n\nНапоминания будут приходить по вашему местному времени.")
+    await handle_secretary_menu(chat_id)
