@@ -42,6 +42,7 @@ from models.state import (
 )
 
 # Сервисы
+from services.monitoring import log_request, monitoring_loop
 from services.telegram import send_message, send_message_inline, answer_callback_query, send_document
 from services.calculations import normalize_unit_code
 
@@ -207,7 +208,8 @@ async def reminder_loop():
 async def startup_event():
     """Запуск фоновых задач при старте бота."""
     asyncio.create_task(reminder_loop())
-    print("[DEV] Фоновая задача напоминаний запущена")
+    asyncio.create_task(monitoring_loop())
+    print("[PROD] Фоновые задачи запущены")
 
 
 # ====== Health check ======
@@ -244,6 +246,9 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
     
     chat_id = msg["chat"]["id"]
+    
+    # Логируем запрос
+    log_request(chat_id, "message")
     text = (msg.get("text") or "").strip()
     
     # Обработка контакта
