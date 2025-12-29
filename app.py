@@ -741,6 +741,11 @@ async def process_callback(callback: Dict[str, Any]):
         booking_id = int(data.replace("book_decline_", ""))
         await handle_decline_booking(chat_id, booking_id)
 
+    elif data.startswith("book_take_"):
+        from handlers.booking_calendar import handle_take_booking
+        booking_id = int(data.replace("book_take_", ""))
+        await handle_take_booking(chat_id, booking_id, from_user)
+
     # ===== Domoplaner =====
     elif data == "domo_all":
         flats = domoplaner_cache.get(chat_id, [])

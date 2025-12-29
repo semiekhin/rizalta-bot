@@ -350,18 +350,23 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
             ]
         )
     
-    # Отправляем в группу показов
+    # Отправляем в группу показов с кнопкой "Взять"
     try:
-        from services.notifications import notify_shows_group
+        from config.settings import SHOWS_GROUP_ID
+        from services.telegram import send_message_inline_return_id
+        
         group_msg = (
-            f"🆕 <b>Новая запись на онлайн-показ</b>\n\n"
-            f"👤 Специалист: {specialist_name}\n"
-            f"📅 Дата: {date_display}\n"
-            f"🕐 Время: {time_formatted}\n"
-            f"🆔 Бронь: #{booking_id}\n"
-            f"📱 Клиент: @{username if username else chat_id}"
+            f"🆕 <b>Новая заявка на онлайн-показ</b>\n\n"
+            f"📅 {date_display}, {time_formatted}\n"
+            f"📱 Клиент: @{username if username else chat_id}\n"
+            f"🆔 Заявка: #{booking_id}"
         )
-        await notify_shows_group(group_msg)
+        group_buttons = [[{"text": "🙋 Взять заявку", "callback_data": f"book_take_{booking_id}"}]]
+        
+        if SHOWS_GROUP_ID:
+            msg_id = await send_message_inline_return_id(SHOWS_GROUP_ID, group_msg, group_buttons)
+            if msg_id:
+                save_booking_group_message_id(booking_id, msg_id)
     except Exception as e:
         print(f"[BOOKING] Group notify error: {e}")
 
@@ -536,3 +541,108 @@ async def send_booking_notification_email(to_email: str, specialist_name: str,
         server.send_message(msg)
     
     print(f"[BOOKING] Email sent to {to_email}")
+
+
+async def handle_take_booking(chat_id: int, booking_id: int, from_user: dict):
+    """Специалист взял заявку из группы."""
+    from services.telegram import send_message_inline, edit_message_inline
+    from services.secretary_db import add_task
+    from config.settings import SHOWS_GROUP_ID
+    
+    booking = get_booking_by_id(booking_id)
+    
+    if not booking:
+        await send_message(chat_id, "❌ Заявка не найдена.")
+        return
+    
+    if booking["status"] != "pending":
+        await send_message(chat_id, "ℹ️ Эта заявка уже обработана.")
+        return
+    
+    # Получаем данные специалиста
+    user_id = from_user.get("id", chat_id)
+    first_name = from_user.get("first_name", "")
+    last_name = from_user.get("last_name", "")
+    username = from_user.get("username", "")
+    full_name = f"{first_name} {last_name}".strip() or username or str(user_id)
+    
+    # Обновляем статус в БД
+    conn = sqlite3.connect(BOT_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE bookings 
+        SET status = 'taken', taken_by_id = ?, taken_by_name = ?
+        WHERE id = ?
+    """, (user_id, full_name, booking_id))
+    conn.commit()
+    conn.close()
+    
+    date_display = format_date_display(booking["booking_date"])
+    
+    # Редактируем сообщение в группе
+    group_message_id = get_booking_group_message_id(booking_id)
+    if group_message_id and SHOWS_GROUP_ID:
+        try:
+            new_text = (
+                f"✅ <b>Заявка #{booking_id} — ВЗЯТА</b>\n\n"
+                f"👤 Взял: {full_name}\n"
+                f"📅 {date_display}, {booking['booking_time']}\n"
+                f"📱 Клиент: @{booking['username'] or booking['chat_id']}"
+            )
+            await edit_message_inline(SHOWS_GROUP_ID, group_message_id, new_text, None)
+        except Exception as e:
+            print(f"[BOOKING] Error editing group message: {e}")
+    
+    # Добавляем задачу в секретарь специалисту
+    try:
+        client_info = f"@{booking['username']}" if booking['username'] else f"ID:{booking['chat_id']}"
+        task_text = f"📞 Онлайн-показ: {client_info}"
+        add_task(
+            user_id=user_id,
+            task_text=task_text,
+            due_date=booking["booking_date"],
+            due_time=booking["booking_time"],
+            client_name=client_info,
+            priority="high"
+        )
+    except Exception as e:
+        print(f"[BOOKING] Error adding task: {e}")
+    
+    # Уведомляем специалиста
+    await send_message_inline(
+        chat_id,
+        f"✅ <b>Вы взяли заявку #{booking_id}</b>\n\n"
+        f"📅 {date_display}, {booking['booking_time']}\n"
+        f"👤 Клиент: @{booking['username'] or 'ID:' + str(booking['chat_id'])}\n\n"
+        f"📋 Задача добавлена в ваш секретарь.",
+        [[{"text": "📋 Открыть секретарь", "callback_data": f"sec_day_{booking['booking_date']}"}]]
+    )
+    
+    # Уведомляем риэлтора
+    await send_message_inline(
+        booking["chat_id"],
+        f"✅ <b>Ваша заявка принята!</b>\n\n"
+        f"👤 Специалист: {full_name}\n"
+        f"📅 {date_display}, {booking['booking_time']}\n\n"
+        f"Специалист свяжется с вами в назначенное время.",
+        [[{"text": "🔙 В главное меню", "callback_data": "back_to_menu"}]]
+    )
+
+
+def get_booking_group_message_id(booking_id: int) -> Optional[int]:
+    """Получает message_id сообщения в группе."""
+    conn = sqlite3.connect(BOT_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT group_message_id FROM bookings WHERE id = ?", (booking_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row and row[0] else None
+
+
+def save_booking_group_message_id(booking_id: int, message_id: int):
+    """Сохраняет message_id сообщения в группе."""
+    conn = sqlite3.connect(BOT_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE bookings SET group_message_id = ? WHERE id = ?", (message_id, booking_id))
+    conn.commit()
+    conn.close()

@@ -418,3 +418,79 @@ async def download_file(file_id: str, save_path: str) -> Optional[str]:
     except Exception as e:
         print(f"⚠️ Общая ошибка в download_file: {e}")
         return None
+
+
+async def send_message_inline_return_id(
+    chat_id: int,
+    text: str,
+    inline_buttons: Optional[List[List[Dict[str, str]]]] = None,
+    parse_mode: str = "HTML",
+) -> Optional[int]:
+    """Отправляет сообщение с inline-кнопками и возвращает message_id."""
+    token = get_token()
+    if not token:
+        return None
+    
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": parse_mode,
+    }
+    
+    if inline_buttons:
+        payload["reply_markup"] = json.dumps({"inline_keyboard": inline_buttons})
+    
+    try:
+        loop = asyncio.get_event_loop()
+        
+        def _post():
+            r = requests.post(url, json=payload, timeout=10)
+            r.raise_for_status()
+            return r.json()
+        
+        result = await loop.run_in_executor(None, _post)
+        if result.get("ok"):
+            return result["result"]["message_id"]
+    except Exception as e:
+        print(f"[TG] Error send_message_inline_return_id: {e}")
+    
+    return None
+
+
+async def edit_message_inline(
+    chat_id: int,
+    message_id: int,
+    text: str,
+    inline_buttons: Optional[List[List[Dict[str, str]]]] = None,
+    parse_mode: str = "HTML",
+) -> bool:
+    """Редактирует сообщение с inline-кнопками."""
+    token = get_token()
+    if not token:
+        return False
+    
+    url = f"https://api.telegram.org/bot{token}/editMessageText"
+    
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": parse_mode,
+    }
+    
+    if inline_buttons:
+        payload["reply_markup"] = json.dumps({"inline_keyboard": inline_buttons})
+    
+    try:
+        loop = asyncio.get_event_loop()
+        
+        def _post():
+            r = requests.post(url, json=payload, timeout=10)
+            return r.status_code == 200
+        
+        return await loop.run_in_executor(None, _post)
+    except Exception as e:
+        print(f"[TG] Error edit_message_inline: {e}")
+        return False
