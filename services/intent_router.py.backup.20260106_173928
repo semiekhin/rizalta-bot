@@ -178,7 +178,6 @@ QUICK_PATTERNS = {
     "🎬 Медиа": {"intent": "show_media", "params": {}},
     "📌 Фиксация": {"intent": "open_fixation", "params": {}},
     "🏠 Шахматка": {"intent": "open_shahmatka", "params": {}},
-    "🏢 Лоты": {"intent": "open_lots_app", "params": {}},
     "🗓 Секретарь": {"intent": "secretary_menu", "params": {}},
     "📰 Новости": {"intent": "show_news", "params": {}},
     "🔥 Записаться на онлайн-показ": {"intent": "book_showing", "params": {}},
