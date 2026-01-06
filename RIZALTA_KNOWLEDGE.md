@@ -8,284 +8,285 @@ ssh -p 2222 root@72.56.64.91
 # Пути
 cd /opt/bot        # PROD
 cd /opt/bot-dev    # DEV
+cd /opt/miniapp    # Mini App
 
 # Логи
-journalctl -u rizalta-bot -f        # PROD
-journalctl -u rizalta-bot-dev -f    # DEV
+journalctl -u rizalta-bot -f           # PROD
+journalctl -u rizalta-bot-dev -f       # DEV polling
+journalctl -u rizalta-dev-api -f       # DEV API
+journalctl -u rizalta-dev-tunnel -f    # DEV туннель
 
 # Перезапуск
-systemctl restart rizalta-bot       # PROD
-systemctl restart rizalta-bot-dev   # DEV
+systemctl restart rizalta-bot          # PROD
+systemctl restart rizalta-bot-dev      # DEV
+systemctl restart rizalta-dev-api      # DEV API
+
+# Деплой Mini App
+cd /opt/miniapp && npm run build && vercel --prod
 ```
 
 ---
 
 ## Архитектура
 ```
-Telegram → Cloudflare Tunnel → localhost:8000 → FastAPI (app.py)
-                                                      ↓
-                                              handlers/*.py
-                                                      ↓
-                                              services/*.py
+┌─────────────────────────────────────────────────────────────┐
+│                         PROD                                 │
+│  Telegram → Cloudflare Tunnel → :8000 → FastAPI (webhook)   │
+│  Туннель: enrolled-chapter-clouds-fold.trycloudflare.com    │
+├─────────────────────────────────────────────────────────────┤
+│                         DEV                                  │
+│  Telegram → polling (run_polling.py)                        │
+│  Mini App → Cloudflare Tunnel → :8002 → FastAPI (API)       │
+│  Туннель: provide-resident-retain-employees.trycloudflare   │
+├─────────────────────────────────────────────────────────────┤
+│                      MINI APP                                │
+│  Vercel: rizalta-miniapp.vercel.app                         │
+│  /api/* → PROD туннель                                      │
+│  /api-dev/* → DEV туннель                                   │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-**PROD:** webhook через uvicorn (app.py)
-**DEV:** polling через run_polling.py
 
 ---
 
 ## Ключевые решения
 
+### v2.3.0 (06.01.2026) — Mini App РАБОТАЕТ
+
+#### 1. Почему tg.sendData() не работал
+**Проблема:** Данные из Mini App не приходили в бота
+**Причина:** `tg.sendData()` работает ТОЛЬКО с KeyboardButton (обычная клавиатура), а Mini App открывается через InlineKeyboardButton
+**Решение:** Использовать `fetch()` вместо `sendData()`
+
+#### 2. Разделение PROD/DEV
+**Проблема:** fetch() всегда шёл на один туннель (из vercel.json)
+**Решение:** 
+- Параметр `?env=dev` в URL Mini App
+- Два rewrite в vercel.json: `/api/*` (PROD) и `/api-dev/*` (DEV)
+- App.jsx определяет путь по параметру
+
+**Код в App.jsx:**
+```javascript
+const API_PATH = new URLSearchParams(window.location.search).get('env') === 'dev' ? '/api-dev' : '/api';
+fetch(API_PATH + '/miniapp-action', {...})
+```
+
+**URL в ботах:**
+- PROD: `https://rizalta-miniapp.vercel.app`
+- DEV: `https://rizalta-miniapp.vercel.app?env=dev`
+
+#### 3. Обход блокировок trycloudflare в РФ
+**Проблема:** Мобильные операторы РФ блокируют `*.trycloudflare.com`
+**Решение:** Vercel proxy — запросы идут через Vercel (не заблокирован), Vercel проксирует на туннель
+
+**vercel.json:**
+```json
+{
+  "rewrites": [
+    {"source": "/api-dev/:path*", "destination": "https://DEV_TUNNEL/api/:path*"},
+    {"source": "/api/:path*", "destination": "https://PROD_TUNNEL/api/:path*"}
+  ]
+}
+```
+
 ### v2.1.2 (29.12.2025)
 
 #### 1. Групповые заявки с кнопкой "Взять"
-**Проблема:** Заявки на показ приходили админу лично
-**Решение:**
-- Заявка отправляется в группу RIZALTA Показы (-1003301897674)
-- Кнопка "🙋 Взять заявку" — кто первый нажал, тот забрал
-- Сообщение обновляется: "✅ Заявка взята — Имя Фамилия"
-- Автоматически создаётся задача в секретаре специалиста
-
 **Файлы:**
 - `services/telegram.py` — send_message_inline_return_id(), edit_message_inline()
 - `handlers/booking_calendar.py` — handle_take_booking()
-- `app.py` — callback `book_take_`
 - БД: bookings.taken_by_id, taken_by_name, group_message_id
-
-#### 2. Стратегия Mini App
-**Решение:** RealtMy (мобильное приложение) → Telegram Mini App
-- Экономия: 500-800 тыс ₽
-- Срок: 3-4 недели вместо 2-3 месяцев
-- Архитектура: Mini App = только UI, бот = вся логика
 
 ### v2.1.1 (24.12.2025)
 
 #### 1. Пагинация вместо noop
-**Проблема:** Кнопка "... ещё N лотов" с callback_data="noop" ничего не делала
-**Решение:** 
 - Кеш `_search_cache[chat_id]` хранит lots, offset, back_callback
-- Кнопка "📋 Показать ещё N лотов" с callback_data="kp_show_more"
-- Функция handle_show_more() добавляет следующую порцию
+- Кнопка "📋 Показать ещё N лотов"
 
 #### 2. Часовые пояса
-**Проблема:** Напоминания приходили по времени Алтая всем
-**Решение:**
 - Таблица `users` с полем timezone (INTEGER, default 3)
-- 11 зон: UTC+2 (Калининград) — UTC+12 (Камчатка)
-- reminder_loop() проверяет timezone каждого пользователя
-- Кнопка смены в меню секретаря
+- 11 зон: UTC+2 — UTC+12
 
-#### 3. Фоновая задача вместо cron
-**Проблема:** Cron запускал отдельный процесс каждую минуту
-**Решение:**
-- asyncio.create_task(reminder_loop()) в startup_event
-- Работает внутри бота, нет накладных расходов
-- Если бот упал — systemd перезапустит
-
-#### 4. Поиск по бюджету ±10%
-**Проблема:** "за 20 млн" показывало все от 0 до 20 млн
-**Решение:**
+#### 3. Поиск по бюджету ±10%
 ```python
-if budget:
-    min_price = int(budget * 0.9)
-    max_price = int(budget * 1.1)
-```
-
-#### 5. Обработка дублей кодов
-**Проблема:** 70 лотов имеют одинаковые коды в обоих корпусах
-**Решение:** При поиске по коду показывается inline-меню выбора корпуса
-
----
-
-## Mini App — Стратегия и UI
-
-### Архитектура Mini App + Bot
-```
-User → Mini App (React) → Bot API → Existing handlers
-              ↓
-         /api/lots endpoint (новый)
-```
-Bot продолжает всю логику, Mini App — только визуальный интерфейс.
-
-### Интеграция шахматки (план)
-1. Добавить `/api/lots` в app.py (30 мин)
-2. React Mini App на Vercel (2-3 дня)
-3. Регистрация в BotFather (5 мин)
-4. Кнопка "🏠 Шахматка" в меню (10 мин)
-
-### UI стиль Mini App (образец)
-```jsx
-// Цветовая схема
-colors: {
-  background: 'bg-slate-900',
-  card: 'bg-slate-800', 
-  accent: 'amber-500',
-  text: 'text-white',
-  muted: 'text-slate-400'
-}
-
-// Статусы лотов
-status: {
-  available: 'bg-emerald-500',  // Свободно
-  booked: 'bg-amber-500',       // Бронь
-  sold: 'bg-gray-600'           // Продано
-}
-
-// Кнопки
-button: {
-  primary: 'bg-amber-500 text-black font-semibold',
-  secondary: 'bg-slate-700 text-white'
-}
+min_price = int(budget * 0.9)
+max_price = int(budget * 1.1)
 ```
 
 ---
 
-## OpenAI vs Claude — Масштабирование
+## Mini App — Полная документация
 
-### Текущее использование
-- GPT-4o-mini: Intent Router + AI консультант
-- Whisper: голосовой ввод
-- Стоимость: ~$10-50/мес
+### Деплой Mini App
+```bash
+cd /opt/miniapp
+npm run build
+vercel --prod
+```
 
-### При 500+ пользователях
-| Модель | Input $/1M | Output $/1M | Особенность |
-|--------|-----------|-------------|-------------|
-| GPT-4o-mini | $0.15 | $0.60 | Нет кеширования |
-| Claude Haiku | $0.80 | $4.00 | Prompt caching -90% |
+### При смене URL туннеля
+```bash
+# 1. Узнать новые URL
+journalctl -u cloudflare-rizalta --no-pager -n 30 | grep trycloudflare  # PROD
+journalctl -u rizalta-dev-tunnel --no-pager -n 30 | grep trycloudflare  # DEV
 
-### Prompt Caching (ключевое)
-System prompt = ~2000 токенов (база знаний)
-- 20k запросов/день без кеша: $6 (OpenAI) vs $32 (Claude)
-- 20k запросов/день с кешем: $6 (OpenAI) vs **$3.20** (Claude)
+# 2. Обновить vercel.json
+nano /opt/miniapp/vercel.json
 
-### Рекомендация
-- **<500 users:** оставить OpenAI GPT-4o-mini
-- **500+ users:** мигрировать на Claude Haiku + prompt caching
-- **Экономия:** ~30% + лучшее качество ответов
-- **Whisper:** оставить (у Claude нет аналога)
+# 3. Редеплой
+cd /opt/miniapp && vercel --prod
+```
+
+### Текущие туннели (на 06.01.2026)
+- **PROD:** `enrolled-chapter-clouds-fold.trycloudflare.com`
+- **DEV:** `provide-resident-retain-employees.trycloudflare.com`
+
+### Чеклист "Если Mini App не работает"
+```bash
+# 1. API PROD работает?
+curl -s "https://rizalta-miniapp.vercel.app/api/lots" | head -c 100
+
+# 2. API DEV работает?
+curl -s "https://rizalta-miniapp.vercel.app/api-dev/lots" | head -c 100
+
+# 3. Туннели живы?
+systemctl status cloudflare-rizalta    # PROD
+systemctl status rizalta-dev-tunnel    # DEV
+
+# 4. URL туннелей актуальны в vercel.json?
+cat /opt/miniapp/vercel.json
+
+# 5. uvicorn DEV запущен?
+systemctl status rizalta-dev-api
+```
 
 ---
 
 ## Частые команды
+
+### Проверка синтаксиса
 ```bash
-# Проверка синтаксиса
 cd /opt/bot && source venv/bin/activate
 python3 -c "import app; print('OK')"
+```
 
-# Проверка различий DEV/PROD
+### Различия DEV/PROD
+```bash
 diff /opt/bot-dev/app.py /opt/bot/app.py | head -30
+```
 
-# Посмотреть структуру БД
-sqlite3 /opt/bot/secretary.db ".schema"
+### Структура БД
+```bash
+sqlite3 /opt/bot/properties.db ".schema"
 sqlite3 /opt/bot/properties.db "SELECT COUNT(*) FROM units"
-sqlite3 /opt/bot/properties.db ".schema bookings"
+```
 
-# Статистика мониторинга
-sqlite3 /opt/bot/monitoring.db "SELECT COUNT(*) FROM stats WHERE timestamp LIKE '$(date +%Y-%m-%d)%'"
-
-# Grep по коду
-grep -rn "handle_take_booking" handlers/
-grep -n "def reminder_loop" run_polling.py
-
-# Статус сервисов
-systemctl status rizalta-bot
-systemctl status rizalta-bot-dev
-
-# Git коммит
+### Git коммит
+```bash
+# PROD
 cd /opt/bot && git add -A && git commit -m "описание" && git push
+
+# DEV
+cd /opt/bot-dev && git add -A && git commit -m "описание" && git push
+
+# Mini App
+cd /opt/miniapp && git add -A && git commit -m "описание" && git push
 ```
 
 ---
 
 ## Типичные ошибки и решения
 
-### 1. NameError: name 'asyncio' is not defined
-**Причина:** Забыли import asyncio в app.py
+### 1. Mini App данные идут не в тот бот
+**Причина:** Неправильный параметр env или vercel.json
+**Решение:** Проверить URL в боте и vercel.json
+
+### 2. Mini App не работает без VPN
+**Причина:** trycloudflare заблокирован оператором
+**Решение:** Использовать Vercel proxy (уже настроено)
+
+### 3. При перезапуске туннеля Mini App сломался
+**Причина:** URL туннеля изменился
+**Решение:** Обновить vercel.json и редеплоить
+
+### 4. NameError: name 'asyncio' is not defined
 **Решение:** `sed -i '1i import asyncio' /opt/bot/app.py`
 
-### 2. ModuleNotFoundError: No module named 'psutil'
-**Причина:** Пакет установлен в другой venv
+### 5. ModuleNotFoundError
 **Решение:** 
 ```bash
-/opt/bot/venv/bin/pip install psutil
-/opt/bot-dev/venv/bin/pip install psutil
-```
-
-### 3. ImportError: cannot import name 'handle_xxx'
-**Причина:** Функция не экспортирована в handlers/__init__.py
-**Решение:** Добавить в __init__.py
-
-### 4. IndentationError после sed
-**Причина:** sed добавил строку с неправильным отступом
-**Решение:** Проверить `sed -n 'N,Mp' file.py` и исправить вручную
-
-### 5. DEV venv ссылается на PROD
-**Причина:** venv создан неправильно
-**Решение:**
-```bash
-cd /opt/bot-dev
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+/opt/bot/venv/bin/pip install MODULE_NAME
 ```
 
 ---
 
 ## Деплой процедура
 
-1. **Изменения в DEV**
-2. **Тест в DEV боте** (@rizaltatestdevop_bot)
-3. **Коммит DEV:**
+### Изменения в Mini App
 ```bash
-   cd /opt/bot-dev
-   git add -A
-   git commit -m "описание"
-   git push origin main
+cd /opt/miniapp
+# Изменить код
+npm run build
+vercel --prod
+git add -A && git commit -m "описание" && git push
 ```
-4. **Копирование в PROD:**
+
+### Изменения в DEV боте
 ```bash
-   cp /opt/bot-dev/file.py /opt/bot/
+cd /opt/bot-dev
+# Изменить код
+systemctl restart rizalta-bot-dev
+git add -A && git commit -m "описание" && git push
 ```
-5. **Исправление путей:**
+
+### Изменения в PROD боте
 ```bash
-   sed -i 's|/opt/bot-dev|/opt/bot|g' /opt/bot/file.py
-```
-6. **Проверка + рестарт:**
-```bash
-   cd /opt/bot
-   python3 -c "import app; print('OK')"
-   systemctl restart rizalta-bot
-```
-7. **Коммит PROD:**
-```bash
-   cd /opt/bot
-   git add -A
-   git commit -m "описание"
-   git push origin main
+cd /opt/bot
+# Изменить код
+python3 -c "import app; print('OK')"
+systemctl restart rizalta-bot
+git add -A && git commit -m "описание" && git push
 ```
 
 ---
 
-## Мониторинг
+## Контакты и ссылки
 
-### Пороги алертов
-- >30 запросов/мин → уведомление
-- RAM >50% → уведомление
-- Ежедневный отчёт в 20:00
+### Сервер
+- **IP:** 72.56.64.91
+- **Port:** 2222
+- **User:** root
+- **Auth:** SSH key (пароль отключён)
 
-### Проверка статистики
-```bash
-sqlite3 /opt/bot/monitoring.db "SELECT COUNT(*) FROM stats"
-sqlite3 /opt/bot/monitoring.db "SELECT * FROM stats ORDER BY id DESC LIMIT 10"
-```
+### Боты
+- **PROD:** @RealtMeAI_bot
+- **DEV:** @rizaltatestdevop_bot
 
----
+### Репозитории
+- **PROD:** github.com/semiekhin/rizalta-bot
+- **DEV:** github.com/semiekhin/rizalta-bot-dev
+- **Mini App:** github.com/semiekhin/rizalta-miniapp
 
-## Контакты
+### Mini App
+- **URL:** https://rizalta-miniapp.vercel.app
+- **Vercel scope:** skergs-projects-4d01ef5d
 
-- **Сервер:** 72.56.64.91:2222
-- **PROD бот:** @RealtMeAI_bot
-- **DEV бот:** @rizaltatestdevop_bot
-- **Admin chat_id:** 512319063
+### Telegram IDs
+- **Admin:** 512319063
 - **Группа показов:** -1003301897674
+
+---
+
+## TODO (приоритеты)
+
+### 🔴 Критично
+- [ ] **Self-Healing система** — watchdog для автовосстановления
+- [ ] **Named Tunnel / свой домен** — убрать зависимость от меняющихся URL
+
+### 🟡 Важно
+- [ ] **Доработка Mini App** — выбор действия (КП/ROI/Показ)
+- [ ] **RealtMy Mini App** — управление контентом каналов
+
+### 🟢 Улучшения
+- [ ] Автодеплой Vercel через GitHub
+- [ ] Redis кеширование при 500+ users
+- [ ] PostgreSQL при 2000+ users
