@@ -82,49 +82,49 @@ def calc_installment(price: int):
         'pv_50': pv_50, 'last_50': last_50,
     }
 
-def calc_installment_24(price: int):
+def calc_installment_18(price: int):
     """
-    Рассчитывает рассрочку на 24 месяца с удорожанием.
+    Рассчитывает рассрочку на 18 месяцев с удорожанием.
     ВАЖНО: сначала вычитаем SERVICE_FEE, потом считаем!
     
-    ПВ 30% + 12% удорожание: 24 равных платежа
-    ПВ 40% + 9% удорожание: 11×250К, 12-й (10% базы), 11×250К, 24-й остаток
-    ПВ 50% + 6% удорожание: 11×150К, 12-й (10% базы), 11×150К, 24-й остаток
+    ПВ 30% + 9% удорожание: 18 равных платежей
+    ПВ 40% + 7% удорожание: 8×250К, 9-й (10% базы), 8×250К, 18-й остаток
+    ПВ 50% + 4% удорожание: 8×150К, 9-й (10% базы), 8×150К, 18-й остаток
     """
     base = price - SERVICE_FEE
-    payment_12 = int(base * 0.10)  # 12-й платёж = 10% от базы
+    payment_9 = int(base * 0.10)  # 9-й платёж = 10% от базы
     
-    # ПВ 30% + удорожание 12%
+    # ПВ 30% + удорожание 9%
     pv_30 = int(base * 0.30)
     remaining_30 = base - pv_30
-    markup_30 = int(remaining_30 * 0.12)
+    markup_30 = int(remaining_30 * 0.09)
     total_30 = remaining_30 + markup_30
-    monthly_30 = int(total_30 / 24)
+    monthly_30 = int(total_30 / 18)
     final_price_30 = price + markup_30  # цена + удорожание (без вычета 150К)
     
-    # ПВ 40% + удорожание 9%
+    # ПВ 40% + удорожание 7%
     pv_40 = int(base * 0.40)
     remaining_40 = base - pv_40
-    markup_40 = int(remaining_40 * 0.09)
+    markup_40 = int(remaining_40 * 0.07)
     total_40 = remaining_40 + markup_40
-    # 11×250К + 12-й + 11×250К + 24-й
-    paid_40 = (250_000 * 11) + payment_12 + (250_000 * 11)
+    # 8×250К + 9-й + 8×250К + 18-й
+    paid_40 = (250_000 * 8) + payment_9 + (250_000 * 8)
     last_40 = total_40 - paid_40
     final_price_40 = price + markup_40  # цена + удорожание (без вычета 150К)
     
-    # ПВ 50% + удорожание 6%
+    # ПВ 50% + удорожание 4%
     pv_50 = int(base * 0.50)
     remaining_50 = base - pv_50
-    markup_50 = int(remaining_50 * 0.06)
+    markup_50 = int(remaining_50 * 0.04)
     total_50 = remaining_50 + markup_50
-    # 11×150К + 12-й + 11×150К + 24-й
-    paid_50 = (150_000 * 11) + payment_12 + (150_000 * 11)
+    # 8×150К + 9-й + 8×150К + 18-й
+    paid_50 = (150_000 * 8) + payment_9 + (150_000 * 8)
     last_50 = total_50 - paid_50
     final_price_50 = price + markup_50  # цена + удорожание (без вычета 150К)
     
     return {
         'base': base,
-        'payment_12': payment_12,
+        'payment_9': payment_9,
         # 30%
         'pv_30': pv_30, 'monthly_30': monthly_30, 
         'markup_30': markup_30, 'final_price_30': final_price_30,
@@ -135,7 +135,6 @@ def calc_installment_24(price: int):
         'pv_50': pv_50, 'last_50': last_50,
         'markup_50': markup_50, 'final_price_50': final_price_50,
     }
-
 def calc_portfolio_installment(units: list):
     """Рассчитывает рассрочку для портфеля"""
     total_count = len(units)
@@ -158,31 +157,30 @@ def calc_portfolio_installment(units: list):
     monthly_50 = 100_000 * total_count
     last_50 = (base - pv_50) - (monthly_50 * 11)
     
-    # === РАССРОЧКА 24 МЕСЯЦА (с удорожанием) ===
-    payment_12 = int(base * 0.10)  # 12-й платёж = 10% от базы
+    # === РАССРОЧКА 18 МЕСЯЦЕВ (с удорожанием) ===
+    payment_9 = int(base * 0.10)  # 9-й платёж = 10% от базы
     
-    # ПВ 30% + 12%
+    # ПВ 30% + 9%
     remaining_30_24 = base - pv_30
-    markup_30_24 = int(remaining_30_24 * 0.12)
-    monthly_30_24 = int((remaining_30_24 + markup_30_24) / 24)
+    markup_30_24 = int(remaining_30_24 * 0.09)
+    monthly_30_24 = int((remaining_30_24 + markup_30_24) / 18)
     final_price_30_24 = total_price + markup_30_24  # полная цена + удорожание
     
-    # ПВ 40% + 9%
+    # ПВ 40% + 7%
     remaining_40_24 = base - pv_40
-    markup_40_24 = int(remaining_40_24 * 0.09)
+    markup_40_24 = int(remaining_40_24 * 0.07)
     monthly_40_24 = 250_000 * total_count
-    paid_40_24 = (monthly_40_24 * 11) + payment_12 + (monthly_40_24 * 11)
+    paid_40_24 = (monthly_40_24 * 8) + payment_9 + (monthly_40_24 * 8)
     last_40_24 = (remaining_40_24 + markup_40_24) - paid_40_24
     final_price_40_24 = total_price + markup_40_24  # полная цена + удорожание
     
-    # ПВ 50% + 6%
+    # ПВ 50% + 4%
     remaining_50_24 = base - pv_50
-    markup_50_24 = int(remaining_50_24 * 0.06)
+    markup_50_24 = int(remaining_50_24 * 0.04)
     monthly_50_24 = 150_000 * total_count
-    paid_50_24 = (monthly_50_24 * 11) + payment_12 + (monthly_50_24 * 11)
+    paid_50_24 = (monthly_50_24 * 8) + payment_9 + (monthly_50_24 * 8)
     last_50_24 = (remaining_50_24 + markup_50_24) - paid_50_24
     final_price_50_24 = total_price + markup_50_24  # полная цена + удорожание
-    
     return {
         'total_price': total_price,
         'total_savings': total_savings,
@@ -191,8 +189,8 @@ def calc_portfolio_installment(units: list):
         'pv_30': pv_30, 'monthly_30': monthly_30,
         'pv_40': pv_40, 'monthly_40': monthly_40, 'last_40': last_40,
         'pv_50': pv_50, 'monthly_50': monthly_50, 'last_50': last_50,
-        # 24 мес
-        'payment_12': payment_12,
+        # 18 мес
+        'payment_9': payment_9,
         'monthly_30_24': monthly_30_24, 'markup_30_24': markup_30_24, 'final_price_30_24': final_price_30_24,
         'monthly_40_24': monthly_40_24, 'last_40_24': last_40_24, 'markup_40_24': markup_40_24, 'final_price_40_24': final_price_40_24,
         'monthly_50_24': monthly_50_24, 'last_50_24': last_50_24, 'markup_50_24': markup_50_24, 'final_price_50_24': final_price_50_24,
@@ -238,7 +236,7 @@ def generate_lot_card(group_units: list, header_image_b64: str, mode: str = "def
     area_text = f"{min_area}" if min_area == max_area else f"{min_area}–{max_area}"
     
     if mode == "two_installments":
-        inst24 = calc_installment_24(min_price)
+        inst18 = calc_installment_18(min_price)
         return f'''
     <div class="lot-card">
         <div class="lot-visual">
@@ -287,32 +285,32 @@ def generate_lot_card(group_units: list, header_image_b64: str, mode: str = "def
             
             <!-- РАССРОЧКА 24 МЕСЯЦА -->
             <div class="installment-block installment-24">
-                <div class="installment-title">Рассрочка 24 месяца (с удорожанием)</div>
+                <div class="installment-title">Рассрочка 18 месяца (с удорожанием)</div>
                 
                 <div class="installment-option">
                     <span class="option-num">1</span>
                     <div class="option-text">
-                        <div class="option-main">ПВ 30% — {format_price(inst24['pv_30'])} <span class="markup-badge">+12%</span></div>
-                        <div class="option-sub">— 24 мес равными платежами по {format_price(inst24['monthly_30'])}</div>
-                        <div class="option-total">Удорожание: +{format_price(inst24['markup_30'])} → Итого: {format_price(inst24['final_price_30'])}</div>
+                        <div class="option-main">ПВ 30% — {format_price(inst18['pv_30'])} <span class="markup-badge">+9%</span></div>
+                        <div class="option-sub">— 18 мес равными платежами по {format_price(inst18['monthly_30'])}</div>
+                        <div class="option-total">Удорожание: +{format_price(inst18['markup_30'])} → Итого: {format_price(inst18['final_price_30'])}</div>
                     </div>
                 </div>
                 
                 <div class="installment-option">
                     <span class="option-num">2</span>
                     <div class="option-text">
-                        <div class="option-main">ПВ 40% — {format_price(inst24['pv_40'])} <span class="markup-badge">+9%</span></div>
-                        <div class="option-sub">— 11 мес по 250 000 ₽, 12-й: {format_price(inst24['payment_12'])}, 11 мес по 250 000 ₽, 24-й: {format_price(inst24['last_40'])}</div>
-                        <div class="option-total">Удорожание: +{format_price(inst24['markup_40'])} → Итого: {format_price(inst24['final_price_40'])}</div>
+                        <div class="option-main">ПВ 40% — {format_price(inst18['pv_40'])} <span class="markup-badge">+7%</span></div>
+                        <div class="option-sub">— 8 мес по 250 000 ₽, 9-й: {format_price(inst18['payment_9'])}, 8 мес по 250 000 ₽, 18-й: {format_price(inst18['last_40'])}</div>
+                        <div class="option-total">Удорожание: +{format_price(inst18['markup_40'])} → Итого: {format_price(inst18['final_price_40'])}</div>
                     </div>
                 </div>
                 
                 <div class="installment-option">
                     <span class="option-num">3</span>
                     <div class="option-text">
-                        <div class="option-main">ПВ 50% — {format_price(inst24['pv_50'])} <span class="markup-badge">+6%</span></div>
-                        <div class="option-sub">— 11 мес по 150 000 ₽, 12-й: {format_price(inst24['payment_12'])}, 11 мес по 150 000 ₽, 24-й: {format_price(inst24['last_50'])}</div>
-                        <div class="option-total">Удорожание: +{format_price(inst24['markup_50'])} → Итого: {format_price(inst24['final_price_50'])}</div>
+                        <div class="option-main">ПВ 50% — {format_price(inst18['pv_50'])} <span class="markup-badge">+4%</span></div>
+                        <div class="option-sub">— 8 мес по 150 000 ₽, 9-й: {format_price(inst18['payment_9'])}, 8 мес по 150 000 ₽, 18-й: {format_price(inst18['last_50'])}</div>
+                        <div class="option-total">Удорожание: +{format_price(inst18['markup_50'])} → Итого: {format_price(inst18['final_price_50'])}</div>
                     </div>
                 </div>
             </div>
@@ -371,7 +369,7 @@ def generate_lot_card(group_units: list, header_image_b64: str, mode: str = "def
                 
                 <div class="installment-note">
                     * Расчёт с учётом вычета 150 000 ₽<br>
-                    Также доступна рассрочка на 24 мес с удорожанием 12% / 9% / 6% в зависимости от ПВ
+                    Также доступна рассрочка на 18 мес с удорожанием 9% / 7% / 4% в зависимости от ПВ
                 </div>
             </div>
         </div>
@@ -443,25 +441,25 @@ def generate_html(units: list, title: str, subtitle: str, output_path: str, extr
             </div>
         </div>
 
-        <h3 style="color:#fff; margin: 50px 0 25px; text-transform:uppercase; font-size:1rem; letter-spacing:1px; border-top: 2px solid var(--accent); padding-top: 40px;">Рассрочка 24 месяца (с удорожанием)</h3>
+        <h3 style="color:#fff; margin: 50px 0 25px; text-transform:uppercase; font-size:1rem; letter-spacing:1px; border-top: 2px solid var(--accent); padding-top: 40px;">Рассрочка 18 месяца (с удорожанием)</h3>
         
         <div class="total-grid">
             <div class="t-card">
-                <div class="t-head">При ПВ 30% <span class="markup-badge" style="display:inline; font-size:0.7rem;">+12%</span><span>{format_price(portfolio['pv_30'])}</span></div>
+                <div class="t-head">При ПВ 30% <span class="markup-badge" style="display:inline; font-size:0.7rem;">+9%</span><span>{format_price(portfolio['pv_30'])}</span></div>
                 <div class="t-monthly-val">{format_price(portfolio['monthly_30_24'])}</div>
-                <div class="t-monthly-desc">ежемесячно × 24 месяца</div>
+                <div class="t-monthly-desc">ежемесячно × 18 месяца</div>
                 <div class="t-total">Удорожание: +{format_price(portfolio['markup_30_24'])}<br>Итого: {format_price(portfolio['final_price_30_24'])}</div>
             </div>
             <div class="t-card">
-                <div class="t-head">При ПВ 40% <span class="markup-badge" style="display:inline; font-size:0.7rem;">+9%</span><span>{format_price(portfolio['pv_40'])}</span></div>
+                <div class="t-head">При ПВ 40% <span class="markup-badge" style="display:inline; font-size:0.7rem;">+7%</span><span>{format_price(portfolio['pv_40'])}</span></div>
                 <div class="t-monthly-val">{format_price(portfolio['monthly_40_24'])}</div>
-                <div class="t-monthly-desc">× 11 мес, 12-й: {format_price(portfolio['payment_12'])}, × 11 мес, 24-й: {format_price(portfolio['last_40_24'])}</div>
+                <div class="t-monthly-desc">× 8 мес, 9-й: {format_price(portfolio['payment_9'])}, × 8 мес, 18-й: {format_price(portfolio['last_40_24'])}</div>
                 <div class="t-total">Удорожание: +{format_price(portfolio['markup_40_24'])}<br>Итого: {format_price(portfolio['final_price_40_24'])}</div>
             </div>
             <div class="t-card">
                 <div class="t-head">При ПВ 50% <span class="markup-badge" style="display:inline; font-size:0.7rem;">+6%</span><span>{format_price(portfolio['pv_50'])}</span></div>
                 <div class="t-monthly-val">{format_price(portfolio['monthly_50_24'])}</div>
-                <div class="t-monthly-desc">× 11 мес, 12-й: {format_price(portfolio['payment_12'])}, × 11 мес, 24-й: {format_price(portfolio['last_50_24'])}</div>
+                <div class="t-monthly-desc">× 8 мес, 9-й: {format_price(portfolio['payment_9'])}, × 8 мес, 18-й: {format_price(portfolio['last_50_24'])}</div>
                 <div class="t-total">Удорожание: +{format_price(portfolio['markup_50_24'])}<br>Итого: {format_price(portfolio['final_price_50_24'])}</div>
             </div>
         </div>
@@ -500,7 +498,7 @@ def generate_html(units: list, title: str, subtitle: str, output_path: str, extr
         
         <div style="margin-top: 40px; font-size: 0.8rem; color: #a7f3d0;">
             * Расчёт с учётом вычета 150 000 ₽ с каждого лота (экономия {format_price_short(portfolio['total_savings'])})<br>
-            Также доступна рассрочка на 24 мес с удорожанием 12% / 9% / 6% в зависимости от ПВ
+            Также доступна рассрочка на 18 мес с удорожанием 9% / 7% / 4% в зависимости от ПВ
         </div>
     </div>
 '''

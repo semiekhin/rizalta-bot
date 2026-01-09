@@ -21,7 +21,7 @@ async def handle_documents_menu(chat_id: int):
 
     inline_buttons = [
         [{"text": "📋 Договор ДДУ", "callback_data": "doc_ddu"}],
-        [{"text": "📋 Договор аренды с УК", "callback_data": "doc_arenda"}],
+        [{"text": "📋 Договор аренды с отельным оператором", "callback_data": "doc_arenda"}],
         [{"text": "📚 Скачать оба", "callback_data": "doc_all"}]
     ]
     
@@ -41,7 +41,7 @@ async def handle_send_ddu(chat_id: int):
 async def handle_send_arenda(chat_id: int):
     """Отправляет договор аренды."""
     filepath = f"{DOCS_DIR}/arenda.pdf"
-    caption = "📋 Договор аренды с УК ЗОНТ ХОТЕЛ ГРУПП — проект RIZALTA"
+    caption = "📋 Договор аренды с отельным оператором ЗОНТ ХОТЕЛ ГРУПП — проект RIZALTA"
     
     success = await send_document(chat_id, filepath, caption)
     if not success:
