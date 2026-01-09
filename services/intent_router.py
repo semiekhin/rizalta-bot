@@ -171,16 +171,15 @@ confidence — уверенность от 0 до 1
 QUICK_PATTERNS = {
     # Точные совпадения кнопок меню
     "🔥Купи себе отель!": {"intent": "about_project", "params": {}},
-    "💰 Расчёты": {"intent": "calculations_menu", "params": {}},
     "📊 Доходность": {"intent": "calculate_roi", "params": {}},
     "💳 Рассрочка": {"intent": "show_installment", "params": {}},
     "📈 Сравнить с депозитом": {"intent": "compare_deposit", "params": {}},
-    "📋 КП (.pdf)": {"intent": "kp_menu", "params": {}},
+    "📋 КП и расчёты": {"intent": "kp_menu", "params": {}},
+    "📸 Презентации": {"intent": "send_presentation", "params": {}},
     "📄 Договоры": {"intent": "documents_menu", "params": {}},
     "📊 Сравнение": {"intent": "compare_menu", "params": {}},
     "🎬 Медиа": {"intent": "show_media", "params": {}},
     "📌 Фиксация": {"intent": "open_fixation", "params": {}},
-    "🏠 Шахматка": {"intent": "open_shahmatka", "params": {}},
     "🏢 Лоты": {"intent": "open_lots_app", "params": {}},
     "🗓 Секретарь": {"intent": "secretary_menu", "params": {}},
     "📰 Новости": {"intent": "show_news", "params": {}},
