@@ -27,7 +27,6 @@ logs/
 
 # Media (хранится отдельно)
 kp_all/
-docs/
 
 # Temp
 *.tmp
