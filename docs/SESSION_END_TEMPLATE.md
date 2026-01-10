@@ -27,19 +27,24 @@
 
 ## 📎 ОБЯЗАТЕЛЬНО: Ссылки на документы GitHub
 
-**DEV:**
-- https://github.com/semiekhin/rizalta-bot-dev/blob/main/docs/RIZALTA_CONTEXT.md
-- https://github.com/semiekhin/rizalta-bot-dev/blob/main/docs/RIZALTA_CURRENT.md
-- https://github.com/semiekhin/rizalta-bot-dev/blob/main/docs/RIZALTA_ARCHITECTURE.md
-- https://github.com/semiekhin/rizalta-bot-dev/blob/main/docs/RIZALTA_KNOWLEDGE.md
-- https://github.com/semiekhin/rizalta-bot-dev/blob/main/docs/RIZALTA_TASKS.md
+**DEV (основные для чтения):**
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_CONTEXT.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_CURRENT.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_ARCHITECTURE.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_KNOWLEDGE.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_TASKS.md
 
 **PROD:**
-- https://github.com/semiekhin/rizalta-bot/blob/main/docs/RIZALTA_CONTEXT.md
-- https://github.com/semiekhin/rizalta-bot/blob/main/docs/RIZALTA_CURRENT.md
-- https://github.com/semiekhin/rizalta-bot/blob/main/docs/RIZALTA_ARCHITECTURE.md
-- https://github.com/semiekhin/rizalta-bot/blob/main/docs/RIZALTA_KNOWLEDGE.md
-- https://github.com/semiekhin/rizalta-bot/blob/main/docs/RIZALTA_TASKS.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_CONTEXT.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_CURRENT.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_ARCHITECTURE.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_KNOWLEDGE.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_TASKS.md
+
+**Репозитории:**
+- https://github.com/semiekhin/rizalta-bot
+- https://github.com/semiekhin/rizalta-bot-dev
+- https://github.com/semiekhin/rizalta-miniapp
 
 ---
 
