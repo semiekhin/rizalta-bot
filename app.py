@@ -228,7 +228,7 @@ async def startup_event():
 @app.get("/")
 async def health():
     """Health check."""
-    return {"ok": True, "bot": "RIZALTA", "version": "2.1.0"}
+    return {"ok": True, "bot": "RIZALTA", "version": "2.4.0"}
 
 
 # ====== API для Mini App ======
