@@ -7,6 +7,7 @@
 """
 
 import os, sqlite3, subprocess, tempfile, requests, base64
+from services.installment_calculator import calc_12m, calc_18m, get_service_fee as get_sf
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -66,41 +67,22 @@ def get_lot_type(area: float, rooms: int) -> str:
     return "1-комнатная Large"
 
 def calc_12(price: int) -> Dict:
-    base = price - SERVICE_FEE
-    pv_30 = int(base * 0.30)
-    pv_40 = int(base * 0.40)
-    pv_50 = int(base * 0.50)
+    """Обёртка для единого калькулятора (12 мес)."""
+    i = calc_12m(price)
     return {
-        "pv_30": pv_30, "monthly_30": int((base - pv_30) / 12),
-        "pv_40": pv_40, "last_40": (base - pv_40) - (200_000 * 11),
-        "pv_50": pv_50, "last_50": (base - pv_50) - (100_000 * 11),
+        "pv_30": i["pv_30"], "monthly_30": i["monthly_30"],
+        "pv_40": i["pv_40"], "last_40": i["last_40"],
+        "pv_50": i["pv_50"], "last_50": i["last_50"],
     }
 
 def calc_18(price: int) -> Dict:
-    """Рассрочка на 18 месяцев с новыми процентами удорожания (v3.2)."""
-    base = price - SERVICE_FEE
-    payment_9 = int(base * 0.10)
-    
-    # ПВ 30% → удорожание 9%
-    pv_30 = int(base * 0.30)
-    r30 = base - pv_30
-    m30 = int(r30 * 0.09)
-    
-    # ПВ 40% → удорожание 7%
-    pv_40 = int(base * 0.40)
-    r40 = base - pv_40
-    m40 = int(r40 * 0.07)
-    
-    # ПВ 50% → удорожание 4%
-    pv_50 = int(base * 0.50)
-    r50 = base - pv_50
-    m50 = int(r50 * 0.04)
-    
+    """Обёртка для единого калькулятора (18 мес)."""
+    i = calc_18m(price)
     return {
-        "p9": payment_9,
-        "pv_30": pv_30, "monthly_30": int((r30 + m30) / 18), "markup_30": m30, "final_30": price + m30,
-        "pv_40": pv_40, "last_40": (r40 + m40) - (250_000 * 8) - payment_9 - (250_000 * 8), "markup_40": m40, "final_40": price + m40,
-        "pv_50": pv_50, "last_50": (r50 + m50) - (150_000 * 8) - payment_9 - (150_000 * 8), "markup_50": m50, "final_50": price + m50,
+        "p9": i["payment_9"],
+        "pv_30": i["pv_30"], "monthly_30": i["monthly_30"], "markup_30": i["markup_30"], "final_30": i["final_price_30"],
+        "pv_40": i["pv_40"], "last_40": i["last_40"], "markup_40": i["markup_40"], "final_40": i["final_price_40"],
+        "pv_50": i["pv_50"], "last_50": i["last_50"], "markup_50": i["markup_50"], "final_50": i["final_price_50"],
     }
 
 def generate_html(lot: Dict[str, Any], include_18m: bool = True, full_payment: bool = False) -> str:

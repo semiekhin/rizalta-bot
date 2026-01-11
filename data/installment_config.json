@@ -1,0 +1,76 @@
+{
+  "_comment": "Единый конфиг рассрочки. Изменения здесь автоматически применяются везде.",
+  "_updated": "11.01.2026",
+  
+  "service_fee": 150000,
+  
+  "programs": {
+    "12m": {
+      "months": 12,
+      "description": "Беспроцентная рассрочка на 12 месяцев",
+      "options": {
+        "30": {
+          "down_payment_pct": 30,
+          "markup_pct": 0,
+          "payment_type": "equal",
+          "description": "Остаток равными платежами"
+        },
+        "40": {
+          "down_payment_pct": 40,
+          "markup_pct": 0,
+          "payment_type": "fixed",
+          "fixed_monthly": 200000,
+          "regular_months": 11,
+          "description": "11 × 200К, остаток на 12-й"
+        },
+        "50": {
+          "down_payment_pct": 50,
+          "markup_pct": 0,
+          "payment_type": "fixed",
+          "fixed_monthly": 100000,
+          "regular_months": 11,
+          "description": "11 × 100К, остаток на 12-й"
+        }
+      }
+    },
+    "18m": {
+      "months": 18,
+      "balloon_month": 9,
+      "balloon_pct": 10,
+      "description": "Рассрочка на 18 месяцев с удорожанием",
+      "options": {
+        "30": {
+          "down_payment_pct": 30,
+          "markup_pct": 9,
+          "payment_type": "equal",
+          "description": "18 равных платежей, удорожание 9%"
+        },
+        "40": {
+          "down_payment_pct": 40,
+          "markup_pct": 7,
+          "payment_type": "fixed_balloon",
+          "fixed_monthly": 250000,
+          "description": "8×250К, 9-й (10% базы), 8×250К, остаток на 18-й"
+        },
+        "50": {
+          "down_payment_pct": 50,
+          "markup_pct": 4,
+          "payment_type": "fixed_balloon",
+          "fixed_monthly": 150000,
+          "description": "8×150К, 9-й (10% базы), 8×150К, остаток на 18-й"
+        }
+      }
+    }
+  },
+  
+  "texts": {
+    "12m_title": "РАССРОЧКА 12 МЕСЯЦЕВ (0%)",
+    "18m_title": "РАССРОЧКА 18 МЕСЯЦЕВ",
+    "down_payment_label": "Первоначальный взнос",
+    "monthly_label": "Ежемесячный платёж",
+    "balloon_label": "Промежуточный платёж",
+    "final_payment_label": "Финальный платёж",
+    "final_price_label": "Итоговая стоимость",
+    "markup_label": "Удорожание"
+  }
+}
