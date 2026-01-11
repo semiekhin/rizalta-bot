@@ -18,9 +18,9 @@ RIZALTA Telegram Bot v2.1.0
 
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Request
-from typing import Dict, Any
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict, Any
 
 # Конфигурация
 from config.settings import (
@@ -139,6 +139,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Раздаём Mini App
+app.mount("/app", StaticFiles(directory="/opt/miniapp/dist", html=True), name="miniapp")
+
 
 # ====== Фоновая задача напоминаний ======
 
@@ -231,88 +234,6 @@ async def health():
     return {"ok": True, "bot": "RIZALTA", "version": "2.4.0"}
 
 
-# ====== API для Mini App ======
-
-@app.get("/api/lots")
-async def api_get_lots(building: int = None, floor: int = None, status: str = None):
-    """API для Mini App — список лотов."""
-    import sqlite3
-    
-    conn = sqlite3.connect("/opt/bot/properties.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    query = "SELECT code, building, floor, area_m2, price_rub, COALESCE(status, 'available') as status, layout_url FROM units WHERE 1=1"
-    params = []
-    
-    if building:
-        query += " AND building = ?"
-        params.append(building)
-    if floor:
-        query += " AND floor = ?"
-        params.append(floor)
-    if status:
-        query += " AND COALESCE(status, 'available') = ?"
-        params.append(status)
-    
-    query += " ORDER BY building, floor DESC, code"
-    cursor.execute(query, params)
-    
-    lots = [{
-        "code": r["code"],
-        "building": r["building"],
-        "buildingName": "Family" if r["building"] == 1 else "Business",
-        "floor": r["floor"],
-        "area": float(r["area_m2"]) if r["area_m2"] else 0,
-        "price": int(r["price_rub"]) if r["price_rub"] else 0,
-        "status": r["status"] or "available",
-        "layout_url": r["layout_url"] or "",
-    } for r in cursor.fetchall()]
-    
-    conn.close()
-    
-    return {
-        "ok": True,
-        "lots": lots,
-        "stats": {
-            "total": len(lots),
-            "available": len([l for l in lots if l["status"] == "available"]),
-            "booked": len([l for l in lots if l["status"] == "booked"]),
-            "sold": len([l for l in lots if l["status"] == "sold"]),
-        }
-    }
-
-
-@app.post("/api/miniapp-action")
-async def api_miniapp_action(request: Request):
-    """API для Mini App — передаёт выбранный лот в бота."""
-    try:
-        data = await request.json()
-    except:
-        return {"ok": False, "error": "Invalid JSON"}
-    
-    lot = data.get("lot", {})
-    user_id = data.get("user_id")
-    
-    if not lot.get("code"):
-        return {"ok": False, "error": "Missing lot code"}
-    
-    if not user_id:
-        return {"ok": False, "error": "Missing user_id"}
-    
-    code = lot.get("code")
-    building = lot.get("building")
-    
-    print(f"[MINIAPP] Lot: {code}, Building: {building}, User: {user_id}")
-    
-    try:
-        from handlers.kp import handle_nav_lot
-        await handle_nav_lot(user_id, code, building, mode="kp")
-        return {"ok": True}
-    except Exception as e:
-        print(f"[MINIAPP] Error: {e}")
-        return {"ok": False, "error": str(e)}
-
 
 # ====== API для Mini App ======
 
@@ -366,6 +287,7 @@ async def api_get_lots(building: int = None, floor: int = None, status: str = No
     }
 
 
+
 @app.post("/api/miniapp-action")
 async def api_miniapp_action(request: Request):
     """API для Mini App — передаёт выбранный лот в бота."""
@@ -392,10 +314,10 @@ async def api_miniapp_action(request: Request):
         from handlers.kp import handle_nav_lot
         await handle_nav_lot(user_id, code, building, mode="kp")
         return {"ok": True}
+    
     except Exception as e:
         print(f"[MINIAPP] Error: {e}")
         return {"ok": False, "error": str(e)}
-
 
 # ====== Telegram Webhook ======
 
@@ -424,31 +346,12 @@ async def telegram_webhook(request: Request):
     
     chat_id = msg["chat"]["id"]
     
-    # Логируем запрос
-    log_request(chat_id, "message")
     text = (msg.get("text") or "").strip()
     
     # Обработка контакта
     contact_data = msg.get("contact")
     if contact_data:
         await handle_contact_shared(chat_id, contact_data)
-        return {"ok": True}
-
-    # Обработка данных из Mini App (web_app_data)
-    web_app_data = msg.get("web_app_data")
-    if web_app_data:
-        import json
-        try:
-            data = json.loads(web_app_data.get("data", "{}"))
-            action = data.get("action")
-            lot = data.get("lot", {})
-            
-            if action == "select_lot" and lot.get("code"):
-                from handlers.kp import handle_nav_lot
-                await handle_nav_lot(chat_id, lot["code"], lot.get("building"), mode="kp")
-                return {"ok": True}
-        except Exception as e:
-            print(f"[WEBAPP] Error: {e}")
         return {"ok": True}
     
     # Обработка голосового сообщения
@@ -462,7 +365,12 @@ async def telegram_webhook(request: Request):
     
     user_info = msg.get("from", {})
     
+    import time as _t
+    _start = _t.time()
     await process_message(chat_id, text, user_info)
+    duration = int((_t.time() - _start) * 1000)
+    print(f"[TIMING] Response time: {duration} ms")
+    log_request(chat_id, "message", duration)
     return {"ok": True}
 
 
@@ -1254,12 +1162,10 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
             inline_buttons
         )
         return
-    
-    # === ЗАПИСИ ===
 
     if intent == "open_lots_app":
         inline_buttons = [
-            [{"text": "🏢 Открыть выбор лотов", "web_app": {"url": "https://rizalta-miniapp.vercel.app"}}],
+            [{"text": "🏢 Открыть выбор лотов", "web_app": {"url": "https://rizalta-miniapp.vercel.app?env=dev"}}],
             [{"text": "🔙 В меню", "callback_data": "back_to_menu"}]
         ]
         await send_message_inline(
@@ -1268,6 +1174,9 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
             inline_buttons
         )
         return
+
+    
+    # === ЗАПИСИ ===
     
     if intent == "book_showing":
         from handlers.booking_calendar import handle_booking_start

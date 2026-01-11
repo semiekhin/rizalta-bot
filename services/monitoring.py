@@ -38,7 +38,70 @@ def init_db():
         )
     """)
     conn.commit()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_peaks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            metric TEXT NOT NULL,
+            value REAL NOT NULL,
+            timestamp TEXT NOT NULL,
+            UNIQUE(date, metric)
+        )
+    """)
+    conn.commit()
     conn.close()
+
+
+
+def log_peak(metric: str, value: float):
+    """Записывает пиковое значение если оно больше текущего."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now().isoformat()
+    
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "SELECT value FROM daily_peaks WHERE date = ? AND metric = ?",
+        (today, metric)
+    )
+    row = cursor.fetchone()
+    
+    if row is None:
+        cursor.execute(
+            "INSERT INTO daily_peaks (date, metric, value, timestamp) VALUES (?, ?, ?, ?)",
+            (today, metric, value, now)
+        )
+    elif value > row[0]:
+        cursor.execute(
+            "UPDATE daily_peaks SET value = ?, timestamp = ? WHERE date = ? AND metric = ?",
+            (value, now, today, metric)
+        )
+    
+    conn.commit()
+    conn.close()
+
+
+def get_daily_peaks() -> dict:
+    """Возвращает пиковые значения за сегодня."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "SELECT metric, value, timestamp FROM daily_peaks WHERE date = ?",
+        (today,)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return {row[0]: {"value": row[1], "time": row[2].split("T")[1][:5]} for row in rows}
+
+
+def log_error(user_id: int, error_type: str, error_msg: str):
+    """Логирует ошибку."""
+    log_request(user_id, f"error:{error_type}", 0)
 
 
 def log_request(user_id: int, request_type: str = "message", response_time_ms: int = 0):
@@ -96,12 +159,20 @@ def get_daily_stats() -> dict:
     )
     avg_response = cursor.fetchone()[0] or 0
     
+    # Количество ошибок
+    cursor.execute(
+        "SELECT COUNT(*) FROM stats WHERE timestamp LIKE ? AND request_type LIKE ?",
+        (f"{today}%", "error:%")
+    )
+    errors = cursor.fetchone()[0]
+    
     conn.close()
     
     return {
         "total_requests": total_requests,
         "unique_users": unique_users,
-        "avg_response_ms": int(avg_response)
+        "avg_response_ms": int(avg_response),
+        "errors": errors
     }
 
 
@@ -148,9 +219,21 @@ async def check_thresholds():
 
 
 async def send_daily_report():
-    """Отправляет ежедневный отчёт с данными watchdog."""
+    """Отправляет ежедневный отчёт с данными watchdog и пиками."""
     stats = get_daily_stats()
     ram = get_ram_usage()
+    peaks = get_daily_peaks()
+    
+    # Пиковые значения
+    ram_peak = peaks.get("ram", {}).get("value", 0)
+    ram_peak_time = peaks.get("ram", {}).get("time", "—")
+    cpu_peak = peaks.get("cpu", {}).get("value", 0)
+    cpu_peak_time = peaks.get("cpu", {}).get("time", "—")
+    rpm_peak = peaks.get("rpm", {}).get("value", 0)
+    rpm_peak_time = peaks.get("rpm", {}).get("time", "—")
+    
+    # Счётчик ошибок за день
+    error_count = stats.get('errors', 0)
     
     # Данные от watchdog
     try:
@@ -158,26 +241,21 @@ async def send_daily_report():
         from services.watchdog.config import SERVICES, SQLITE_DATABASES
         import os
         
-        # Сервисы
         services = check_all_services(SERVICES)
         services_ok = sum(1 for s in services.values() if s['active'])
         services_total = len(services)
         
-        # Ресурсы
         resources = get_all_resources(SQLITE_DATABASES)
         cpu = resources['cpu']['percent']
         disk = resources['disk']
-        
-        # SQLite размеры
         sqlite_total = sum(s for s in resources['sqlite'].values() if s > 0)
         
-        # Timeweb баланс
         tw_token = os.getenv('TIMEWEB_API_TOKEN', '')
         billing = check_all_billing(tw_token)
         tw_balance = billing['timeweb'].get('balance', 0) if billing['timeweb']['success'] else 0
         
         watchdog_info = f"""
-🖥 CPU: <b>{cpu:.1f}%</b>
+🖥 CPU: <b>{cpu:.1f}%</b> (пик: {cpu_peak:.1f}% в {cpu_peak_time})
 💿 Disk: <b>{disk['used_gb']:.1f}/{disk['total_gb']:.1f} GB ({disk['percent']:.0f}%)</b>
 🗄 SQLite: <b>{sqlite_total:.2f} MB</b>
 🔧 Сервисы: <b>{services_ok}/{services_total}</b>
@@ -185,13 +263,16 @@ async def send_daily_report():
     except Exception as e:
         watchdog_info = f"\n⚠️ Watchdog: ошибка ({e})"
     
+    # Формируем ошибки если есть
+    error_info = f"\n❌ Ошибок: <b>{error_count}</b>" if error_count > 0 else ""
+    
     message = f"""📊 <b>Ежедневный отчёт</b>
 {datetime.now().strftime('%d.%m.%Y')}
 
-📨 Запросов: <b>{stats['total_requests']}</b>
+📨 Запросов: <b>{stats['total_requests']}</b> (пик: {rpm_peak:.0f}/мин в {rpm_peak_time})
 👥 Уникальных: <b>{stats['unique_users']}</b>
 ⚡ Среднее время: <b>{stats['avg_response_ms']} мс</b>
-💾 RAM: <b>{ram:.1f}%</b>{watchdog_info}"""
+💾 RAM: <b>{ram:.1f}%</b> (пик: {ram_peak:.1f}% в {ram_peak_time}){error_info}{watchdog_info}"""
 
     await send_alert(message)
 
@@ -204,8 +285,20 @@ async def monitoring_loop():
     
     while True:
         try:
-            # Проверяем пороги каждые 10 секунд
+            # Проверяем пороги и записываем пики каждые 10 секунд
             await check_thresholds()
+            
+            # Записываем пиковые значения RAM и CPU
+            ram = get_ram_usage()
+            log_peak("ram", ram)
+            
+            import psutil
+            cpu = psutil.cpu_percent(interval=None)
+            log_peak("cpu", cpu)
+            
+            # Пик запросов в минуту
+            rpm = get_requests_per_minute()
+            log_peak("rpm", rpm)
             
             # Ежедневный отчёт в 20:00
             now = datetime.now()
