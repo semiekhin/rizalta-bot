@@ -118,3 +118,32 @@ sqlite3 /opt/bot/properties.db "PRAGMA journal_mode=WAL;"
 sqlite3 /opt/bot/secretary.db "PRAGMA journal_mode=WAL;"
 sqlite3 /opt/bot/monitoring.db "PRAGMA journal_mode=WAL;"
 ```
+
+## 🌐 Cloudflare Named Tunnels
+
+### Конфигурация (обновлено 11.01.2026)
+
+| Туннель | Домен | Порт | Конфиг |
+|---------|-------|------|--------|
+| rizalta-prod | api.rizaltaservice.ru | 8000 | /root/.cloudflared/config.yml |
+| rizalta-dev | dev.rizaltaservice.ru | 8002 | /root/.cloudflared/config-dev.yml |
+
+### Преимущества Named Tunnel:
+- URL статический (не меняется при перезапуске)
+- Не блокируется провайдерами в РФ
+- Не нужны скрипты автообновления webhook
+
+### Команды управления:
+```bash
+# Список туннелей
+cloudflared tunnel list
+
+# Логи
+journalctl -u cloudflare-rizalta -f      # PROD
+journalctl -u rizalta-dev-tunnel -f      # DEV
+```
+
+### Credentials:
+- PROD: /root/.cloudflared/2d4a575c-883b-4361-9ee3-b3efe1a0847f.json
+- DEV: /root/.cloudflared/f77474f6-e2f6-40b6-bf3c-f23edf03cb72.json
+- Cert: /root/.cloudflared/cert.pem
