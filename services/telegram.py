@@ -292,6 +292,57 @@ async def send_photo(
         return False
 
 
+async def send_photo_inline(
+    chat_id: int,
+    filepath: str,
+    caption: Optional[str] = None,
+    inline_buttons: Optional[List[List[Dict[str, str]]]] = None,
+) -> bool:
+    """Отправляет фото с caption и inline-кнопками."""
+    token = get_token()
+    if not token:
+        print("⚠️ TELEGRAM_BOT_TOKEN не задан")
+        return False
+    
+    if not os.path.exists(filepath):
+        print(f"⚠️ Файл не найден: {filepath}")
+        return False
+    
+    url = f"https://api.telegram.org/bot{token}/sendPhoto"
+    filename = os.path.basename(filepath)
+    
+    try:
+        loop = asyncio.get_event_loop()
+        
+        def _post():
+            try:
+                with open(filepath, "rb") as f:
+                    data = {"chat_id": chat_id, "parse_mode": "HTML"}
+                    if caption:
+                        data["caption"] = caption
+                    if inline_buttons:
+                        reply_markup = {"inline_keyboard": inline_buttons}
+                        data["reply_markup"] = json.dumps(reply_markup)
+                    
+                    r = requests.post(
+                        url,
+                        data=data,
+                        files={"photo": (filename, f, "image/jpeg")},
+                        timeout=60,
+                    )
+                    r.raise_for_status()
+                    print(f"[TG] sendPhoto+inline {filename} status={r.status_code}")
+                    return True
+            except Exception as e:
+                print(f"⚠️ Ошибка отправки фото с кнопками: {e}")
+                return False
+        
+        return await loop.run_in_executor(None, _post)
+    except Exception as e:
+        print(f"⚠️ Общая ошибка в send_photo_inline: {e}")
+        return False
+
+
 async def send_media_group(
     chat_id: int,
     filepaths: List[str],

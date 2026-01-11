@@ -19,7 +19,7 @@ from models.state import (
     set_dialog_state,
     DialogStates,
 )
-from services.telegram import send_message, send_message_inline, send_document
+from services.telegram import send_message, send_message_inline, send_document, send_photo_inline
 from services.data_loader import load_why_rizalta_text
 
 
@@ -114,7 +114,7 @@ RIZALTA RESORT BELOKURIKHA — премиальный комплекс куро�
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
     ]
     
-    await send_message_inline(chat_id, text, inline_buttons)
+    await send_photo_inline(chat_id, "/opt/bot/data/images/rizalta_resort.jpg", text, inline_buttons)
 
 
 async def handle_why_altai(chat_id: int):
