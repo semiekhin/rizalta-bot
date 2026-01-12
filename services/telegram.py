@@ -188,6 +188,23 @@ async def send_video(
     url = f"https://api.telegram.org/bot{token}/sendVideo"
     filename = os.path.basename(filepath)
     
+    # Получаем размеры видео через ffprobe
+    width, height = None, None
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0",
+             "-show_entries", "stream=width,height", "-of", "csv=p=0", filepath],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            parts = result.stdout.strip().split(',')
+            if len(parts) == 2:
+                width, height = int(parts[0]), int(parts[1])
+                print(f"[TG] Video dimensions: {width}x{height}")
+    except Exception as e:
+        print(f"⚠️ ffprobe error (продолжаем без размеров): {e}")
+    
     try:
         loop = asyncio.get_event_loop()
         
@@ -198,6 +215,9 @@ async def send_video(
                     if caption:
                         data["caption"] = caption
                         data["parse_mode"] = "HTML"
+                    if width and height:
+                        data["width"] = width
+                        data["height"] = height
                     
                     r = requests.post(
                         url,
@@ -216,7 +236,6 @@ async def send_video(
     except Exception as e:
         print(f"⚠️ send_video error: {e}")
         return False
-
 async def answer_callback_query(callback_id: str, text: Optional[str] = None) -> bool:
     """Отвечает на callback query (убирает часики на кнопке)."""
     token = get_token()

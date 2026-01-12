@@ -40,7 +40,7 @@ async def handle_send_presentation(chat_id: int):
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-PRESENTATIONS_DIR = "/opt/bot-dev/presentations"
+PRESENTATIONS_DIR = "/opt/bot/presentations"
 
 PRESENTATIONS = {
     "pres_rizalta_ru": ("presentation_ru.pdf", "📕 Презентация RIZALTA RESORT BELOKURIKHA"),
@@ -50,16 +50,16 @@ PRESENTATIONS = {
     "pres_zont": ("zont_hotel.pdf", "🏨 ZONT Hotel Group — Управляющая компания"),
 }
 
-VIDEOS_DIR = "/opt/bot-dev/videos"
+VIDEOS_DIR = "/opt/bot/videos"
 
 VIDEOS = {
     "video_nerealno": ("nerealno.mp4", "🎬 Нереально"),
     "video_vesti_kurort": ("vesti_kurort.mp4", "📺 Вести Курорт"),
     "video_bolshoy_altai": ("bolshoy_altai.mp4", "🏔 Большой Алтай"),
     "video_pravilo_30x30": ("pravilo_30x30.mp4", "📐 Правило 30 х 30"),
-    "video_vesti_turpotok": ("vesti_turpotok.mp4", "📺 Вести тур поток"),
+    "video_vesti_turpotok": ("vesti_turpotok_fixed.mp4", "📺 Вести тур поток"),
     "video_sluhi_rizalta": ("sluhi_rizalta.mp4", "🗣 Слухи о RIZALTA"),
-    "video_mihalkova": ("mihalkova_altai.mov", "🌟 Михалкова в Алтае"),
+    "video_mihalkova": ("mihalkova_altai.mp4", "🌟 Михалкова на Алтае"),
     "video_chto_belokuriha": ("chto_takoe_belokuriha.mp4", "❓ Что такое Белокуриха"),
     "video_chem_zanyatsya": ("chem_zanyatsya_belokuriha.mp4", "🎯 Чем заняться в Белокурихе"),
 }
@@ -76,7 +76,7 @@ async def handle_video_menu(chat_id: int):
         [{"text": "📐 Правило 30 х 30", "callback_data": "video_pravilo_30x30"}],
         [{"text": "📺 Вести тур поток", "callback_data": "video_vesti_turpotok"}],
         [{"text": "🗣 Слухи о RIZALTA", "callback_data": "video_sluhi_rizalta"}],
-        [{"text": "🌟 Михалкова в Алтае", "callback_data": "video_mihalkova"}],
+        [{"text": "🌟 Михалкова на Алтае", "callback_data": "video_mihalkova"}],
         [{"text": "❓ Что такое Белокуриха", "callback_data": "video_chto_belokuriha"}],
         [{"text": "🎯 Чем заняться в Белокурихе", "callback_data": "video_chem_zanyatsya"}],
         [{"text": "🔙 Назад", "callback_data": "media_menu"}],

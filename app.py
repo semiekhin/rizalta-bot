@@ -699,8 +699,8 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.kp import handle_kp_show_all_area
         parts = data.replace("kp_show_area_", "").split("_")
         min_area, max_area = float(parts[0]), float(parts[1])
-        await handle_kp_show_all_area(chat_id, min_area, max_area)
-    
+        offset = int(parts[2]) if len(parts) > 2 else 0
+        await handle_kp_show_all_area(chat_id, min_area, max_area, offset)
     elif data.startswith("kp_show_budget_"):
         from handlers.kp import handle_kp_show_all_budget
         parts = data.replace("kp_show_budget_", "").split("_")
@@ -1165,7 +1165,7 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
 
     if intent == "open_lots_app":
         inline_buttons = [
-            [{"text": "🏢 Открыть выбор лотов", "web_app": {"url": "https://rizalta-miniapp.vercel.app?env=dev"}}],
+            [{"text": "🏢 Открыть выбор лотов", "web_app": {"url": "https://rizalta-miniapp.vercel.app"}}],
             [{"text": "🔙 В меню", "callback_data": "back_to_menu"}]
         ]
         await send_message_inline(
