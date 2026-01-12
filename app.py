@@ -411,6 +411,21 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.docs import handle_documents_menu
         await handle_documents_menu(chat_id)
     
+    elif data.startswith("roi_xlsx_code_"):
+        code = data.replace("roi_xlsx_code_", "")
+        from services.units_db import get_lot_by_code
+        lot = get_lot_by_code(code)
+        if lot:
+            await send_message(chat_id, f"⏳ Создаю Excel для {lot['code']}...")
+            from services.calc_xlsx_generator import generate_roi_xlsx
+            xlsx_path = generate_roi_xlsx(unit_code=lot['code'])
+            if xlsx_path:
+                await send_document(chat_id, xlsx_path, f"ROI_{lot['code']}.xlsx")
+            else:
+                await send_message(chat_id, f"❌ Ошибка создания Excel")
+        else:
+            await send_message(chat_id, f"❌ Лот {code} не найден")
+
     elif data.startswith("roi_xlsx_"):
         area_x10 = int(data.replace("roi_xlsx_", ""))
         area = area_x10 / 10
@@ -797,6 +812,16 @@ async def process_callback(callback: Dict[str, Any]):
         parts = data.replace("calc_fin_budget_", "").split("_")
         min_budget, max_budget = int(parts[0]), int(parts[1])
         await handle_calc_finance_budget_range(chat_id, min_budget, max_budget)
+
+    elif data.startswith("calc_roi_code_"):
+        code = data.replace("calc_roi_code_", "")
+        from handlers.calc_dynamic import handle_calc_roi_by_code
+        await handle_calc_roi_by_code(chat_id, code)
+
+    elif data.startswith("calc_finance_code_"):
+        code = data.replace("calc_finance_code_", "")
+        from handlers.calc_dynamic import handle_calc_finance_by_code
+        await handle_calc_finance_by_code(chat_id, code)
 
     elif data.startswith("calc_roi_lot_"):
         area_str = data.replace("calc_roi_lot_", "")

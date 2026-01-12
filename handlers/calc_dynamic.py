@@ -282,3 +282,47 @@ async def handle_calc_finance_lot(chat_id: int, area: float):
         [{"text": "🔙 К списку", "callback_data": "calc_finance_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_calc_roi_by_code(chat_id: int, code: str):
+    """Расчёт доходности по коду лота."""
+    from services.units_db import get_lot_by_code
+    
+    lot = get_lot_by_code(code)
+    if not lot:
+        await send_message(chat_id, f"❌ Лот {code} не найден.")
+        return
+    
+    from services.investment_calc import calculate_investment, format_investment_text
+    price_m2 = int(lot['price'] / lot['area'])
+    calc = calculate_investment(lot['area'], price_m2)
+    text = format_investment_text(lot['code'], calc)
+    
+    inline_buttons = [
+        [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_code_{lot['code']}"},
+         {"text": "📥 Excel", "callback_data": f"roi_xlsx_code_{lot['code']}"},
+         {"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}"}],
+        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
+    ]
+    await send_message_inline(chat_id, text, inline_buttons)
+
+
+async def handle_calc_finance_by_code(chat_id: int, code: str):
+    """Варианты оплаты по коду лота."""
+    from services.units_db import get_lot_by_code
+    
+    lot = get_lot_by_code(code)
+    if not lot:
+        await send_message(chat_id, f"❌ Лот {code} не найден.")
+        return
+    calc = calculate_installment_for_lot(lot['price'], lot['area'], lot['code'])
+    text = format_installment_text(calc)
+    
+    inline_buttons = [
+        [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}],
+        [{"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}"}],
+        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "🔙 К списку", "callback_data": "calc_finance_menu"}],
+    ]
+    await send_message_inline(chat_id, text, inline_buttons)
