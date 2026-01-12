@@ -40,3 +40,11 @@ journalctl -u rizalta-bot -f
 - `docs/RIZALTA_ARCHITECTURE.md` — архитектура
 - `docs/RIZALTA_KNOWLEDGE.md` — база знаний
 - `docs/RIZALTA_TASKS.md` — бэклог задач
+
+## ⚠️ ВАЖНО при деплое
+После копирования app.py из DEV в PROD — исправить URL Mini App!
+```bash
+sed -i 's|https://rizalta-miniapp.vercel.app?env=dev|https://rizalta-miniapp.vercel.app|' /opt/bot/app.py
+```
+- **PROD:** https://rizalta-miniapp.vercel.app (без ?env=dev)
+- **DEV:** https://rizalta-miniapp.vercel.app?env=dev
