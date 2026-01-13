@@ -423,12 +423,12 @@ async def handle_kp_by_area_menu(chat_id: int):
     text = "📐 <b>Выберите диапазон площади:</b>"
     
     inline_buttons = [
-        [{"text": "22-30 м²", "callback_data": "kp_area_22_30"},
-         {"text": "31-40 м²", "callback_data": "kp_area_31_40"}],
-        [{"text": "41-50 м²", "callback_data": "kp_area_41_50"},
-         {"text": "51-70 м²", "callback_data": "kp_area_51_70"}],
-        [{"text": "71-90 м²", "callback_data": "kp_area_71_90"},
-         {"text": "90+ м²", "callback_data": "kp_area_90_200"}],
+        [{"text": "22-31 м²", "callback_data": "kp_area_22_31"},
+         {"text": "31-41 м²", "callback_data": "kp_area_31_41"}],
+        [{"text": "41-51 м²", "callback_data": "kp_area_41_51"},
+         {"text": "51-71 м²", "callback_data": "kp_area_51_71"}],
+        [{"text": "71-91 м²", "callback_data": "kp_area_71_91"},
+         {"text": "91+ м²", "callback_data": "kp_area_91_200"}],
         [{"text": "🔙 Назад", "callback_data": "kp_menu"}],
     ]
     
