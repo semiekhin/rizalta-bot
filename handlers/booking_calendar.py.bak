@@ -1,6 +1,6 @@
 """
 Календарь бронирования на онлайн-показ.
-Выбор даты → время → заявка в группу → специалист берёт.
+Выбор специалиста → дата → время → подтверждение.
 """
 
 import sqlite3
@@ -13,6 +13,13 @@ from services.telegram import send_message, send_message_inline
 BOT_DB_PATH = "/opt/bot/properties.db"
 
 # === НАСТРОЙКИ ===
+
+# Специалисты (потом заменим на реальные данные)
+SPECIALISTS = [
+    {"id": 1, "name": "Специалист 1", "telegram_id": 512319063, "email": "89181011091s@mail.ru"},
+    {"id": 2, "name": "Специалист 2", "telegram_id": 512319063, "email": "89181011091s@mail.ru"},
+    {"id": 3, "name": "Специалист 3", "telegram_id": 512319063, "email": "89181011091s@mail.ru"},
+]
 
 # Рабочие дни (0=Пн, 1=Вт, ..., 5=Сб, 6=Вс)
 WORK_DAYS = [0, 1, 2, 3, 4, 5]  # Пн-Сб
@@ -50,30 +57,28 @@ def init_bookings_db():
             booking_time TEXT NOT NULL,
             status TEXT DEFAULT 'pending',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            contact_info TEXT,
-            group_message_id INTEGER,
-            taken_by_id INTEGER,
-            taken_by_name TEXT
+            contact_info TEXT
         )
     """)
     conn.commit()
     conn.close()
 
 
-def get_booked_slots(date_str: str) -> List[str]:
-    """Возвращает список забронированных слотов на дату."""
+def get_booked_slots(specialist_id: int, date_str: str) -> List[str]:
+    """Возвращает список забронированных слотов для специалиста на дату."""
     conn = sqlite3.connect(BOT_DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         SELECT booking_time FROM bookings 
-        WHERE booking_date = ? AND status IN ('pending', 'taken', 'confirmed')
-    """, (date_str,))
+        WHERE specialist_id = ? AND booking_date = ? AND status = 'confirmed'
+    """, (specialist_id, date_str))
     slots = [row[0] for row in cursor.fetchall()]
     conn.close()
     return slots
 
 
-def save_booking(chat_id: int, username: str, date_str: str, time_str: str,
+def save_booking(chat_id: int, username: str, specialist_id: int, 
+                 specialist_name: str, date_str: str, time_str: str,
                  contact_info: str = None) -> int:
     """Сохраняет бронирование в БД. Возвращает ID записи."""
     conn = sqlite3.connect(BOT_DB_PATH)
@@ -82,7 +87,7 @@ def save_booking(chat_id: int, username: str, date_str: str, time_str: str,
         INSERT INTO bookings (chat_id, username, specialist_id, specialist_name, 
                               booking_date, booking_time, contact_info)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (chat_id, username, 0, "", date_str, time_str, contact_info))
+    """, (chat_id, username, specialist_id, specialist_name, date_str, time_str, contact_info))
     booking_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -116,9 +121,9 @@ def get_available_dates() -> List[Dict]:
     return dates[:10]  # Максимум 10 дат
 
 
-def get_available_times(date_str: str) -> List[str]:
-    """Возвращает список свободных слотов на дату."""
-    booked = get_booked_slots(date_str)
+def get_available_times(specialist_id: int, date_str: str) -> List[str]:
+    """Возвращает список свободных слотов для специалиста на дату."""
+    booked = get_booked_slots(specialist_id, date_str)
     
     times = []
     for hour in range(WORK_HOUR_START, WORK_HOUR_END):
@@ -146,7 +151,7 @@ def format_date_display(date_str: str) -> str:
 
 # === ХРАНИЛИЩЕ СОСТОЯНИЙ БРОНИРОВАНИЯ ===
 
-# chat_id -> {"date": ...}
+# chat_id -> {"specialist_id": ..., "specialist_name": ..., "date": ...}
 booking_states: Dict[int, Dict] = {}
 
 
@@ -171,9 +176,35 @@ def clear_booking_state(chat_id: int):
 # === ОБРАБОТЧИКИ ===
 
 async def handle_booking_start(chat_id: int):
-    """Начало бронирования — сразу показываем даты."""
+    """Начало бронирования — выбор специалиста."""
     init_bookings_db()
     clear_booking_state(chat_id)
+    
+    buttons = []
+    for spec in SPECIALISTS:
+        buttons.append([{
+            "text": f"👤 {spec['name']}", 
+            "callback_data": f"book_spec_{spec['id']}"
+        }])
+    
+    buttons.append([{"text": "🔙 В меню", "callback_data": "back_to_menu"}])
+    
+    await send_message_inline(
+        chat_id,
+        "📅 <b>Запись на онлайн-показ</b>\n\n"
+        "Выберите специалиста:",
+        buttons
+    )
+
+
+async def handle_select_specialist(chat_id: int, specialist_id: int):
+    """Выбран специалист — показываем даты."""
+    specialist = next((s for s in SPECIALISTS if s["id"] == specialist_id), None)
+    if not specialist:
+        await send_message(chat_id, "Ошибка: специалист не найден")
+        return
+    
+    set_booking_state(chat_id, specialist_id=specialist_id, specialist_name=specialist["name"])
     
     dates = get_available_dates()
     if not dates:
@@ -194,11 +225,14 @@ async def handle_booking_start(chat_id: int):
     if row:
         buttons.append(row)
     
-    buttons.append([{"text": "🔙 В меню", "callback_data": "back_to_menu"}])
+    buttons.append([
+        {"text": "◀️ Назад", "callback_data": "book_back_specialist"},
+        {"text": "🔙 В меню", "callback_data": "back_to_menu"}
+    ])
     
     await send_message_inline(
         chat_id,
-        "📅 <b>Запись на онлайн-показ</b>\n\n"
+        f"👤 <b>{specialist['name']}</b>\n\n"
         "Выберите дату:",
         buttons
     )
@@ -206,15 +240,23 @@ async def handle_booking_start(chat_id: int):
 
 async def handle_select_date(chat_id: int, date_str: str):
     """Выбрана дата — показываем время."""
+    state = get_booking_state(chat_id)
+    specialist_id = state.get("specialist_id")
+    specialist_name = state.get("specialist_name")
+    
+    if not specialist_id:
+        await handle_booking_start(chat_id)
+        return
+    
     set_booking_state(chat_id, date=date_str)
     
-    times = get_available_times(date_str)
+    times = get_available_times(specialist_id, date_str)
     if not times:
         await send_message_inline(
             chat_id,
             f"😔 К сожалению, на {format_date_display(date_str)} нет свободных слотов.\n\n"
             "Выберите другую дату.",
-            [[{"text": "◀️ Выбрать другую дату", "callback_data": "online_show"}]]
+            [[{"text": "◀️ Выбрать другую дату", "callback_data": f"book_spec_{specialist_id}"}]]
         )
         return
     
@@ -233,7 +275,7 @@ async def handle_select_date(chat_id: int, date_str: str):
         buttons.append(row)
     
     buttons.append([
-        {"text": "◀️ Назад", "callback_data": "online_show"},
+        {"text": "◀️ Назад", "callback_data": f"book_spec_{specialist_id}"},
         {"text": "🔙 В меню", "callback_data": "back_to_menu"}
     ])
     
@@ -241,6 +283,7 @@ async def handle_select_date(chat_id: int, date_str: str):
     
     await send_message_inline(
         chat_id,
+        f"👤 <b>{specialist_name}</b>\n"
         f"📅 <b>{date_display}</b>\n\n"
         "Выберите время:",
         buttons
@@ -248,11 +291,13 @@ async def handle_select_date(chat_id: int, date_str: str):
 
 
 async def handle_select_time(chat_id: int, time_str: str, username: str = None):
-    """Выбрано время — отправляем заявку в группу."""
+    """Выбрано время — отправляем заявку специалисту на подтверждение."""
     state = get_booking_state(chat_id)
+    specialist_id = state.get("specialist_id")
+    specialist_name = state.get("specialist_name")
     date_str = state.get("date")
     
-    if not date_str:
+    if not specialist_id or not date_str:
         await handle_booking_start(chat_id)
         return
     
@@ -263,19 +308,21 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
     booking_id = save_booking(
         chat_id=chat_id,
         username=username,
+        specialist_id=specialist_id,
+        specialist_name=specialist_name,
         date_str=date_str,
         time_str=time_formatted
     )
     
     date_display = format_date_display(date_str)
     
-    # Очищаем состояние
+    # Отправляем риэлтору сообщение об ожидании
     clear_booking_state(chat_id)
     
-    # Отправляем клиенту сообщение об ожидании
     await send_message_inline(
         chat_id,
         f"⏳ <b>Заявка отправлена!</b>\n\n"
+        f"👤 Специалист: {specialist_name}\n"
         f"📅 Дата: {date_display}\n"
         f"🕐 Время: {time_formatted}\n"
         f"🆔 Номер заявки: #{booking_id}\n\n"
@@ -283,6 +330,25 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
         "Вы получите уведомление.",
         [[{"text": "🔙 В главное меню", "callback_data": "back_to_menu"}]]
     )
+    
+    # Отправляем специалисту уведомление с кнопками
+    specialist = next((s for s in SPECIALISTS if s["id"] == specialist_id), None)
+    if specialist and specialist.get("telegram_id"):
+        await send_message_inline(
+            specialist["telegram_id"],
+            f"📅 <b>Новая заявка на показ!</b>\n\n"
+            f"🆔 Номер: #{booking_id}\n"
+            f"📅 Дата: {date_display}\n"
+            f"🕐 Время: {time_formatted}\n"
+            f"👤 Риэлтор: @{username if username else 'не указан'}\n\n"
+            "Подтвердить запись?",
+            [
+                [
+                    {"text": "✅ Подтвердить", "callback_data": f"book_confirm_{booking_id}"},
+                    {"text": "❌ Отклонить", "callback_data": f"book_decline_{booking_id}"}
+                ]
+            ]
+        )
     
     # Отправляем в группу показов с кнопкой "Взять"
     try:
@@ -303,6 +369,21 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
                 save_booking_group_message_id(booking_id, msg_id)
     except Exception as e:
         print(f"[BOOKING] Group notify error: {e}")
+
+    # Также отправляем email
+    if specialist and specialist.get("email"):
+        try:
+            await send_booking_notification_email(
+                to_email=specialist["email"],
+                specialist_name=specialist_name,
+                date_display=date_display,
+                time_str=time_formatted,
+                username=username,
+                chat_id=chat_id,
+                booking_id=booking_id
+            )
+        except Exception as e:
+            print(f"[BOOKING] Email error: {e}")
 
 
 def get_booking_by_id(booking_id: int) -> Optional[Dict]:
@@ -342,9 +423,129 @@ def update_booking_status(booking_id: int, status: str):
     conn.close()
 
 
+async def handle_confirm_booking(chat_id: int, booking_id: int):
+    """Специалист подтвердил запись."""
+    booking = get_booking_by_id(booking_id)
+    
+    if not booking:
+        await send_message(chat_id, "❌ Запись не найдена.")
+        return
+    
+    if booking["status"] != "pending":
+        await send_message(chat_id, "ℹ️ Эта запись уже обработана.")
+        return
+    
+    # Обновляем статус
+    update_booking_status(booking_id, "confirmed")
+    
+    date_display = format_date_display(booking["booking_date"])
+    
+    # Уведомляем специалиста
+    await send_message(
+        chat_id,
+        f"✅ <b>Запись подтверждена!</b>\n\n"
+        f"🆔 Номер: #{booking_id}\n"
+        f"📅 {date_display}, {booking['booking_time']}\n"
+        f"👤 Риэлтор: @{booking['username'] or 'не указан'}"
+    )
+    
+    # Уведомляем риэлтора
+    await send_message_inline(
+        booking["chat_id"],
+        f"✅ <b>Ваша запись подтверждена!</b>\n\n"
+        f"👤 Специалист: {booking['specialist_name']}\n"
+        f"📅 Дата: {date_display}\n"
+        f"🕐 Время: {booking['booking_time']}\n"
+        f"🆔 Номер записи: #{booking_id}\n\n"
+        "Специалист свяжется с вами в назначенное время.",
+        [[{"text": "🔙 В главное меню", "callback_data": "back_to_menu"}]]
+    )
+
+
+async def handle_decline_booking(chat_id: int, booking_id: int):
+    """Специалист отклонил запись."""
+    booking = get_booking_by_id(booking_id)
+    
+    if not booking:
+        await send_message(chat_id, "❌ Запись не найдена.")
+        return
+    
+    if booking["status"] != "pending":
+        await send_message(chat_id, "ℹ️ Эта запись уже обработана.")
+        return
+    
+    # Обновляем статус
+    update_booking_status(booking_id, "declined")
+    
+    date_display = format_date_display(booking["booking_date"])
+    
+    # Уведомляем специалиста
+    await send_message(
+        chat_id,
+        f"❌ <b>Запись отклонена</b>\n\n"
+        f"🆔 Номер: #{booking_id}\n"
+        f"📅 {date_display}, {booking['booking_time']}"
+    )
+    
+    # Уведомляем риэлтора
+    await send_message_inline(
+        booking["chat_id"],
+        f"😔 <b>К сожалению, выбранное время недоступно</b>\n\n"
+        f"👤 Специалист: {booking['specialist_name']}\n"
+        f"📅 Дата: {date_display}\n"
+        f"🕐 Время: {booking['booking_time']}\n\n"
+        "Пожалуйста, выберите другое время.",
+        [[{"text": "📅 Выбрать другое время", "callback_data": "booking_calendar"}],
+         [{"text": "🔙 В главное меню", "callback_data": "back_to_menu"}]]
+    )
+
+
+async def send_booking_notification_email(to_email: str, specialist_name: str,
+                                          date_display: str, time_str: str,
+                                          username: str, chat_id: int, booking_id: int):
+    """Отправляет email уведомление о новой записи."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from config.settings import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, BOT_EMAIL
+    
+    subject = f"🗓 Новая запись на показ #{booking_id}"
+    
+    body = f"""
+Новая запись на онлайн-показ RIZALTA!
+
+📋 Детали записи:
+━━━━━━━━━━━━━━━━━━━━━
+🆔 Номер: #{booking_id}
+👤 Специалист: {specialist_name}
+📅 Дата: {date_display}
+🕐 Время: {time_str}
+
+👤 Клиент:
+• Telegram: @{username if username else 'не указан'}
+• Chat ID: {chat_id}
+━━━━━━━━━━━━━━━━━━━━━
+
+Пожалуйста, свяжитесь с клиентом в назначенное время.
+"""
+    
+    msg = MIMEMultipart()
+    msg["From"] = BOT_EMAIL
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+    
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.send_message(msg)
+    
+    print(f"[BOOKING] Email sent to {to_email}")
+
+
 async def handle_take_booking(chat_id: int, booking_id: int, from_user: dict):
     """Специалист взял заявку из группы."""
-    from services.telegram import edit_message_inline
+    from services.telegram import send_message_inline, edit_message_inline
     from services.secretary_db import add_task
     from config.settings import SHOWS_GROUP_ID
     
@@ -407,7 +608,17 @@ async def handle_take_booking(chat_id: int, booking_id: int, from_user: dict):
     except Exception as e:
         print(f"[BOOKING] Error adding task: {e}")
     
-    # Уведомляем клиента
+    # Уведомляем специалиста
+    await send_message_inline(
+        chat_id,
+        f"✅ <b>Вы взяли заявку #{booking_id}</b>\n\n"
+        f"📅 {date_display}, {booking['booking_time']}\n"
+        f"👤 Клиент: @{booking['username'] or 'ID:' + str(booking['chat_id'])}\n\n"
+        f"📋 Задача добавлена в ваш секретарь.",
+        [[{"text": "📋 Открыть секретарь", "callback_data": f"sec_day_{booking['booking_date']}"}]]
+    )
+    
+    # Уведомляем риэлтора
     await send_message_inline(
         booking["chat_id"],
         f"✅ <b>Ваша заявка принята!</b>\n\n"

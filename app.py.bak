@@ -839,6 +839,14 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.booking_calendar import handle_booking_start
         await handle_booking_start(chat_id)
 
+    elif data.startswith("book_spec_"):
+        from handlers.booking_calendar import handle_select_specialist
+        spec_id = int(data.replace("book_spec_", ""))
+        await handle_select_specialist(chat_id, spec_id)
+
+    elif data == "book_back_specialist":
+        from handlers.booking_calendar import handle_booking_start
+        await handle_booking_start(chat_id)
 
     elif data.startswith("book_date_"):
         from handlers.booking_calendar import handle_select_date
@@ -849,6 +857,16 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.booking_calendar import handle_select_time
         time_str = data.replace("book_time_", "")
         await handle_select_time(chat_id, time_str, username)
+
+    elif data.startswith("book_confirm_"):
+        from handlers.booking_calendar import handle_confirm_booking
+        booking_id = int(data.replace("book_confirm_", ""))
+        await handle_confirm_booking(chat_id, booking_id)
+
+    elif data.startswith("book_decline_"):
+        from handlers.booking_calendar import handle_decline_booking
+        booking_id = int(data.replace("book_decline_", ""))
+        await handle_decline_booking(chat_id, booking_id)
 
     elif data.startswith("book_take_"):
         from handlers.booking_calendar import handle_take_booking
