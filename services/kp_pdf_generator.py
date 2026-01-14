@@ -16,6 +16,9 @@ DB_PATH = BASE_DIR / "properties.db"
 RESOURCES_DIR = BASE_DIR / "services" / "kp_resources"
 SERVICE_FEE = 150_000
 
+# Апартаменты с индивидуальными условиями рассрочки (только 50% ПВ, 12 мес)
+CUSTOM_INSTALLMENT_UNITS = ['В615', 'В527', 'В517', 'В617', 'В525', 'В625', 'А101']
+
 def load_resource(filename: str) -> str:
     path = RESOURCES_DIR / filename
     return path.read_text().strip() if path.exists() else ""
@@ -223,7 +226,26 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 '''
 
     if not full_payment:
-        html += f'''<div class="installment-section">
+        # Проверяем, является ли это апартаментом с индивидуальными условиями
+        is_custom = lot["code"] in CUSTOM_INSTALLMENT_UNITS
+        
+        if is_custom:
+            # Индивидуальные условия: только 50% ПВ, 2 колонки
+            html += f'''<div class="installment-section">
+<div class="installment-title">Рассрочка 0% на 12 месяцев</div>
+<table class="options-table"><tr>
+<td class="option-card" style="width: 50%;">
+<div class="option-pv">Первый взнос 50%</div>
+<div class="option-amount">{fmt(i12["pv_50"])}</div>
+</td>
+<td class="option-card" style="width: 50%;">
+<div class="option-monthly" style="padding-top: 8px;">11 платежей × 100 000 ₽<br><br>12-й платёж: {fmt(i12["last_50"])}</div>
+</td>
+</tr></table>
+</div>'''
+        else:
+            # Стандартные условия: 3 колонки (30%, 40%, 50%)
+            html += f'''<div class="installment-section">
 <div class="installment-title">Рассрочка 0% на 12 месяцев</div>
 <table class="options-table"><tr>
 <td class="option-card">
