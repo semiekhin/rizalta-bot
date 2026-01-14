@@ -22,7 +22,7 @@ from services.units_db import (
     parse_floor_query,
     normalize_code,
 )
-from services.kp_pdf_generator import generate_kp_pdf
+from services.kp_pdf_generator import generate_kp_pdf, CUSTOM_INSTALLMENT_UNITS
 
 # Константы
 MAX_BUTTONS_PER_MESSAGE = 20
@@ -227,17 +227,21 @@ async def handle_nav_lot(chat_id: int, code: str, building: int = None, mode: st
 """
 
     lot_id = f"{lot['code']}_{lot['building']}"
+    is_custom = lot['code'] in CUSTOM_INSTALLMENT_UNITS
     
     inline_buttons = [
         [{"text": "📄 КП 100% оплата", "callback_data": f"kp_gen_{lot_id}_100"}],
         [{"text": "📄 КП с рассрочкой 12 мес", "callback_data": f"kp_gen_{lot_id}_12"}],
-        [{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}],
-        [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}],
+    ]
+    if not is_custom:
+        inline_buttons.append([{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}])
+    inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}])
+    inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['price']//1000}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": f"{cb}_menu"}],
-    ]
+    ])
     
     await send_message_inline(chat_id, text, inline_buttons)
 
@@ -683,17 +687,21 @@ async def handle_kp_lot(chat_id: int, code: str, building: int = None):
 
     # Используем код + корпус для генерации
     lot_id = f"{lot['code']}_{lot['building']}"
+    is_custom = lot['code'] in CUSTOM_INSTALLMENT_UNITS
     
     inline_buttons = [
         [{"text": "📄 КП 100% оплата", "callback_data": f"kp_gen_{lot_id}_100"}],
         [{"text": "📄 КП с рассрочкой 12 мес", "callback_data": f"kp_gen_{lot_id}_12"}],
-        [{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}],
-        [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}],
+    ]
+    if not is_custom:
+        inline_buttons.append([{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}])
+    inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}])
+    inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['price']//1000}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": "kp_menu"}],
-    ]
+    ])
     
     await send_message_inline(chat_id, text, inline_buttons)
 
