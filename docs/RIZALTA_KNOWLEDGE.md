@@ -253,3 +253,31 @@ const API_PATH = new URLSearchParams(window.location.search).get('env') === 'dev
 2. Скопировать в PROD
 3. Коммит оба репо
 4. Выдать блок для нового чата
+
+---
+
+## Добавлено 14.01.2026
+
+### Custom Installment (индивидуальные условия рассрочки)
+
+**Список апартаментов:**
+```python
+CUSTOM_INSTALLMENT_UNITS = ['В615', 'В527', 'В517', 'В617', 'В525', 'В625', 'А101']
+```
+
+**Где используется:**
+- `services/kp_pdf_generator.py` — PDF показывает 2 колонки (только 50% ПВ)
+- `handlers/kp.py` — скрывается кнопка "КП с рассрочкой 12+18 мес"
+
+**Как добавить новый апартамент:**
+1. Открыть `/opt/bot-dev/services/kp_pdf_generator.py`
+2. Найти `CUSTOM_INSTALLMENT_UNITS = [...]`
+3. Добавить код апартамента в список
+4. Перезапустить DEV, протестировать
+5. Скопировать в PROD, перезапустить
+
+**Пример:**
+```bash
+# Добавить В700:
+sed -i "s/CUSTOM_INSTALLMENT_UNITS = \[/CUSTOM_INSTALLMENT_UNITS = ['В700', /" /opt/bot-dev/services/kp_pdf_generator.py
+```
