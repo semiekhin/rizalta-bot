@@ -826,3 +826,70 @@ sed -i 's|https://rizalta-miniapp.vercel.app?env=dev|https://rizalta-miniapp.ver
 
 *Последнее обновление: 16.01.2026*
 *Версия контекста: 1.1.0*
+
+---
+
+### ЗАДАЧА 8: ROI/Excel для лотов с одинаковым кодом в разных корпусах
+
+**Дата:** 17.01.2026
+
+**Проблема:** Некоторые лоты имеют одинаковый код (например А509), но находятся в разных корпусах с разной площадью и ценой. При вызове ROI или Excel из карточки лота брались данные первого найденного лота, а не того что выбрал пользователь.
+
+**Пример:**
+- А509 Корпус 1: 42.8 м², 26 964 000 ₽
+- А509 Корпус 2: 24.5 м², 15 925 000 ₽
+
+**Файлы:**
+- `handlers/kp.py` — формирование callback'ов
+- `handlers/calc_dynamic.py` — обработка ROI/Finance
+- `app.py` — парсинг callback'ов
+- `services/calc_xlsx_generator.py` — генерация Excel
+
+**Решение:**
+
+1. **Изменить callback'и** — добавить building:
+```python
+# Было:
+f"calc_roi_code_{lot['code']}"
+
+# Стало:
+f"calc_roi_code_{lot['code']}_{lot['building']}"
+```
+
+2. **Парсить building в app.py:**
+```python
+# Было:
+code = data.replace("calc_roi_code_", "")
+
+# Стало:
+parts = data.replace("calc_roi_code_", "").rsplit("_", 1)
+code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+```
+
+3. **Передавать building в функции:**
+```python
+# handlers/calc_dynamic.py
+async def handle_calc_roi_by_code(chat_id: int, code: str, building: int = None):
+    lot = get_lot_by_code(code, building)
+
+# services/calc_xlsx_generator.py
+def generate_roi_xlsx(unit_code: str = None, area: float = None, output_dir: str = None, building: int = None):
+    lot = get_lot_from_db(unit_code, building)
+```
+
+**Затронутые callback'и:**
+- `calc_roi_code_` — расчёт ROI
+- `calc_finance_code_` — варианты оплаты  
+- `roi_xlsx_code_` — Excel файл
+- `compare_lot_` — сравнение с депозитом
+
+**Проверка:**
+```bash
+sqlite3 /opt/bot-dev/properties.db "SELECT code, building, area_m2, price_rub FROM units WHERE code LIKE '%509%';"
+```
+
+**Тест:**
+1. Найти А509 → выбрать Корпус 2 (24.5 м²)
+2. Нажать "📊 Расчёт доходности"
+3. Нажать "📥 Excel"
+4. В Excel должно быть 24.5 м², 15 925 000 ₽
