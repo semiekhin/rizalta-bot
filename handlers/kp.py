@@ -235,10 +235,10 @@ async def handle_nav_lot(chat_id: int, code: str, building: int = None, mode: st
     ]
     if not is_custom:
         inline_buttons.append([{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}])
-    inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}])
+    inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}_{lot['building']}"}])
     inline_buttons.extend([
-        [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}"}],
-        [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['price']//1000}"}],
+        [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
+        [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": f"{cb}_menu"}],
     ])
@@ -695,10 +695,10 @@ async def handle_kp_lot(chat_id: int, code: str, building: int = None):
     ]
     if not is_custom:
         inline_buttons.append([{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}])
-    inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}])
+    inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}_{lot['building']}"}])
     inline_buttons.extend([
-        [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}"}],
-        [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['price']//1000}"}],
+        [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
+        [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": "kp_menu"}],
     ])

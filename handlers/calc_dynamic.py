@@ -284,11 +284,12 @@ async def handle_calc_finance_lot(chat_id: int, area: float):
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_calc_roi_by_code(chat_id: int, code: str):
+async def handle_calc_roi_by_code(chat_id: int, code: str, building: int = None):
     """Расчёт доходности по коду лота."""
     from services.units_db import get_lot_by_code
     
-    lot = get_lot_by_code(code)
+    print(f"[DEBUG] code={code}, building={building}")
+    lot = get_lot_by_code(code, building)
     if not lot:
         await send_message(chat_id, f"❌ Лот {code} не найден.")
         return
@@ -299,20 +300,21 @@ async def handle_calc_roi_by_code(chat_id: int, code: str):
     text = format_investment_text(lot['code'], calc)
     
     inline_buttons = [
-        [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_code_{lot['code']}"},
-         {"text": "📥 Excel", "callback_data": f"roi_xlsx_code_{lot['code']}"},
-         {"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}"}],
+        [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"},
+         {"text": "📥 Excel", "callback_data": f"roi_xlsx_code_{lot['code']}_{lot['building']}"},
+         {"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}_{lot['building']}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_calc_finance_by_code(chat_id: int, code: str):
+async def handle_calc_finance_by_code(chat_id: int, code: str, building: int = None):
     """Варианты оплаты по коду лота."""
     from services.units_db import get_lot_by_code
     
-    lot = get_lot_by_code(code)
+    print(f"[DEBUG] code={code}, building={building}")
+    lot = get_lot_by_code(code, building)
     if not lot:
         await send_message(chat_id, f"❌ Лот {code} не найден.")
         return
@@ -321,7 +323,7 @@ async def handle_calc_finance_by_code(chat_id: int, code: str):
     
     inline_buttons = [
         [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}],
-        [{"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}"}],
+        [{"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}_{lot['building']}"}],
         [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_finance_menu"}],
     ]

@@ -412,13 +412,14 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_documents_menu(chat_id)
     
     elif data.startswith("roi_xlsx_code_"):
-        code = data.replace("roi_xlsx_code_", "")
+        parts = data.replace("roi_xlsx_code_", "").rsplit("_", 1)
+        code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from services.units_db import get_lot_by_code
-        lot = get_lot_by_code(code)
+        lot = get_lot_by_code(code, building)
         if lot:
             await send_message(chat_id, f"⏳ Создаю Excel для {lot['code']}...")
             from services.calc_xlsx_generator import generate_roi_xlsx
-            xlsx_path = generate_roi_xlsx(unit_code=lot['code'])
+            xlsx_path = generate_roi_xlsx(unit_code=lot['code'], building=lot['building'])
             if xlsx_path:
                 await send_document(chat_id, xlsx_path, f"ROI_{lot['code']}.xlsx")
             else:
@@ -814,14 +815,16 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_calc_finance_budget_range(chat_id, min_budget, max_budget)
 
     elif data.startswith("calc_roi_code_"):
-        code = data.replace("calc_roi_code_", "")
+        parts = data.replace("calc_roi_code_", "").rsplit("_", 1)
+        code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from handlers.calc_dynamic import handle_calc_roi_by_code
-        await handle_calc_roi_by_code(chat_id, code)
+        await handle_calc_roi_by_code(chat_id, code, building)
 
     elif data.startswith("calc_finance_code_"):
-        code = data.replace("calc_finance_code_", "")
+        parts = data.replace("calc_finance_code_", "").rsplit("_", 1)
+        code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from handlers.calc_dynamic import handle_calc_finance_by_code
-        await handle_calc_finance_by_code(chat_id, code)
+        await handle_calc_finance_by_code(chat_id, code, building)
 
     elif data.startswith("calc_roi_lot_"):
         area_str = data.replace("calc_roi_lot_", "")

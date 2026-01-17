@@ -15,8 +15,8 @@ BASE_DIR = Path(__file__).parent.parent
 DB_PATH = BASE_DIR / "properties.db"
 
 
-def get_lot_from_db(code: str) -> Optional[Dict]:
-    """Получить лот из БД по коду"""
+def get_lot_from_db(code: str, building: int = None) -> Optional[Dict]:
+    """Получить лот из БД по коду и корпусу"""
     if not DB_PATH.exists():
         return None
     conn = sqlite3.connect(str(DB_PATH))
@@ -24,7 +24,10 @@ def get_lot_from_db(code: str) -> Optional[Dict]:
     code_upper = code.strip().upper()
     table = str.maketrans({"А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "S", "Т": "T"})
     code_latin = code_upper.translate(table)
-    cursor.execute("SELECT code, area_m2, price_rub FROM units WHERE code = ? OR code = ? LIMIT 1", (code_upper, code_latin))
+    if building is not None:
+        cursor.execute("SELECT code, area_m2, price_rub FROM units WHERE (code = ? OR code = ?) AND building = ? LIMIT 1", (code_upper, code_latin, building))
+    else:
+        cursor.execute("SELECT code, area_m2, price_rub FROM units WHERE code = ? OR code = ? LIMIT 1", (code_upper, code_latin))
     row = cursor.fetchone()
     conn.close()
     if row:
@@ -454,13 +457,13 @@ class ProfitCalculatorGenerator:
         ws['N22'].number_format = '0.00'
 
 
-def generate_roi_xlsx(unit_code: str = None, area: float = None, output_dir: str = None) -> Optional[str]:
+def generate_roi_xlsx(unit_code: str = None, area: float = None, output_dir: str = None, building: int = None) -> Optional[str]:
     """
     Генерирует Excel-файл с расчётом прибыли
     """
     lot = None
     if unit_code:
-        lot = get_lot_from_db(unit_code)
+        lot = get_lot_from_db(unit_code, building)
     elif area:
         lot = get_lot_by_area(area)
     
