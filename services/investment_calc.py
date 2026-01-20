@@ -136,7 +136,7 @@ def format_investment_text(lot_code: str, calc: Dict) -> str:
 📊 Средняя годовая: <b>{calc['avg_annual_pct']:.1f}%</b>
 🏠 Стоимость в 2035: ~{fmt(calc['final_value'])} ₽
 
-<i>Подробный расчёт в файле DOCX</i>"""
+<i>Подробный расчёт в файле Excel</i>"""
 
 
 if __name__ == "__main__":
