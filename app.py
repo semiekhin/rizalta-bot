@@ -1320,6 +1320,29 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     Версия 2.1 — поддержка корпусов, этажей, кодов лотов.
     """
     
+    # === Админ-команда /parse ===
+    ADMIN_ID = 512319063
+    if text == "/parse" and chat_id == ADMIN_ID:
+        import subprocess
+        await send_message(chat_id, "⏳ Запускаю парсер...")
+        try:
+            result = subprocess.run(
+                ["/opt/bot/venv/bin/python3", "services/parser_rclick.py"],
+                cwd="/opt/bot",
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            if result.returncode == 0:
+                await send_message(chat_id, f"✅ Парсер завершён успешно:\n<pre>{result.stdout[-1000:] if result.stdout else 'OK'}</pre>")
+            else:
+                await send_message(chat_id, f"❌ Ошибка парсера:\n<pre>{result.stderr[-500:]}</pre>")
+        except subprocess.TimeoutExpired:
+            await send_message(chat_id, "❌ Таймаут парсера (>120 сек)")
+        except Exception as e:
+            await send_message(chat_id, f"❌ Ошибка: {e}")
+        return
+    
     # === Обработка диалоговых состояний (фиксация) ===
     from handlers.booking_fixation import handle_booking_input, has_active_booking_state
     if has_active_booking_state(user_info.get("id", chat_id)):
