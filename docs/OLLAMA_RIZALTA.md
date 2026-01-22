@@ -893,3 +893,55 @@ sqlite3 /opt/bot-dev/properties.db "SELECT code, building, area_m2, price_rub FR
 2. Нажать "📊 Расчёт доходности"
 3. Нажать "📥 Excel"
 4. В Excel должно быть 24.5 м², 15 925 000 ₽
+
+---
+
+### ЗАДАЧА 9: Админ-команда /parse для ручного парсинга
+
+**Дата:** 21.01.2026
+
+**Проблема:** Часто нужно вручную обновлять базу лотов при появлении новых объектов.
+
+**Файлы:** `app.py`
+
+**Решение:**
+
+Добавлена команда `/parse` в функцию `process_message()` — доступна только админу (ID 512319063).
+
+**Код:**
+```python
+# === Админ-команда /parse ===
+ADMIN_ID = 512319063
+if text == "/parse" and chat_id == ADMIN_ID:
+    import subprocess
+    await send_message(chat_id, "⏳ Запускаю парсер...")
+    try:
+        result = subprocess.run(
+            ["/opt/bot/venv/bin/python3", "services/parser_rclick.py"],
+            cwd="/opt/bot",
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        if result.returncode == 0:
+            await send_message(chat_id, f"✅ Парсер завершён успешно:\n<pre>{result.stdout[-1000:] if result.stdout else 'OK'}</pre>")
+        else:
+            await send_message(chat_id, f"❌ Ошибка парсера:\n<pre>{result.stderr[-500:]}</pre>")
+    except subprocess.TimeoutExpired:
+        await send_message(chat_id, "❌ Таймаут парсера (>120 сек)")
+    except Exception as e:
+        await send_message(chat_id, f"❌ Ошибка: {e}")
+    return
+```
+
+**Использование:**
+- Отправить `/parse` в бот (PROD или DEV)
+- Команда запускает парсер на PROD базе
+- Таймаут 120 секунд
+- Результат выводится в чат
+
+**Проверка:**
+```bash
+# В Telegram отправить боту:
+/parse
+```
