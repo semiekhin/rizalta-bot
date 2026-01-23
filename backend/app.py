@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import httpx
+import os
 
 app = FastAPI(title="RIZALTA Web App API", version="0.1.0")
 
@@ -13,14 +16,10 @@ app.add_middleware(
 )
 
 PROD_API = "https://api.rizaltaservice.ru"
-
-@app.get("/")
-async def root():
-    return {"status": "ok", "service": "RIZALTA Web App"}
+DIST_PATH = "/opt/webapp/frontend/dist"
 
 @app.get("/api/lots")
 async def get_lots():
-    """Проксируем запрос к PROD API"""
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             response = await client.get(f"{PROD_API}/api/lots")
@@ -30,7 +29,22 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "prod_api": PROD_API}
+    return {"status": "healthy"}
+
+@app.get("/assets/{file_path:path}")
+async def serve_assets(file_path: str):
+    full_path = f"{DIST_PATH}/assets/{file_path}"
+    if os.path.isfile(full_path):
+        media_type = "application/javascript" if file_path.endswith(".js") else "text/css"
+        return FileResponse(full_path, media_type=media_type)
+    return Response(status_code=404)
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    file_path = f"{DIST_PATH}/{full_path}"
+    if full_path and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    return FileResponse(f"{DIST_PATH}/index.html")
 
 if __name__ == "__main__":
     import uvicorn

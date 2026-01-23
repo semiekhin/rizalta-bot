@@ -6,62 +6,65 @@ Standalone веб-приложение — fallback если Telegram упадё
 ## Инфраструктура
 - **Сервер:** `ssh -p 2222 root@72.56.64.91`
 - **WebApp:** `/opt/webapp` (отдельно от бота!)
-- **Frontend:** React + Vite + Tailwind → порт 5173/5174
+- **Frontend:** React + Vite + Tailwind (build в /frontend/dist/)
 - **Backend:** FastAPI → порт 8003
 - **PROD бот:** `/opt/bot` (НЕ ТРОГАТЬ)
 - **DEV бот:** `/opt/bot-dev` (НЕ ТРОГАТЬ)
 
-## Запуск
-```bash
-# Backend
-cd /opt/webapp/backend && source /opt/webapp/venv/bin/activate
-python3 -m uvicorn app:app --host 0.0.0.0 --port 8003 &
+## Текущий статус (23.01.2026)
+✅ Frontend: 4 страницы готовы (Home, Catalog, LotDetail, Chat)
+✅ Backend: FastAPI проксирует /api/lots к PROD
+✅ Production build: /opt/webapp/frontend/dist/
+✅ Туннель создан: 2ff508f2-9445-43ac-ab0b-4e0b38d487a0
+✅ DNS: webapp.rizaltaservice.ru
 
-# Frontend  
-cd /opt/webapp/frontend && npm run dev -- --host 0.0.0.0 --port 5173 &
-```
+⚠️ ПРОБЛЕМА: ERR_HTTP2_PING_FAILED при загрузке JS/CSS через Cloudflare туннель
+- Локально всё работает (curl возвращает 200)
+- Через туннель файлы зависают (pending) или failed
+- Возможно проблема с HTTP/2 или таймаутами Cloudflare
 
 ## Структура
 ```
 /opt/webapp/
-├── frontend/src/
-│   ├── App.jsx          # Роутинг, навигация
-│   └── pages/
-│       ├── Home.jsx     # Лендинг ✅
-│       ├── Catalog.jsx  # Шахматка ✅
-│       ├── LotDetail.jsx # Детали лота ✅
-│       └── Chat.jsx     # AI чат (заглушка) ✅
+├── frontend/
+│   ├── src/pages/       # Home, Catalog, LotDetail, Chat
+│   ├── dist/            # Production build
+│   └── vite.config.js
 ├── backend/
-│   └── app.py           # FastAPI, проксирует к PROD API
-└── venv/
+│   └── app.py           # FastAPI + статика
+├── venv/
+└── docs/
 ```
 
-## Данные
-- Читает из PROD: `GET https://api.rizaltaservice.ru/api/lots`
-- 356 лотов, статистика available/booked/sold
+## Файлы конфигурации
+- /root/.cloudflared/config-webapp.yml
+- Tunnel ID: 2ff508f2-9445-43ac-ab0b-4e0b38d487a0
 
-## 📅 Сессия 23.01.2026
-✅ Создана структура /opt/webapp/
-✅ Backend FastAPI на :8003 (проксирует lots)
-✅ Frontend React+Vite+Tailwind
-✅ 4 страницы: Home, Catalog, LotDetail, Chat
-✅ Mobile-first дизайн
-✅ Git init, v0.1.0
+## Запуск (локальная проверка)
+```bash
+# Backend
+cd /opt/webapp/backend && source /opt/webapp/venv/bin/activate
+python3 -m uvicorn app:app --host 127.0.0.1 --port 8003 &
 
-## 🔜 Следующие задачи
-1. Systemd сервисы (webapp-backend, webapp-frontend)
-2. Cloudflare туннель → app.rizaltaservice.ru
-3. GPT интеграция в чат
-4. Авторизация (телефон + SMS)
-5. Генерация КП (скопировать из /opt/bot/services/)
-6. Production build фронтенда
+# Проверка
+curl http://127.0.0.1:8003/              # HTML
+curl http://127.0.0.1:8003/api/lots      # JSON с лотами
+curl http://127.0.0.1:8003/assets/index-Rq8kIgpV.js | head -5  # JS
+```
+
+## 🔜 Следующая задача
+Решить проблему с Cloudflare туннелем:
+1. Попробовать nginx как reverse proxy
+2. Или использовать Vercel для фронтенда (как Mini App)
+3. Или другой способ раздачи статики
 
 ## Команды
 ```bash
-# Проверить бэкенд
-curl http://localhost:8003/api/lots | jq '.stats'
-
 # Остановить процессы
 pkill -f "uvicorn.*8003"
-pkill -f "vite"
+pkill -f "config-webapp"
+
+# Логи
+cat /tmp/webapp-backend.log
+cat /tmp/tunnel-webapp.log
 ```
