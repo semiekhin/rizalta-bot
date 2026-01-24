@@ -393,6 +393,12 @@ async def process_callback(callback: Dict[str, Any]):
         await answer_callback_query(callback_id)
     
     # ===== Роутинг callback_data =====
+
+    # ===== Корпус 3 (whitelist) =====
+    if data.startswith("c3_"):
+        from handlers.corp3 import handle_corp3_callback
+        await handle_corp3_callback(chat_id, data)
+        return
     
     if data == "download_pdf":
         await handle_download_pdf(chat_id, username)
@@ -1322,6 +1328,12 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     
     # === Админ-команда /parse ===
     ADMIN_ID = 512319063
+
+    # === Команда /corp3 (whitelist) ===
+    if text == "/corp3":
+        from handlers.corp3 import handle_corp3_start
+        await handle_corp3_start(chat_id)
+        return
     if text == "/parse" and chat_id == ADMIN_ID:
         import subprocess
         await send_message(chat_id, "⏳ Запускаю парсер...")

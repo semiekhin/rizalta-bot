@@ -138,3 +138,11 @@ from .secretary import (
     handle_set_timezone,
     process_secretary_input,
 )
+
+# Корпус 3 (временный доступ по whitelist)
+from .corp3 import (
+    handle_corp3_start,
+    handle_corp3_callback,
+    handle_corp3_text,
+    is_whitelisted as is_corp3_whitelisted,
+)
