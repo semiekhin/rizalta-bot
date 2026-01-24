@@ -19,7 +19,7 @@ export default function App() {
   const [selectedLot, setSelectedLot] = useState(null)
 
   useEffect(() => {
-    fetch('/api/lots')
+    fetch('https://api.rizaltaservice.ru/api/lots')
       .then(r => r.json())
       .then(d => {
         if (d.ok) {
