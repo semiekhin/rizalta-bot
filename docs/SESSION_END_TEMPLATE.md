@@ -4,27 +4,25 @@
 
 ## 📝 ШАГ 1: Обновить документацию
 
-### 1.1 Обновить docs/*.md:
+Обновить docs/*.md:
 - `WEBAPP_CURRENT.md` — текущий статус, версия, что сделано
 - `WEBAPP_TASKS.md` — бэклог (добавить/убрать задачи)
-- `WEBAPP_CONTEXT.md` — если менялся контекст проекта
+- `WEBAPP_CONTEXT.md` — если менялся контекст
 
 ---
 
-## 📦 ШАГ 2: Коммит
+## 📦 ШАГ 2: Коммит и пуш
 ```bash
 cd /opt/webapp
 git add -A && git commit -m "docs: session [ДАТА] - [краткое описание]"
-# git push (когда будет remote)
+git push
 ```
 
 ---
 
 ## 📋 ШАГ 3: Выдать блок для нового чата
 
-Сформировать инструкцию из содержимого:
-- WEBAPP_CONTEXT.md
-- WEBAPP_CURRENT.md
+Сформировать инструкцию из WEBAPP_CONTEXT.md + WEBAPP_CURRENT.md
 
 ---
 
@@ -37,12 +35,16 @@ DEV /opt/bot-dev (8002) — НЕ ТРОГАТЬ!
 
 ---
 
-## 📎 Ссылки (когда будет GitHub)
+## 📎 Ссылки GitHub (ветка webapp)
 
 **Документация:**
-- WEBAPP_CONTEXT.md — общий контекст проекта
-- WEBAPP_CURRENT.md — текущий статус
-- WEBAPP_TASKS.md — задачи
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/docs/WEBAPP_CONTEXT.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/docs/WEBAPP_CURRENT.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/docs/WEBAPP_TASKS.md
+- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/docs/SESSION_END_TEMPLATE.md
+
+**Репозиторий:**
+- https://github.com/semiekhin/rizalta-bot/tree/webapp
 
 **Сервер:**
 ```
@@ -50,4 +52,18 @@ ssh -p 2222 root@72.56.64.91
 ```
 
 **URL:**
-- https://webapp.rizaltaservice.ru/ — работает из РФ без VPN
+- https://webapp.rizaltaservice.ru/
+
+---
+
+## ✅ Итоги сессии [ДАТА]
+
+**Версия:** [X.X.X]
+
+**Что сделано:**
+- [ ] ...
+
+**Обновлены файлы:**
+- [ ] WEBAPP_CURRENT.md
+- [ ] WEBAPP_TASKS.md
+- [ ] ...
