@@ -1,6 +1,8 @@
 # ⚠️ PROD НЕ ТРОГАТЬ! РАБОТАТЬ ТОЛЬКО В DEV! ⚠️
 
-# RIZALTA AI System
+# RIZALTA AI System v2.4.5
+
+📅 **Последняя сессия:** 24.01.2026
 
 AI-консультант для риэлторов. Инвестиционная недвижимость RIZALTA Resort Belokurikha (Алтай).
 
@@ -20,9 +22,9 @@ Python 3.12 · FastAPI · GPT-4o-mini · Whisper · SQLite · Cloudflare Tunnel 
 
 ## Ключевые файлы
 - `app.py` — главный файл (роутинг, callbacks, API)
-- `config/settings.py` — кнопки меню, константы
+- `config/settings.py` — кнопки меню, константы, CORP3_WHITELIST
 - `services/intent_router.py` — GPT Intent Router
-- `handlers/` — обработчики (kp, booking, secretary, calc)
+- `handlers/` — обработчики (kp, booking, secretary, calc, corp3)
 
 ## Команды
 ```bash
@@ -40,6 +42,7 @@ journalctl -u rizalta-bot -f
 - `docs/RIZALTA_ARCHITECTURE.md` — архитектура
 - `docs/RIZALTA_KNOWLEDGE.md` — база знаний
 - `docs/RIZALTA_TASKS.md` — бэклог задач
+- `docs/OLLAMA_RIZALTA.md` — база знаний для Ollama
 
 ## ⚠️ ВАЖНО при деплое
 После копирования app.py из DEV в PROD — исправить URL Mini App!
