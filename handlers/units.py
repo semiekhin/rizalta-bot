@@ -496,7 +496,7 @@ async def handle_budget_input(chat_id: int, text: str):
             {"text": "📎 Планировки", "callback_data": "get_layouts"},
         ],
         [
-            {"text": "🔥 Записаться на онлайн-показ", "callback_data": "online_show"}
+            {"text": "✅ Записаться на онлайн-показ", "callback_data": "online_show"}
         ]
     ]
     

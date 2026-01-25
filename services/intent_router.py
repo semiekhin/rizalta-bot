@@ -183,7 +183,7 @@ QUICK_PATTERNS = {
     "🏢 Лоты": {"intent": "open_lots_app", "params": {}},
     "🗓 Секретарь": {"intent": "secretary_menu", "params": {}},
     "📰 Новости": {"intent": "show_news", "params": {}},
-    "🔥 Записаться на онлайн-показ": {"intent": "book_showing", "params": {}},
+    "✅ Записаться на онлайн-показ": {"intent": "book_showing", "params": {}},
     "🔙 Назад": {"intent": "back", "params": {}},
     
     # Команды

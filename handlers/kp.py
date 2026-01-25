@@ -244,7 +244,7 @@ async def handle_nav_lot(chat_id: int, code: str, building: int = None, mode: st
     inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": f"{cb}_menu"}],
     ])
     
@@ -709,7 +709,7 @@ async def handle_kp_lot(chat_id: int, code: str, building: int = None):
     inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": "kp_menu"}],
     ])
     
@@ -752,7 +752,7 @@ async def handle_kp_generate(chat_id: int, code: str, mode: str, building: int =
         inline_buttons = [
             [{"text": "📋 Другой формат КП", "callback_data": lot_callback}],
             [{"text": "🔍 Другой лот", "callback_data": "kp_menu"}],
-            [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+            [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         ]
         await send_message_inline(chat_id, "✅ КП готово!", inline_buttons)
         

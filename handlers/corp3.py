@@ -418,7 +418,7 @@ def generate_corp3_kp_pdf(unit: Dict[str, Any], include_18m: bool = False) -> Op
         }
     
     # Данные лота
-    bname = '3'  # Корпус 3
+    bname = '3 — "Digital"'  # Корпус 3
     rooms = unit.get("rooms", 1)
     area = unit["area"]
     

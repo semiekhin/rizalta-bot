@@ -151,7 +151,7 @@ async def handle_calc_roi_lot(chat_id: int, area: float):
         [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_lot_{int(lot['area']*10)}"},
          {"text": "📥 Excel", "callback_data": f"roi_xlsx_{int(lot['area']*10)}"},
          {"text": "📋 Получить КП", "callback_data": f"kp_send_{int(lot['area']*10)}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -278,7 +278,7 @@ async def handle_calc_finance_lot(chat_id: int, area: float):
     inline_buttons = [
         [{"text": "📊 Доходность", "callback_data": f"calc_roi_lot_{int(lot['area']*10)}"},
          {"text": "📋 Получить КП", "callback_data": f"kp_send_{int(lot['area']*10)}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_finance_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -303,7 +303,7 @@ async def handle_calc_roi_by_code(chat_id: int, code: str, building: int = None)
         [{"text": "💳 Рассрочка", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"},
          {"text": "📥 Excel", "callback_data": f"roi_xlsx_code_{lot['code']}_{lot['building']}"},
          {"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}_{lot['building']}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_roi_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -324,7 +324,7 @@ async def handle_calc_finance_by_code(chat_id: int, code: str, building: int = N
     inline_buttons = [
         [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}"}],
         [{"text": "📋 Получить КП", "callback_data": f"kp_lot_{lot['code']}_{lot['building']}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К списку", "callback_data": "calc_finance_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)

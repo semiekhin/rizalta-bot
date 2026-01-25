@@ -99,7 +99,7 @@ async def handle_free_text(chat_id: int, text: str):
                     {"text": "📎 Планировки", "callback_data": "get_layouts"},
                 ],
                 [
-                    {"text": "🔥 Записаться на онлайн-показ", "callback_data": "online_show"}
+                    {"text": "✅ Записаться на онлайн-показ", "callback_data": "online_show"}
                 ]
             ]
             
@@ -127,7 +127,7 @@ async def handle_free_text(chat_id: int, text: str):
                     {"text": "💳 Рассрочка", "callback_data": f"finance_{unit_code}"}
                 ],
                 [
-                    {"text": "🔥 Записаться на показ", "callback_data": "online_show"}
+                    {"text": "✅ Записаться на показ", "callback_data": "online_show"}
                 ]
             ]
             await send_message_inline(chat_id, answer, inline_buttons)
@@ -296,7 +296,7 @@ async def handle_free_text(chat_id: int, text: str):
     inline_buttons = [
         [
             {"text": "📋 Получить КП", "callback_data": "kp_menu"},
-            {"text": "🔥 Записаться на показ", "callback_data": "online_show"}
+            {"text": "✅ Записаться на показ", "callback_data": "online_show"}
         ]
     ]
     

@@ -40,7 +40,7 @@ async def handle_send_presentation(chat_id: int):
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-PRESENTATIONS_DIR = "/opt/bot/presentations"
+PRESENTATIONS_DIR = "/opt/bot-dev/presentations"
 
 PRESENTATIONS = {
     "pres_rizalta_ru": ("presentation_ru.pdf", "📕 Презентация RIZALTA RESORT BELOKURIKHA"),
@@ -50,7 +50,7 @@ PRESENTATIONS = {
     "pres_zont": ("zont_hotel.pdf", "🏨 ZONT Hotel Group — Управляющая компания"),
 }
 
-VIDEOS_DIR = "/opt/bot/videos"
+VIDEOS_DIR = "/opt/bot-dev/videos"
 
 VIDEOS = {
     "video_nerealno": ("nerealno.mp4", "🎬 Нереально"),
@@ -102,7 +102,7 @@ async def handle_send_video(chat_id: int, video_key: str):
     else:
         inline_buttons = [
             [{"text": "🎬 Другие видео", "callback_data": "media_video"}],
-            [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+            [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         ]
         await send_message_inline(chat_id, "✅ Видео отправлено!", inline_buttons)
 
@@ -125,6 +125,6 @@ async def handle_send_presentation_file(chat_id: int, pres_key: str):
     else:
         inline_buttons = [
             [{"text": "📚 Другие презентации", "callback_data": "media_presentation"}],
-            [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+            [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         ]
         await send_message_inline(chat_id, "✅ Документ отправлен!", inline_buttons)

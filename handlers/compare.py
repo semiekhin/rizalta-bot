@@ -207,7 +207,7 @@ async def handle_compare_full(chat_id: int, years: int, amount: int = DEFAULT_AM
         [{"text": "📄 Создать PDF", "callback_data": f"compare_pdf_{years}_{amount}"}],
         [{"text": "💰 Другая сумма", "callback_data": f"compare_amount_{years}"}],
         [{"text": "📅 Другой период", "callback_data": f"compare_lot_back_{amount}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 В меню", "callback_data": "main_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -231,7 +231,7 @@ async def handle_compare_table(chat_id: int, amount: int = DEFAULT_AMOUNT):
         [{"text": "📅 3 года", "callback_data": f"compare_period_3_{amount}"}],
         [{"text": "📅 5 лет", "callback_data": f"compare_period_5_{amount}"}],
         [{"text": "📅 11 лет", "callback_data": f"compare_period_11_{amount}"}],
-        [{"text": "🔥 Записаться на показ", "callback_data": "online_show"}],
+        [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 В меню", "callback_data": "main_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)

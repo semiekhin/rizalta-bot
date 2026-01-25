@@ -24,7 +24,7 @@ from services.calculations import fmt_rub
 
 async def handle_online_show_start(chat_id: int):
     """
-    🔥 Записаться на онлайн-показ — начало диалога.
+    ✅ Записаться на онлайн-показ — начало диалога.
     """
     set_dialog_state(chat_id, DialogStates.ASK_CONTACT_FOR_CALLBACK)
     budget = get_budget(chat_id)
