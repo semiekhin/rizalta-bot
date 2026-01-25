@@ -3,14 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 import httpx
 import os
 
-app = FastAPI(title="RIZALTA Web App API", version="0.1.0")
+from services.calculator import calculate_roi
 
-# Gzip сжатие для ускорения загрузки
+app = FastAPI(title="RIZALTA Web App API", version="0.2.0")
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,11 +20,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-PROD_API = "https://api.rizaltaservice.ru"
+PROD_API = "http://127.0.0.1:8000"  # Локально к PROD боту
 DIST_PATH = "/opt/webapp/frontend/dist"
+
+
+# === Модели ===
+
+class ROIRequest(BaseModel):
+    area: float
+    price: int
+
+class ShowingRequest(BaseModel):
+    name: str
+    phone: str
+    lot_code: str = ""
+    comment: str = ""
+
+
+# === API endpoints ===
 
 @app.get("/api/lots")
 async def get_lots():
+    """Проксируем к PROD боту."""
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             response = await client.get(f"{PROD_API}/api/lots")
@@ -33,12 +51,29 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": "0.2.0"}
 
-# Статика assets
+@app.post("/api/calculate-roi")
+async def api_calculate_roi(req: ROIRequest):
+    """Расчёт ROI для лота."""
+    try:
+        result = calculate_roi(req.area, req.price)
+        return {"ok": True, "data": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.post("/api/book-showing")
+async def api_book_showing(req: ShowingRequest):
+    """Заявка на показ."""
+    # TODO: отправка в Telegram/email
+    print(f"[SHOWING] {req.name} / {req.phone} / {req.lot_code}")
+    return {"ok": True, "message": "Заявка принята"}
+
+
+# === Статика ===
+
 app.mount("/assets", StaticFiles(directory=f"{DIST_PATH}/assets"), name="assets")
 
-# SPA fallback
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
     file_path = f"{DIST_PATH}/{full_path}"

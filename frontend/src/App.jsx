@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import Home from './pages/Home'
-import Catalog from './pages/Catalog'
-import Chat from './pages/Chat'
-import LotDetail from './pages/LotDetail'
+import React, { useState, useEffect, Suspense, lazy } from 'react'
+
+// Lazy load pages - каждая станет отдельным чанком
+const Home = lazy(() => import('./pages/Home'))
+const Catalog = lazy(() => import('./pages/Catalog'))
+const Chat = lazy(() => import('./pages/Chat'))
+const LotDetail = lazy(() => import('./pages/LotDetail'))
 
 const NAV_ITEMS = [
   { id: 'home', icon: '🏠', label: 'Главная' },
@@ -10,6 +12,13 @@ const NAV_ITEMS = [
   { id: 'chat', icon: '💬', label: 'Чат' },
   { id: 'menu', icon: '☰', label: 'Меню' },
 ]
+
+// Loading spinner
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-400"></div>
+  </div>
+)
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -19,7 +28,7 @@ export default function App() {
   const [selectedLot, setSelectedLot] = useState(null)
 
   useEffect(() => {
-    fetch('https://api.rizaltaservice.ru/api/lots')
+    fetch('/api/lots')
       .then(r => r.json())
       .then(d => {
         if (d.ok) {
@@ -53,7 +62,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      {renderScreen()}
+      <Suspense fallback={<PageLoader />}>
+        {renderScreen()}
+      </Suspense>
       
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 flex justify-around py-2 px-1 z-50">
