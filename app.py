@@ -1214,7 +1214,7 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
 
     if intent == "open_lots_app":
         inline_buttons = [
-            [{"text": "🏢 Открыть выбор лотов", "web_app": {"url": "https://rizalta-miniapp.vercel.app?env=dev"}}],
+            [{"text": "🏢 Открыть выбор лотов", "web_app": {"url": "https://rizalta-miniapp.vercel.app"}}],
             [{"text": "🔙 В меню", "callback_data": "back_to_menu"}]
         ]
         await send_message_inline(
