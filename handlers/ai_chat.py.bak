@@ -2,7 +2,6 @@
 Обработчик свободного текста — AI-консультант с Function Calling.
 """
 
-from handlers.booking_calendar import handle_booking_text_input, get_booking_state
 from config.settings import LINK_FIXATION, LINK_SHAHMATKA
 from services.telegram import send_message, send_message_inline
 from services.ai_chat import analyze_user_intent, ask_ai_about_project
@@ -71,15 +70,11 @@ def format_finance_unit_answer(finance: dict, unit_code: str) -> str:
     return "\n".join(lines)
 
 
-async def handle_free_text(chat_id: int, text: str, user_info: dict = None):
+async def handle_free_text(chat_id: int, text: str):
     """
     Обработка свободного текста через AI с Function Calling.
     AI сам определяет намерение и вызывает нужную функцию.
     """
-    
-    # Проверяем состояние бронирования
-    if await handle_booking_text_input(chat_id, text, user_info):
-        return
     
     # Анализируем намерение пользователя через AI
     result = analyze_user_intent(text)

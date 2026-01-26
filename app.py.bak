@@ -393,6 +393,12 @@ async def process_callback(callback: Dict[str, Any]):
         await answer_callback_query(callback_id)
     
     # ===== Роутинг callback_data =====
+
+    # ===== Корпус 3 (whitelist) =====
+    if data.startswith("c3_"):
+        from handlers.corp3 import handle_corp3_callback
+        await handle_corp3_callback(chat_id, data)
+        return
     
     if data == "download_pdf":
         await handle_download_pdf(chat_id, username)
@@ -412,13 +418,14 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_documents_menu(chat_id)
     
     elif data.startswith("roi_xlsx_code_"):
-        code = data.replace("roi_xlsx_code_", "")
+        parts = data.replace("roi_xlsx_code_", "").rsplit("_", 1)
+        code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from services.units_db import get_lot_by_code
-        lot = get_lot_by_code(code)
+        lot = get_lot_by_code(code, building)
         if lot:
             await send_message(chat_id, f"⏳ Создаю Excel для {lot['code']}...")
             from services.calc_xlsx_generator import generate_roi_xlsx
-            xlsx_path = generate_roi_xlsx(unit_code=lot['code'])
+            xlsx_path = generate_roi_xlsx(unit_code=lot['code'], building=lot['building'])
             if xlsx_path:
                 await send_document(chat_id, xlsx_path, f"ROI_{lot['code']}.xlsx")
             else:
@@ -814,14 +821,16 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_calc_finance_budget_range(chat_id, min_budget, max_budget)
 
     elif data.startswith("calc_roi_code_"):
-        code = data.replace("calc_roi_code_", "")
+        parts = data.replace("calc_roi_code_", "").rsplit("_", 1)
+        code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from handlers.calc_dynamic import handle_calc_roi_by_code
-        await handle_calc_roi_by_code(chat_id, code)
+        await handle_calc_roi_by_code(chat_id, code, building)
 
     elif data.startswith("calc_finance_code_"):
-        code = data.replace("calc_finance_code_", "")
+        parts = data.replace("calc_finance_code_", "").rsplit("_", 1)
+        code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from handlers.calc_dynamic import handle_calc_finance_by_code
-        await handle_calc_finance_by_code(chat_id, code)
+        await handle_calc_finance_by_code(chat_id, code, building)
 
     elif data.startswith("calc_roi_lot_"):
         area_str = data.replace("calc_roi_lot_", "")
@@ -839,14 +848,6 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.booking_calendar import handle_booking_start
         await handle_booking_start(chat_id)
 
-    elif data.startswith("book_spec_"):
-        from handlers.booking_calendar import handle_select_specialist
-        spec_id = int(data.replace("book_spec_", ""))
-        await handle_select_specialist(chat_id, spec_id)
-
-    elif data == "book_back_specialist":
-        from handlers.booking_calendar import handle_booking_start
-        await handle_booking_start(chat_id)
 
     elif data.startswith("book_date_"):
         from handlers.booking_calendar import handle_select_date
@@ -857,16 +858,6 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.booking_calendar import handle_select_time
         time_str = data.replace("book_time_", "")
         await handle_select_time(chat_id, time_str, username)
-
-    elif data.startswith("book_confirm_"):
-        from handlers.booking_calendar import handle_confirm_booking
-        booking_id = int(data.replace("book_confirm_", ""))
-        await handle_confirm_booking(chat_id, booking_id)
-
-    elif data.startswith("book_decline_"):
-        from handlers.booking_calendar import handle_decline_booking
-        booking_id = int(data.replace("book_decline_", ""))
-        await handle_decline_booking(chat_id, booking_id)
 
     elif data.startswith("book_take_"):
         from handlers.booking_calendar import handle_take_booking
@@ -1334,6 +1325,35 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     Новый роутер сообщений с GPT Intent Classification.
     Версия 2.1 — поддержка корпусов, этажей, кодов лотов.
     """
+    
+    # === Админ-команда /parse ===
+    ADMIN_ID = 512319063
+
+    # === Команда /corp3 (whitelist) ===
+    if text == "/corp3":
+        from handlers.corp3 import handle_corp3_start
+        await handle_corp3_start(chat_id)
+        return
+    if text == "/parse" and chat_id == ADMIN_ID:
+        import subprocess
+        await send_message(chat_id, "⏳ Запускаю парсер...")
+        try:
+            result = subprocess.run(
+                ["/opt/bot/venv/bin/python3", "services/parser_rclick.py"],
+                cwd="/opt/bot",
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            if result.returncode == 0:
+                await send_message(chat_id, f"✅ Парсер завершён успешно:\n<pre>{result.stdout[-1000:] if result.stdout else 'OK'}</pre>")
+            else:
+                await send_message(chat_id, f"❌ Ошибка парсера:\n<pre>{result.stderr[-500:]}</pre>")
+        except subprocess.TimeoutExpired:
+            await send_message(chat_id, "❌ Таймаут парсера (>120 сек)")
+        except Exception as e:
+            await send_message(chat_id, f"❌ Ошибка: {e}")
+        return
     
     # === Обработка диалоговых состояний (фиксация) ===
     from handlers.booking_fixation import handle_booking_input, has_active_booking_state

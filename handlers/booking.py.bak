@@ -57,25 +57,6 @@ async def handle_contact_shared(chat_id: int, contact_data: Dict[str, Any]):
     """
     Обработка кнопки "Поделиться контактом".
     """
-    # Проверяем состояние бронирования онлайн-показа
-    from handlers.booking_calendar import get_booking_state, set_booking_state, show_booking_confirmation
-    from services.user_profiles import save_profile
-    
-    booking_state = get_booking_state(chat_id)
-    if booking_state.get("step") == "awaiting_phone":
-        phone = contact_data.get("phone_number", "")
-        first_name = contact_data.get("first_name", "")
-        last_name = contact_data.get("last_name", "")
-        full_name = f"{first_name} {last_name}".strip()
-        
-        # Сохраняем в профиль
-        save_profile(chat_id, name=full_name, phone=phone)
-        set_booking_state(chat_id, realtor_name=full_name, realtor_phone=phone, step="confirm_booking")
-        
-        # Показываем подтверждение
-        await show_booking_confirmation(chat_id, {"first_name": first_name, "last_name": last_name})
-        return
-    
     state = get_dialog_state(chat_id)
     
     if state != DialogStates.ASK_CONTACT_FOR_CALLBACK:
