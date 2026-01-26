@@ -192,3 +192,77 @@ c3_layout_{code}     — показать планировку
 c3_kp12_{code}       — КП 12 мес
 c3_kp18_{code}       — КП 12+18 мес
 ```
+
+---
+
+### ЗАДАЧА 4: Онлайн-показы v2 — часовые пояса и упрощённый ввод
+
+**Контекст:** Риэлторы из разных поясов (Москва/Сочи vs Алтай/Сибирь). Нужно показывать время в обоих поясах.
+
+**Файлы:**
+- `handlers/booking_calendar.py` — основной flow записи
+- `handlers/ai_chat.py` — проверка состояния бронирования
+- `handlers/booking.py` — обработка контакта
+- `services/user_profiles.py` — новый модуль профилей
+- `services/telegram.py` — send_message_keyboard
+- `app.py` — callback обработчики
+
+**Миграция БД:**
+```sql
+ALTER TABLE bookings ADD COLUMN realtor_name TEXT;
+ALTER TABLE bookings ADD COLUMN realtor_phone TEXT;
+ALTER TABLE bookings ADD COLUMN show_description TEXT;
+ALTER TABLE bookings ADD COLUMN timezone TEXT DEFAULT 'altai';
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id INTEGER PRIMARY KEY,
+    name TEXT,
+    phone TEXT,
+    timezone TEXT DEFAULT 'altai',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
+);
+```
+
+**Flow:**
+1. Выбор часового пояса: `[Москва/Сочи]` `[Алтай/Сибирь]`
+2. Выбор даты (кнопки)
+3. Ввод одним сообщением: `10:30 89181011091 Сергей Меганедвижка`
+4. Подтверждение с двойным временем
+
+**Формат времени (пояс риэлтора первый):**
+- Риэлтор из Москвы: `10:30 (Мск) — 14:30 (Алтай)`
+- Риэлтор из Алтая: `14:30 (Алтай) — 10:30 (Мск)`
+
+**Callbacks:**
+```
+book_tz_moscow       — выбран пояс Москва
+book_tz_altai        — выбран пояс Алтай
+book_date_{date}     — выбрана дата
+book_submit          — отправить заявку
+book_add_phone       — добавить телефон
+```
+
+**Проверка:**
+```bash
+systemctl restart rizalta-bot-dev
+# В Telegram: Записаться на показ -> выбор пояса -> дата -> ввод данных
+```
+
+---
+
+### ЗАДАЧА 5: Сортировка лотов по площади в Корпусе 3
+
+**Файл:** `handlers/corp3.py`
+
+**Изменение в функции handle_corp3_show_list():**
+```python
+# После проверки whitelist, перед if not units:
+units = sorted(units, key=lambda u: u['area'])
+```
+
+**Проверка:**
+```bash
+systemctl restart rizalta-bot-dev
+# В Telegram: /corp3 -> выбрать фильтр -> лоты идут от меньшей площади к большей
+```
