@@ -266,3 +266,53 @@ units = sorted(units, key=lambda u: u['area'])
 systemctl restart rizalta-bot-dev
 # В Telegram: /corp3 -> выбрать фильтр -> лоты идут от меньшей площади к большей
 ```
+
+### ЗАДАЧА 9: Whitelist Корпуса 3 в БД + команда /wl
+
+**Дата:** 26.01.2026
+
+**Проблема:** Whitelist хранился в settings.py. Для добавления пользователя нужно: редактировать файл, перезапускать сервисы, коммитить.
+
+**Решение:** Перенос в SQLite + команда /wl для управления без перезапуска.
+
+**Файлы:**
+- `properties.db` — новая таблица `corp3_whitelist`
+- `handlers/corp3.py` — функция `is_whitelisted()` из БД
+- `handlers/kp.py` — использует `is_whitelisted` из corp3
+- `app.py` — команда `/wl`
+- `config/settings.py` — удалён `CORP3_WHITELIST`
+
+**Структура таблицы:**
+```sql
+CREATE TABLE corp3_whitelist (
+    chat_id INTEGER PRIMARY KEY,
+    name TEXT,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Команды /wl (только админ 512319063):**
+```
+/wl              — справка
+/wl list         — показать всех
+/wl add ID Имя   — добавить (пример: /wl add 123456789 Иван)
+/wl remove ID    — удалить (пример: /wl remove 123456789)
+```
+
+**Проверка:**
+```bash
+# Проверить таблицу
+sqlite3 /opt/bot-dev/properties.db "SELECT * FROM corp3_whitelist;"
+
+# В боте
+/wl list
+/wl add 123 Тест
+/wl remove 123
+```
+
+**При деплое DEV → PROD:**
+```bash
+# Исправить путь БД
+sed -i 's|/opt/bot-dev/properties.db|/opt/bot/properties.db|' /opt/bot/handlers/corp3.py
+sed -i 's|/opt/bot-dev/properties.db|/opt/bot/properties.db|' /opt/bot/app.py
+```
