@@ -251,6 +251,9 @@ async def handle_corp3_show_list(
     if not is_whitelisted(chat_id):
         return
     
+    # Сортировка по площади (возрастание)
+    units = sorted(units, key=lambda u: u['area'])
+    
     if not units:
         await send_message_inline(chat_id, "❌ Лоты не найдены.", [[{"text": "🔙 Назад", "callback_data": "c3_menu"}]])
         return
