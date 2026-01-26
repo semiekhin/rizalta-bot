@@ -91,8 +91,8 @@ async def handle_nav_by_building_menu(chat_id: int, mode: str = "kp"):
         inline_buttons.append([{"text": btn_text, "callback_data": f"{cb}_building_{s['building']}"}])
 
     # Корпус 3 (whitelist)
-    from config.settings import CORP3_WHITELIST
-    if chat_id in CORP3_WHITELIST:
+    from handlers.corp3 import is_whitelisted
+    if is_whitelisted(chat_id):
         inline_buttons.append([{"text": "🔒 Корпус 3 (282 лота)", "callback_data": "c3_menu"}])
     
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": f"{cb}_menu"}])
@@ -293,8 +293,8 @@ async def handle_kp_by_building_menu(chat_id: int):
     
 
     # Корпус 3 (whitelist)
-    from config.settings import CORP3_WHITELIST
-    if chat_id in CORP3_WHITELIST:
+    from handlers.corp3 import is_whitelisted
+    if is_whitelisted(chat_id):
         inline_buttons.append([{"text": "🔒 Корпус 3 (282 лота)", "callback_data": "c3_menu"}])
     inline_buttons.append([{"text": "🔙 Назад", "callback_data": "kp_menu"}])
     

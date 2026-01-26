@@ -16,7 +16,9 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from services.telegram import send_message, send_message_inline, send_document, send_photo_inline
-from config.settings import CORP3_WHITELIST
+import sqlite3
+
+DB_PATH = "/opt/bot/properties.db"
 
 # Путь к данным корпуса 3
 DATA_PATH = Path(__file__).parent.parent / "data" / "corp3_units.json"
@@ -43,8 +45,13 @@ def load_units() -> List[Dict[str, Any]]:
 
 
 def is_whitelisted(chat_id: int) -> bool:
-    """Проверяет, есть ли пользователь в whitelist."""
-    return chat_id in CORP3_WHITELIST
+    """Проверяет, есть ли пользователь в whitelist (из БД)."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM corp3_whitelist WHERE chat_id = ?", (chat_id,))
+    result = cursor.fetchone() is not None
+    conn.close()
+    return result
 
 
 def fmt(price: int) -> str:
