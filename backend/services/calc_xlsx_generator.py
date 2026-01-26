@@ -12,7 +12,7 @@ from openpyxl.styles import Font, Alignment, Border, Side
 import tempfile
 
 BASE_DIR = Path(__file__).parent.parent
-DB_PATH = BASE_DIR / "properties.db"
+DB_PATH = Path("/opt/bot/properties.db")
 
 
 def get_lot_from_db(code: str, building: int = None) -> Optional[Dict]:

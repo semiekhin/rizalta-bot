@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional, List
 
 BASE_DIR = Path(__file__).parent.parent
-DB_PATH = BASE_DIR / "properties.db"
+DB_PATH = Path("/opt/bot/properties.db")
 
 EXPENSES_PCT = 0.50
 

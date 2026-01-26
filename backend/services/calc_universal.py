@@ -6,7 +6,9 @@ v4.0 (11.01.2026) — рефакторинг на Single Source of Truth
 """
 
 from typing import Dict, Any, Optional
-from services.calculations import fmt_rub
+def fmt_rub(value: float) -> str:
+    """Форматирует число как сумму в рублях."""
+    return f"{int(round(value)):,}".replace(",", " ") + " ₽"
 from services.installment_calculator import calc_12m, calc_18m, get_service_fee, get_texts
 
 SERVICE_FEE = get_service_fee()
