@@ -101,7 +101,12 @@ export default function LotDetail({ lot, onBack, onChat }) {
   }
 
   // === Excel Download ===
-  const handleExcelDownload = async () => {
+  const handleExcelDownload = () => {
+    // Используем GET endpoint для совместимости с мобильными
+    window.open(`/api/download-xlsx/${lot.code}`, "_blank");
+  };
+
+  const handleExcelDownloadOld = async () => {
     try {
       const res = await fetch('/api/generate-xlsx', {
         method: 'POST',

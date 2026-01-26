@@ -43,6 +43,7 @@ export default function Home({ stats, onNavigate }) {
         </button>
 
         <button 
+          onClick={() => onNavigate('catalog')}
           className="w-full bg-slate-800 rounded-xl p-4 flex items-center gap-4 border border-slate-700 hover:border-amber-500 transition-colors"
         >
           <span className="text-2xl">📊</span>

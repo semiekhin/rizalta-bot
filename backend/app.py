@@ -119,6 +119,21 @@ async def api_generate_kp(req: KPRequest):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+@app.get("/api/download-xlsx/{code}")
+async def api_download_xlsx(code: str):
+    """GET endpoint для скачивания Excel (для мобильных)."""
+    try:
+        xlsx_path = generate_roi_xlsx(unit_code=code, output_dir="/tmp")
+        if xlsx_path and os.path.exists(xlsx_path):
+            return FileResponse(
+                xlsx_path,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename=os.path.basename(xlsx_path)
+            )
+        return {"ok": False, "error": "Лот не найден"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 @app.post("/api/generate-xlsx")
 async def api_generate_xlsx(req: XLSXRequest):
     """Генерация Excel с расчётом ROI."""
