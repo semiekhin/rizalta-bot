@@ -18,7 +18,7 @@ from typing import List, Dict, Any, Optional
 from services.telegram import send_message, send_message_inline, send_document, send_photo_inline
 import sqlite3
 
-DB_PATH = "/opt/bot/properties.db"
+DB_PATH = "/opt/bot-dev/properties.db"
 
 # Путь к данным корпуса 3
 DATA_PATH = Path(__file__).parent.parent / "data" / "corp3_units.json"
@@ -40,7 +40,7 @@ def load_units() -> List[Dict[str, Any]]:
     with open(DATA_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    _units_cache = [u for u in data.get("units", []) if u.get('area', 0) >= 23.5]
+    _units_cache = [u for u in data.get("units", []) if u.get('area', 0) >= 23.5 and u.get('status') == 'available']
     return _units_cache
 
 

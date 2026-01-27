@@ -1357,7 +1357,7 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
 async def handle_whitelist_command(chat_id: int, text: str):
     """Управление whitelist Корпуса 3: /wl list | add | remove"""
     import sqlite3
-    db_path = "/opt/bot/properties.db"
+    db_path = "/opt/bot-dev/properties.db"
     parts = text.strip().split(maxsplit=2)
     cmd = parts[1] if len(parts) > 1 else "help"
     
@@ -1427,6 +1427,11 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     # === Проверка состояния бронирования ===
     from handlers.booking_calendar import handle_booking_text_input
     if await handle_booking_text_input(chat_id, text, user_info):
+        return
+    
+    # === Проверка состояния поиска по коду в Корпусе 3 ===
+    from handlers.corp3 import handle_corp3_text
+    if await handle_corp3_text(chat_id, text):
         return
     
     # === Админ-команда /parse ===

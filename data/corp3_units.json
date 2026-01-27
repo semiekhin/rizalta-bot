@@ -11,7 +11,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_200.jpg",
       "block_section": 3
     },
@@ -24,7 +24,7 @@
       "rooms": 2,
       "area": 41.7,
       "price": 24519600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_202.jpg",
       "block_section": 3
     },
@@ -37,7 +37,7 @@
       "rooms": 1,
       "area": 26.5,
       "price": 16165000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_204.jpg",
       "block_section": 3
     },
@@ -50,7 +50,7 @@
       "rooms": 2,
       "area": 50.4,
       "price": 29080800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_206.jpg",
       "block_section": 3
     },
@@ -63,7 +63,7 @@
       "rooms": 2,
       "area": 47.6,
       "price": 27988800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_219.jpg",
       "block_section": 3
     },
@@ -76,7 +76,7 @@
       "rooms": 1,
       "area": 25.4,
       "price": 15494000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_217.jpg",
       "block_section": 3
     },
@@ -89,7 +89,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_215.jpg",
       "block_section": 3
     },
@@ -102,7 +102,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_213.jpg",
       "block_section": 3
     },
@@ -115,7 +115,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_211.jpg",
       "block_section": 3
     },
@@ -128,7 +128,7 @@
       "rooms": 1,
       "area": 31.1,
       "price": 18628900,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_209.jpg",
       "block_section": 3
     },
@@ -141,7 +141,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_207.jpg",
       "block_section": 3
     },
@@ -154,7 +154,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_205.jpg",
       "block_section": 3
     },
@@ -167,7 +167,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_300.jpg",
       "block_section": 3
     },
@@ -180,7 +180,7 @@
       "rooms": 2,
       "area": 40.2,
       "price": 23637600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_302.jpg",
       "block_section": 3
     },
@@ -193,7 +193,7 @@
       "rooms": 1,
       "area": 26.2,
       "price": 15982000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_304.jpg",
       "block_section": 3
     },
@@ -206,7 +206,7 @@
       "rooms": 2,
       "area": 49.8,
       "price": 29282400,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_306.jpg",
       "block_section": 3
     },
@@ -219,7 +219,7 @@
       "rooms": 2,
       "area": 46.9,
       "price": 27577200,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_319.jpg",
       "block_section": 3
     },
@@ -232,7 +232,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_317.jpg",
       "block_section": 3
     },
@@ -245,7 +245,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_315.jpg",
       "block_section": 3
     },
@@ -258,7 +258,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_313.jpg",
       "block_section": 3
     },
@@ -271,7 +271,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_311.jpg",
       "block_section": 3
     },
@@ -284,7 +284,7 @@
       "rooms": 1,
       "area": 30.4,
       "price": 18209600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_309.jpg",
       "block_section": 3
     },
@@ -297,7 +297,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_307.jpg",
       "block_section": 3
     },
@@ -310,7 +310,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_305.jpg",
       "block_section": 3
     },
@@ -323,7 +323,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_400.jpg",
       "block_section": 3
     },
@@ -336,7 +336,7 @@
       "rooms": 2,
       "area": 41.7,
       "price": 24519600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_402.jpg",
       "block_section": 3
     },
@@ -349,7 +349,7 @@
       "rooms": 1,
       "area": 26.5,
       "price": 16165000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_404.jpg",
       "block_section": 3
     },
@@ -362,7 +362,7 @@
       "rooms": 2,
       "area": 50.4,
       "price": 29080800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_406.jpg",
       "block_section": 3
     },
@@ -375,7 +375,7 @@
       "rooms": 2,
       "area": 47.6,
       "price": 27988800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_419.jpg",
       "block_section": 3
     },
@@ -388,7 +388,7 @@
       "rooms": 1,
       "area": 25.4,
       "price": 15494000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_417.jpg",
       "block_section": 3
     },
@@ -401,7 +401,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_415.jpg",
       "block_section": 3
     },
@@ -414,7 +414,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_413.jpg",
       "block_section": 3
     },
@@ -427,7 +427,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_411.jpg",
       "block_section": 3
     },
@@ -440,7 +440,7 @@
       "rooms": 1,
       "area": 31.1,
       "price": 18628900,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_409.jpg",
       "block_section": 3
     },
@@ -453,7 +453,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_407.jpg",
       "block_section": 3
     },
@@ -466,7 +466,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_405.jpg",
       "block_section": 3
     },
@@ -479,7 +479,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_500.jpg",
       "block_section": 3
     },
@@ -492,7 +492,7 @@
       "rooms": 2,
       "area": 40.2,
       "price": 23637600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_502.jpg",
       "block_section": 3
     },
@@ -505,7 +505,7 @@
       "rooms": 1,
       "area": 26.2,
       "price": 15982000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_504.jpg",
       "block_section": 3
     },
@@ -518,7 +518,7 @@
       "rooms": 2,
       "area": 49.8,
       "price": 29282400,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_506.jpg",
       "block_section": 3
     },
@@ -531,7 +531,7 @@
       "rooms": 2,
       "area": 46.9,
       "price": 27577200,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_519.jpg",
       "block_section": 3
     },
@@ -544,7 +544,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_517.jpg",
       "block_section": 3
     },
@@ -557,7 +557,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_515.jpg",
       "block_section": 3
     },
@@ -570,7 +570,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_513.jpg",
       "block_section": 3
     },
@@ -583,7 +583,7 @@
       "rooms": 1,
       "area": 25.1,
       "price": 15311000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_511.jpg",
       "block_section": 3
     },
@@ -596,7 +596,7 @@
       "rooms": 1,
       "area": 30.4,
       "price": 18209600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_509.jpg",
       "block_section": 3
     },
@@ -609,7 +609,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_507.jpg",
       "block_section": 3
     },
@@ -622,7 +622,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_505.jpg",
       "block_section": 3
     },
@@ -635,7 +635,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_600.jpg",
       "block_section": 3
     },
@@ -648,7 +648,7 @@
       "rooms": 2,
       "area": 41.7,
       "price": 24519600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_602.jpg",
       "block_section": 3
     },
@@ -661,7 +661,7 @@
       "rooms": 1,
       "area": 26.5,
       "price": 16165000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_604.jpg",
       "block_section": 3
     },
@@ -674,7 +674,7 @@
       "rooms": 2,
       "area": 50.4,
       "price": 29080800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_606.jpg",
       "block_section": 3
     },
@@ -687,7 +687,7 @@
       "rooms": 2,
       "area": 47.6,
       "price": 27988800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_619.jpg",
       "block_section": 3
     },
@@ -700,7 +700,7 @@
       "rooms": 1,
       "area": 25.4,
       "price": 15494000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_617.jpg",
       "block_section": 3
     },
@@ -713,7 +713,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_615.jpg",
       "block_section": 3
     },
@@ -726,7 +726,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_613.jpg",
       "block_section": 3
     },
@@ -739,7 +739,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_611.jpg",
       "block_section": 3
     },
@@ -752,7 +752,7 @@
       "rooms": 1,
       "area": 31.1,
       "price": 18628900,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_609.jpg",
       "block_section": 3
     },
@@ -765,7 +765,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_607.jpg",
       "block_section": 3
     },
@@ -778,7 +778,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_605.jpg",
       "block_section": 3
     },
@@ -791,7 +791,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_700.jpg",
       "block_section": 3
     },
@@ -804,7 +804,7 @@
       "rooms": 2,
       "area": 41.7,
       "price": 24519600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_702.jpg",
       "block_section": 3
     },
@@ -817,7 +817,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_711.jpg",
       "block_section": 3
     },
@@ -830,7 +830,7 @@
       "rooms": 1,
       "area": 31.1,
       "price": 18628900,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_709.jpg",
       "block_section": 3
     },
@@ -843,7 +843,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_707.jpg",
       "block_section": 3
     },
@@ -856,7 +856,7 @@
       "rooms": 1,
       "area": 24.9,
       "price": 15189000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_705.jpg",
       "block_section": 3
     },
@@ -869,7 +869,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_101.jpg",
       "block_section": 3
     },
@@ -882,7 +882,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_103.jpg",
       "block_section": 3
     },
@@ -895,7 +895,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_105.jpg",
       "block_section": 3
     },
@@ -908,7 +908,7 @@
       "rooms": 2,
       "area": 41.5,
       "price": 24402000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_107.jpg",
       "block_section": 3
     },
@@ -921,7 +921,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_109.jpg",
       "block_section": 3
     },
@@ -934,7 +934,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_111.jpg",
       "block_section": 3
     },
@@ -947,7 +947,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_113.jpg",
       "block_section": 3
     },
@@ -960,7 +960,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_104.jpg",
       "block_section": 3
     },
@@ -973,7 +973,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_102.jpg",
       "block_section": 3
     },
@@ -986,7 +986,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_100.jpg",
       "block_section": 3
     },
@@ -999,7 +999,7 @@
       "rooms": 1,
       "area": 36.8,
       "price": 22043200,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_203.jpg",
       "block_section": 3
     },
@@ -1012,7 +1012,7 @@
       "rooms": 1,
       "area": 35.1,
       "price": 21024900,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/A_201.jpg",
       "block_section": 3
     },
@@ -1025,7 +1025,7 @@
       "rooms": 1,
       "area": 43.0,
       "price": 25284000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_200.jpg",
       "block_section": 3
     },
@@ -1038,7 +1038,7 @@
       "rooms": 1,
       "area": 35.2,
       "price": 21084800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_201.jpg",
       "block_section": 3
     },
@@ -1051,7 +1051,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_203.jpg",
       "block_section": 3
     },
@@ -1064,7 +1064,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_205.jpg",
       "block_section": 3
     },
@@ -1077,7 +1077,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_207.jpg",
       "block_section": 3
     },
@@ -1090,7 +1090,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_209.jpg",
       "block_section": 3
     },
@@ -1103,7 +1103,7 @@
       "rooms": 2,
       "area": 42.3,
       "price": 24872400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_211.jpg",
       "block_section": 3
     },
@@ -1116,7 +1116,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_213.jpg",
       "block_section": 3
     },
@@ -1129,7 +1129,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_215.jpg",
       "block_section": 3
     },
@@ -1142,7 +1142,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_217.jpg",
       "block_section": 3
     },
@@ -1155,7 +1155,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_206.jpg",
       "block_section": 3
     },
@@ -1168,7 +1168,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_204.jpg",
       "block_section": 3
     },
@@ -1181,7 +1181,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_202.jpg",
       "block_section": 3
     },
@@ -1194,7 +1194,7 @@
       "rooms": 1,
       "area": 35.7,
       "price": 21384300,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_303.jpg",
       "block_section": 3
     },
@@ -1207,7 +1207,7 @@
       "rooms": 1,
       "area": 34.5,
       "price": 20665500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/A_301.jpg",
       "block_section": 3
     },
@@ -1220,7 +1220,7 @@
       "rooms": 1,
       "area": 42.1,
       "price": 24754800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_300.jpg",
       "block_section": 3
     },
@@ -1233,7 +1233,7 @@
       "rooms": 1,
       "area": 34.9,
       "price": 20905100,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_301.jpg",
       "block_section": 3
     },
@@ -1246,7 +1246,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_303.jpg",
       "block_section": 3
     },
@@ -1259,7 +1259,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_305.jpg",
       "block_section": 3
     },
@@ -1272,7 +1272,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_307.jpg",
       "block_section": 3
     },
@@ -1285,7 +1285,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_309.jpg",
       "block_section": 3
     },
@@ -1298,7 +1298,7 @@
       "rooms": 2,
       "area": 41.5,
       "price": 24402000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_311.jpg",
       "block_section": 3
     },
@@ -1311,7 +1311,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_313.jpg",
       "block_section": 3
     },
@@ -1324,7 +1324,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_315.jpg",
       "block_section": 3
     },
@@ -1337,7 +1337,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_317.jpg",
       "block_section": 3
     },
@@ -1350,7 +1350,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_306.jpg",
       "block_section": 3
     },
@@ -1363,7 +1363,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_304.jpg",
       "block_section": 3
     },
@@ -1376,7 +1376,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_302.jpg",
       "block_section": 3
     },
@@ -1389,7 +1389,7 @@
       "rooms": 1,
       "area": 36.8,
       "price": 22043200,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_403.jpg",
       "block_section": 3
     },
@@ -1402,7 +1402,7 @@
       "rooms": 1,
       "area": 35.1,
       "price": 21024900,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/A_401.jpg",
       "block_section": 3
     },
@@ -1415,7 +1415,7 @@
       "rooms": 1,
       "area": 43.0,
       "price": 25284000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_400.jpg",
       "block_section": 3
     },
@@ -1428,7 +1428,7 @@
       "rooms": 1,
       "area": 35.2,
       "price": 21084800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_401.jpg",
       "block_section": 3
     },
@@ -1441,7 +1441,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_403.jpg",
       "block_section": 3
     },
@@ -1454,7 +1454,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_405.jpg",
       "block_section": 3
     },
@@ -1467,7 +1467,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_407.jpg",
       "block_section": 3
     },
@@ -1480,7 +1480,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_409.jpg",
       "block_section": 3
     },
@@ -1493,7 +1493,7 @@
       "rooms": 2,
       "area": 42.3,
       "price": 24872400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_411.jpg",
       "block_section": 3
     },
@@ -1506,7 +1506,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_413.jpg",
       "block_section": 3
     },
@@ -1519,7 +1519,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_415.jpg",
       "block_section": 3
     },
@@ -1532,7 +1532,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_417.jpg",
       "block_section": 3
     },
@@ -1545,7 +1545,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_406.jpg",
       "block_section": 3
     },
@@ -1558,7 +1558,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_404.jpg",
       "block_section": 3
     },
@@ -1571,7 +1571,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_402.jpg",
       "block_section": 3
     },
@@ -1584,7 +1584,7 @@
       "rooms": 1,
       "area": 35.7,
       "price": 21384300,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_503.jpg",
       "block_section": 3
     },
@@ -1597,7 +1597,7 @@
       "rooms": 1,
       "area": 34.5,
       "price": 20665500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/A_501.jpg",
       "block_section": 3
     },
@@ -1610,7 +1610,7 @@
       "rooms": 1,
       "area": 42.1,
       "price": 24754800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_500.jpg",
       "block_section": 3
     },
@@ -1623,7 +1623,7 @@
       "rooms": 1,
       "area": 34.9,
       "price": 20905100,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_501.jpg",
       "block_section": 3
     },
@@ -1636,7 +1636,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_503.jpg",
       "block_section": 3
     },
@@ -1649,7 +1649,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_505.jpg",
       "block_section": 3
     },
@@ -1662,7 +1662,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_507.jpg",
       "block_section": 3
     },
@@ -1675,7 +1675,7 @@
       "rooms": 1,
       "area": 22.7,
       "price": 13960500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_509.jpg",
       "block_section": 3
     },
@@ -1688,7 +1688,7 @@
       "rooms": 2,
       "area": 41.5,
       "price": 24402000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_511.jpg",
       "block_section": 3
     },
@@ -1701,7 +1701,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_513.jpg",
       "block_section": 3
     },
@@ -1714,7 +1714,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_515.jpg",
       "block_section": 3
     },
@@ -1727,7 +1727,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_517.jpg",
       "block_section": 3
     },
@@ -1740,7 +1740,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_506.jpg",
       "block_section": 3
     },
@@ -1753,7 +1753,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_504.jpg",
       "block_section": 3
     },
@@ -1766,7 +1766,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_502.jpg",
       "block_section": 3
     },
@@ -1779,7 +1779,7 @@
       "rooms": 1,
       "area": 36.8,
       "price": 22043200,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_603.jpg",
       "block_section": 3
     },
@@ -1792,7 +1792,7 @@
       "rooms": 1,
       "area": 35.1,
       "price": 21024900,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_601.jpg",
       "block_section": 3
     },
@@ -1805,7 +1805,7 @@
       "rooms": 1,
       "area": 43.0,
       "price": 25284000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_600.jpg",
       "block_section": 3
     },
@@ -1818,7 +1818,7 @@
       "rooms": 1,
       "area": 35.2,
       "price": 21084800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_601.jpg",
       "block_section": 3
     },
@@ -1831,7 +1831,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_603.jpg",
       "block_section": 3
     },
@@ -1844,7 +1844,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_605.jpg",
       "block_section": 3
     },
@@ -1857,7 +1857,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_607.jpg",
       "block_section": 3
     },
@@ -1870,7 +1870,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_609.jpg",
       "block_section": 3
     },
@@ -1883,7 +1883,7 @@
       "rooms": 2,
       "area": 42.3,
       "price": 24872400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_611.jpg",
       "block_section": 3
     },
@@ -1896,7 +1896,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_613.jpg",
       "block_section": 3
     },
@@ -1909,7 +1909,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_615.jpg",
       "block_section": 3
     },
@@ -1922,7 +1922,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_617.jpg",
       "block_section": 3
     },
@@ -1935,7 +1935,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_606.jpg",
       "block_section": 3
     },
@@ -1948,7 +1948,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_604.jpg",
       "block_section": 3
     },
@@ -1961,7 +1961,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_602.jpg",
       "block_section": 3
     },
@@ -1974,7 +1974,7 @@
       "rooms": 1,
       "area": 36.1,
       "price": 21623900,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_703.jpg",
       "block_section": 3
     },
@@ -1987,7 +1987,7 @@
       "rooms": 1,
       "area": 35.0,
       "price": 20965000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/A_701.jpg",
       "block_section": 3
     },
@@ -2000,7 +2000,7 @@
       "rooms": 1,
       "area": 43.0,
       "price": 25284000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_700.jpg",
       "block_section": 3
     },
@@ -2013,7 +2013,7 @@
       "rooms": 1,
       "area": 35.2,
       "price": 21084800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_701.jpg",
       "block_section": 3
     },
@@ -2026,7 +2026,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_703.jpg",
       "block_section": 3
     },
@@ -2039,7 +2039,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_705.jpg",
       "block_section": 3
     },
@@ -2052,7 +2052,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_707.jpg",
       "block_section": 3
     },
@@ -2065,7 +2065,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_709.jpg",
       "block_section": 3
     },
@@ -2078,7 +2078,7 @@
       "rooms": 2,
       "area": 42.3,
       "price": 24872400,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_711.jpg",
       "block_section": 3
     },
@@ -2091,7 +2091,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_713.jpg",
       "block_section": 3
     },
@@ -2104,7 +2104,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_715.jpg",
       "block_section": 3
     },
@@ -2117,7 +2117,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_717.jpg",
       "block_section": 3
     },
@@ -2130,7 +2130,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_706.jpg",
       "block_section": 3
     },
@@ -2143,7 +2143,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_704.jpg",
       "block_section": 3
     },
@@ -2156,7 +2156,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_702.jpg",
       "block_section": 3
     },
@@ -2169,7 +2169,7 @@
       "rooms": 1,
       "area": 37.4,
       "price": 22402600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_800.jpg",
       "block_section": 3
     },
@@ -2182,7 +2182,7 @@
       "rooms": 3,
       "area": 72.7,
       "price": 40348500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_801.jpg",
       "block_section": 3
     },
@@ -2195,7 +2195,7 @@
       "rooms": 2,
       "area": 42.6,
       "price": 25048800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_803.jpg",
       "block_section": 3
     },
@@ -2208,7 +2208,7 @@
       "rooms": 2,
       "area": 39.4,
       "price": 23600600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_805.jpg",
       "block_section": 3
     },
@@ -2221,7 +2221,7 @@
       "rooms": 3,
       "area": 70.2,
       "price": 38961000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_807.jpg",
       "block_section": 3
     },
@@ -2234,7 +2234,7 @@
       "rooms": 2,
       "area": 68.3,
       "price": 38657800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_802.jpg",
       "block_section": 3
     },
@@ -2247,7 +2247,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_112.jpg",
       "block_section": 3
     },
@@ -2260,7 +2260,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_110.jpg",
       "block_section": 3
     },
@@ -2273,7 +2273,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_108.jpg",
       "block_section": 3
     },
@@ -2286,7 +2286,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_106.jpg",
       "block_section": 3
     },
@@ -2299,7 +2299,7 @@
       "rooms": 2,
       "area": 47.1,
       "price": 27694800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_115.jpg",
       "block_section": 3
     },
@@ -2312,7 +2312,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_117.jpg",
       "block_section": 3
     },
@@ -2325,7 +2325,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_119.jpg",
       "block_section": 3
     },
@@ -2338,7 +2338,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_121.jpg",
       "block_section": 3
     },
@@ -2351,7 +2351,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_123.jpg",
       "block_section": 3
     },
@@ -2364,7 +2364,7 @@
       "rooms": 1,
       "area": 22.3,
       "price": 13714500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_125.jpg",
       "block_section": 3
     },
@@ -2377,7 +2377,7 @@
       "rooms": 2,
       "area": 49.2,
       "price": 28929600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_127.jpg",
       "block_section": 3
     },
@@ -2390,7 +2390,7 @@
       "rooms": 2,
       "area": 43.6,
       "price": 25636800,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_129.jpg",
       "block_section": 3
     },
@@ -2403,7 +2403,7 @@
       "rooms": 2,
       "area": 44.0,
       "price": 25872000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_116.jpg",
       "block_section": 3
     },
@@ -2416,7 +2416,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/1 ЭТАЖ/B_114.jpg",
       "block_section": 3
     },
@@ -2429,7 +2429,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_214.jpg",
       "block_section": 3
     },
@@ -2442,7 +2442,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_212.jpg",
       "block_section": 3
     },
@@ -2455,7 +2455,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_210.jpg",
       "block_section": 3
     },
@@ -2468,7 +2468,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_208.jpg",
       "block_section": 3
     },
@@ -2481,7 +2481,7 @@
       "rooms": 2,
       "area": 47.8,
       "price": 28106400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_219.jpg",
       "block_section": 3
     },
@@ -2494,7 +2494,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_221.jpg",
       "block_section": 3
     },
@@ -2507,7 +2507,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_223.jpg",
       "block_section": 3
     },
@@ -2520,7 +2520,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_225.jpg",
       "block_section": 3
     },
@@ -2533,7 +2533,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_227.jpg",
       "block_section": 3
     },
@@ -2546,7 +2546,7 @@
       "rooms": 1,
       "area": 23.1,
       "price": 14206500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_229.jpg",
       "block_section": 3
     },
@@ -2559,7 +2559,7 @@
       "rooms": 2,
       "area": 50.6,
       "price": 29196200,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_231.jpg",
       "block_section": 3
     },
@@ -2572,7 +2572,7 @@
       "rooms": 2,
       "area": 45.0,
       "price": 26460000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_233.jpg",
       "block_section": 3
     },
@@ -2585,7 +2585,7 @@
       "rooms": 2,
       "area": 44.7,
       "price": 26283600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_220.jpg",
       "block_section": 3
     },
@@ -2598,7 +2598,7 @@
       "rooms": 1,
       "area": 24.6,
       "price": 15006000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_218.jpg",
       "block_section": 3
     },
@@ -2611,7 +2611,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/2 ЭТАЖ/B_216.jpg",
       "block_section": 3
     },
@@ -2624,7 +2624,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_314.jpg",
       "block_section": 3
     },
@@ -2637,7 +2637,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_312.jpg",
       "block_section": 3
     },
@@ -2650,7 +2650,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_310.jpg",
       "block_section": 3
     },
@@ -2663,7 +2663,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_308.jpg",
       "block_section": 3
     },
@@ -2676,7 +2676,7 @@
       "rooms": 2,
       "area": 47.1,
       "price": 27694800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_319.jpg",
       "block_section": 3
     },
@@ -2689,7 +2689,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_321.jpg",
       "block_section": 3
     },
@@ -2702,7 +2702,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_323.jpg",
       "block_section": 3
     },
@@ -2715,7 +2715,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_325.jpg",
       "block_section": 3
     },
@@ -2728,7 +2728,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_327.jpg",
       "block_section": 3
     },
@@ -2741,7 +2741,7 @@
       "rooms": 1,
       "area": 22.3,
       "price": 13714500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_329.jpg",
       "block_section": 3
     },
@@ -2754,7 +2754,7 @@
       "rooms": 2,
       "area": 49.2,
       "price": 28929600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_331.jpg",
       "block_section": 3
     },
@@ -2767,7 +2767,7 @@
       "rooms": 2,
       "area": 43.6,
       "price": 25636800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_333.jpg",
       "block_section": 3
     },
@@ -2780,7 +2780,7 @@
       "rooms": 2,
       "area": 44.0,
       "price": 25872000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_320.jpg",
       "block_section": 3
     },
@@ -2793,7 +2793,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_318.jpg",
       "block_section": 3
     },
@@ -2806,7 +2806,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/3 ЭТАЖ/B_316.jpg",
       "block_section": 3
     },
@@ -2819,7 +2819,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_414.jpg",
       "block_section": 3
     },
@@ -2832,7 +2832,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_412.jpg",
       "block_section": 3
     },
@@ -2845,7 +2845,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_410.jpg",
       "block_section": 3
     },
@@ -2858,7 +2858,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_408.jpg",
       "block_section": 3
     },
@@ -2871,7 +2871,7 @@
       "rooms": 2,
       "area": 47.8,
       "price": 28106400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_419.jpg",
       "block_section": 3
     },
@@ -2884,7 +2884,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_421.jpg",
       "block_section": 3
     },
@@ -2897,7 +2897,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_423.jpg",
       "block_section": 3
     },
@@ -2910,7 +2910,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_425.jpg",
       "block_section": 3
     },
@@ -2923,7 +2923,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_427.jpg",
       "block_section": 3
     },
@@ -2936,7 +2936,7 @@
       "rooms": 1,
       "area": 23.1,
       "price": 14206500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_429.jpg",
       "block_section": 3
     },
@@ -2949,7 +2949,7 @@
       "rooms": 2,
       "area": 50.6,
       "price": 29196200,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_431.jpg",
       "block_section": 3
     },
@@ -2962,7 +2962,7 @@
       "rooms": 2,
       "area": 45.0,
       "price": 26460000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_433.jpg",
       "block_section": 3
     },
@@ -2975,7 +2975,7 @@
       "rooms": 2,
       "area": 44.7,
       "price": 26283600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_420.jpg",
       "block_section": 3
     },
@@ -2988,7 +2988,7 @@
       "rooms": 1,
       "area": 24.6,
       "price": 15006000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_418.jpg",
       "block_section": 3
     },
@@ -3001,7 +3001,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/4 ЭТАЖ/B_416.jpg",
       "block_section": 3
     },
@@ -3014,7 +3014,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_514.jpg",
       "block_section": 3
     },
@@ -3027,7 +3027,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_512.jpg",
       "block_section": 3
     },
@@ -3040,7 +3040,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_510.jpg",
       "block_section": 3
     },
@@ -3053,7 +3053,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_508.jpg",
       "block_section": 3
     },
@@ -3066,7 +3066,7 @@
       "rooms": 2,
       "area": 47.1,
       "price": 27694800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_519.jpg",
       "block_section": 3
     },
@@ -3079,7 +3079,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_521.jpg",
       "block_section": 3
     },
@@ -3092,7 +3092,7 @@
       "rooms": 1,
       "area": 25.0,
       "price": 15250000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_523.jpg",
       "block_section": 3
     },
@@ -3105,7 +3105,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_525.jpg",
       "block_section": 3
     },
@@ -3118,7 +3118,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_527.jpg",
       "block_section": 3
     },
@@ -3131,7 +3131,7 @@
       "rooms": 1,
       "area": 22.3,
       "price": 13714500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_529.jpg",
       "block_section": 3
     },
@@ -3144,7 +3144,7 @@
       "rooms": 2,
       "area": 49.2,
       "price": 28929600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_531.jpg",
       "block_section": 3
     },
@@ -3157,7 +3157,7 @@
       "rooms": 2,
       "area": 43.6,
       "price": 25636800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_533.jpg",
       "block_section": 3
     },
@@ -3170,7 +3170,7 @@
       "rooms": 2,
       "area": 44.0,
       "price": 25872000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_520.jpg",
       "block_section": 3
     },
@@ -3183,7 +3183,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_518.jpg",
       "block_section": 3
     },
@@ -3196,7 +3196,7 @@
       "rooms": 1,
       "area": 23.9,
       "price": 14698500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/5 ЭТАЖ/B_516.jpg",
       "block_section": 3
     },
@@ -3209,7 +3209,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_614.jpg",
       "block_section": 3
     },
@@ -3222,7 +3222,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_612.jpg",
       "block_section": 3
     },
@@ -3235,7 +3235,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_610.jpg",
       "block_section": 3
     },
@@ -3248,7 +3248,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_608.jpg",
       "block_section": 3
     },
@@ -3261,7 +3261,7 @@
       "rooms": 2,
       "area": 47.8,
       "price": 28106400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_619.jpg",
       "block_section": 3
     },
@@ -3274,7 +3274,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_621.jpg",
       "block_section": 3
     },
@@ -3287,7 +3287,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_623.jpg",
       "block_section": 3
     },
@@ -3300,7 +3300,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_625.jpg",
       "block_section": 3
     },
@@ -3313,7 +3313,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_627.jpg",
       "block_section": 3
     },
@@ -3326,7 +3326,7 @@
       "rooms": 1,
       "area": 23.1,
       "price": 14206500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_629.jpg",
       "block_section": 3
     },
@@ -3339,7 +3339,7 @@
       "rooms": 2,
       "area": 50.6,
       "price": 29196200,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_631.jpg",
       "block_section": 3
     },
@@ -3352,7 +3352,7 @@
       "rooms": 2,
       "area": 45.0,
       "price": 26460000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_633.jpg",
       "block_section": 3
     },
@@ -3365,7 +3365,7 @@
       "rooms": 2,
       "area": 44.7,
       "price": 26283600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_620.jpg",
       "block_section": 3
     },
@@ -3378,7 +3378,7 @@
       "rooms": 1,
       "area": 24.6,
       "price": 15006000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_618.jpg",
       "block_section": 3
     },
@@ -3391,7 +3391,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_616.jpg",
       "block_section": 3
     },
@@ -3404,7 +3404,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_714.jpg",
       "block_section": 3
     },
@@ -3417,7 +3417,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_712.jpg",
       "block_section": 3
     },
@@ -3430,7 +3430,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_710.jpg",
       "block_section": 3
     },
@@ -3443,7 +3443,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_708.jpg",
       "block_section": 3
     },
@@ -3456,7 +3456,7 @@
       "rooms": 2,
       "area": 47.8,
       "price": 28106400,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_719.jpg",
       "block_section": 3
     },
@@ -3469,7 +3469,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_721.jpg",
       "block_section": 3
     },
@@ -3482,7 +3482,7 @@
       "rooms": 1,
       "area": 25.8,
       "price": 15738000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_723.jpg",
       "block_section": 3
     },
@@ -3495,7 +3495,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_725.jpg",
       "block_section": 3
     },
@@ -3508,7 +3508,7 @@
       "rooms": 1,
       "area": 24.3,
       "price": 14944500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_727.jpg",
       "block_section": 3
     },
@@ -3521,7 +3521,7 @@
       "rooms": 1,
       "area": 23.1,
       "price": 14206500,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_729.jpg",
       "block_section": 3
     },
@@ -3534,7 +3534,7 @@
       "rooms": 2,
       "area": 50.6,
       "price": 29196200,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_731.jpg",
       "block_section": 3
     },
@@ -3547,7 +3547,7 @@
       "rooms": 2,
       "area": 45.1,
       "price": 26518800,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_733.jpg",
       "block_section": 3
     },
@@ -3560,7 +3560,7 @@
       "rooms": 2,
       "area": 44.7,
       "price": 26283600,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_720.jpg",
       "block_section": 3
     },
@@ -3573,7 +3573,7 @@
       "rooms": 1,
       "area": 24.6,
       "price": 15006000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_718.jpg",
       "block_section": 3
     },
@@ -3586,7 +3586,7 @@
       "rooms": 1,
       "area": 24.7,
       "price": 15067000,
-      "status": "Резерв",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/7 ЭТАЖ/B_716.jpg",
       "block_section": 3
     },
@@ -3599,7 +3599,7 @@
       "rooms": 2,
       "area": 44.7,
       "price": 26283600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_806.jpg",
       "block_section": 3
     },
@@ -3612,7 +3612,7 @@
       "rooms": 2,
       "area": 45.0,
       "price": 26460000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_804.jpg",
       "block_section": 3
     },
@@ -3625,7 +3625,7 @@
       "rooms": 2,
       "area": 44.7,
       "price": 26283600,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_809.jpg",
       "block_section": 3
     },
@@ -3638,7 +3638,7 @@
       "rooms": 2,
       "area": 46.3,
       "price": 27224400,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_811.jpg",
       "block_section": 3
     },
@@ -3651,7 +3651,7 @@
       "rooms": 3,
       "area": 65.5,
       "price": 37073000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_813.jpg",
       "block_section": 3
     },
@@ -3664,7 +3664,7 @@
       "rooms": 4,
       "area": 152.2,
       "price": 79905000,
-      "status": "Резерв",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/8 ЭТАЖ/B_815.jpg",
       "block_section": 3
     }
