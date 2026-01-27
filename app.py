@@ -1418,6 +1418,74 @@ async def handle_whitelist_command(chat_id: int, text: str):
 /wl remove 123456789 — удалить""")
 
 
+async def handle_corp3_admin_command(chat_id: int, text: str):
+    """Управление лотами Корпуса 3: /ca list | hide | show"""
+    import json
+    json_path = "/opt/bot/data/corp3_units.json"
+    parts = text.strip().split(maxsplit=2)
+    cmd = parts[1] if len(parts) > 1 else "help"
+    
+    # Загружаем данные
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    if cmd == "list":
+        sold = [u['code'] for u in data['units'] if u.get('status') == 'sold']
+        if not sold:
+            await send_message(chat_id, "📋 Все лоты Корпуса 3 доступны (нет скрытых).")
+            return
+        sold_sorted = sorted(sold)
+        lines = ["📋 <b>Скрытые лоты Корпуса 3:</b>", ""]
+        lines.append(", ".join(sold_sorted[:50]))
+        if len(sold_sorted) > 50:
+            lines.append(f"... и ещё {len(sold_sorted) - 50}")
+        lines.append(f"\n<i>Всего скрыто: {len(sold)}</i>")
+        await send_message(chat_id, "\n".join(lines))
+    
+    elif cmd == "hide" and len(parts) >= 3:
+        code = parts[2].strip().upper().replace('A', 'А').replace('B', 'В')
+        found = False
+        for unit in data['units']:
+            if unit['code'].upper() == code:
+                if unit.get('status') == 'sold':
+                    await send_message(chat_id, f"⚠️ Лот <code>{code}</code> уже скрыт.")
+                    return
+                unit['status'] = 'sold'
+                found = True
+                break
+        if found:
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            from handlers.corp3 import _units_cache
+            _units_cache.clear()
+            await send_message(chat_id, f"✅ Лот <code>{code}</code> скрыт (sold).")
+        else:
+            await send_message(chat_id, f"❌ Лот <code>{code}</code> не найден в Корпусе 3.")
+    
+    elif cmd == "show" and len(parts) >= 3:
+        code = parts[2].strip().upper().replace('A', 'А').replace('B', 'В')
+        found = False
+        for unit in data['units']:
+            if unit['code'].upper() == code:
+                if unit.get('status') == 'available':
+                    await send_message(chat_id, f"⚠️ Лот <code>{code}</code> уже доступен.")
+                    return
+                unit['status'] = 'available'
+                found = True
+                break
+        if found:
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            from handlers.corp3 import _units_cache
+            _units_cache.clear()
+            await send_message(chat_id, f"✅ Лот <code>{code}</code> открыт (available).")
+        else:
+            await send_message(chat_id, f"❌ Лот <code>{code}</code> не найден в Корпусе 3.")
+    
+    else:
+        await send_message(chat_id, """📋 <b>Управление лотами Корпуса 3:</b>\n\n/ca list — показать скрытые лоты\n/ca hide А300 — скрыть лот\n/ca show А300 — показать лот""")
+
+
 async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     """
     Новый роутер сообщений с GPT Intent Classification.
@@ -1445,6 +1513,10 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     # === Команда /wl (whitelist управление, только админ) ===
     if text.startswith("/wl") and chat_id == ADMIN_ID:
         await handle_whitelist_command(chat_id, text)
+        return
+    # === Команда /ca (управление лотами Корпуса 3, только админ) ===
+    if text.startswith("/ca") and chat_id == ADMIN_ID:
+        await handle_corp3_admin_command(chat_id, text)
         return
     if text == "/parse" and chat_id == ADMIN_ID:
         import subprocess
