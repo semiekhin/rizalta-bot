@@ -20,7 +20,6 @@ INTERVALS = {
 SERVICES = [
     "rizalta-bot",
     "rizalta-bot-dev",
-    "rizalta-dev-api",
     "cloudflare-rizalta",
     "rizalta-dev-tunnel",
 ]
@@ -28,7 +27,6 @@ SERVICES = [
 # Health endpoints (корневой "/" возвращает {"ok":true})
 HEALTH_ENDPOINTS = {
     "prod": "http://localhost:8000/",
-    "dev": "http://localhost:8002/",
 }
 
 # Пороги ресурсов (%)
@@ -66,7 +64,6 @@ AUTO_ACTIONS = {
 SAFE_RESTART_COMMANDS = [
     "systemctl restart rizalta-bot",
     "systemctl restart rizalta-bot-dev",
-    "systemctl restart rizalta-dev-api",
     "systemctl restart cloudflare-rizalta",
     "systemctl restart rizalta-dev-tunnel",
 ]

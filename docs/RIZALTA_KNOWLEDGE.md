@@ -281,3 +281,76 @@ CUSTOM_INSTALLMENT_UNITS = ['В615', 'В527', 'В517', 'В617', 'В525', 'В625'
 # Добавить В700:
 sed -i "s/CUSTOM_INSTALLMENT_UNITS = \[/CUSTOM_INSTALLMENT_UNITS = ['В700', /" /opt/bot-dev/services/kp_pdf_generator.py
 ```
+
+---
+
+## Добавлено 27.01.2026
+
+### Изменение формата callback — ВАЖНЫЙ УРОК
+
+**Проблема:** "Сравнить с депозитом" показывал цену 1000₽ вместо 40 млн
+
+**Причина:** Формат callback изменился, но парсер не обновили
+```python
+# Было:    compare_lot_{code}_{price}
+# Стало:   compare_lot_{code}_{building}_{price}
+# Парсер брал parts[3] как цену, а это был building (1)
+```
+
+**Урок:** При изменении формата callback — искать ВСЕ места:
+```bash
+grep -rn "compare_lot_" /opt/bot-dev/
+```
+И обновлять как формирование, так и парсинг.
+
+### ADMIN_IDS — список админов
+
+**Было:** `ADMIN_ID = 512319063` (один админ)
+**Стало:** `ADMIN_IDS = [512319063, 8000703751]` (список)
+
+**Файл:** `app.py` (строка ~1507)
+
+**Проверка:** `if chat_id in ADMIN_IDS:`
+
+### Custom Installment — текст "Варианты оплаты"
+
+**Файл:** `services/calc_universal.py`
+
+Теперь для лотов из CUSTOM_INSTALLMENT_UNITS текст "Варианты оплаты" показывает только 12 мес ПВ 50% (как и КП).
+
+**Добавлен импорт:**
+```python
+from services.kp_pdf_generator import CUSTOM_INSTALLMENT_UNITS
+```
+
+**В функции format_installment_text():**
+```python
+if calc['code'] in CUSTOM_INSTALLMENT_UNITS:
+    # Показать только 12 мес ПВ 50%
+```
+
+### Watchdog — убран rizalta-dev-api
+
+DEV работает в polling режиме, uvicorn на порту 8002 не нужен.
+
+**Отключено:**
+```bash
+systemctl stop rizalta-dev-api
+systemctl disable rizalta-dev-api
+```
+
+**Убрано из watchdog config.py:**
+- rizalta-dev-api из SERVICES
+- dev из HEALTH_ENDPOINTS
+- rizalta-dev-api из RECOVERY_COMMANDS
+
+### Дублирование сообщений в DEV
+
+**Причина:** Два процесса — polling + uvicorn (оба получают сообщения)
+
+**Диагностика:**
+```bash
+ps aux | grep bot-dev | grep -v grep
+```
+
+**Решение:** Убить лишний процесс или отключить сервис

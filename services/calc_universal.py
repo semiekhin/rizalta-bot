@@ -8,6 +8,7 @@ v4.0 (11.01.2026) — рефакторинг на Single Source of Truth
 from typing import Dict, Any, Optional
 from services.calculations import fmt_rub
 from services.installment_calculator import calc_12m, calc_18m, get_service_fee, get_texts
+from services.kp_pdf_generator import CUSTOM_INSTALLMENT_UNITS
 
 SERVICE_FEE = get_service_fee()
 
@@ -132,6 +133,19 @@ def format_installment_text(calc: Dict[str, Any]) -> str:
     """Форматирует результаты расчёта в читаемый текст."""
     texts = get_texts()
     
+    # Для лотов с особыми условиями — только 12 мес ПВ 50%
+    if calc['code'] in CUSTOM_INSTALLMENT_UNITS:
+        return f"""📊 **Расчёт для лота {calc['code']}**
+Площадь: {calc['area']} м² | Цена: {fmt_rub(calc['price'])}
+
+━━━ {texts['12m_title']} ━━━
+
+**ПВ 50%** — {fmt_rub(calc['pv_50_12'])}
+└ 11 × 100 000 ₽, последний: {fmt_rub(calc['last_50_12'])}
+
+ℹ️ Для данного лота доступна только рассрочка 12 месяцев с ПВ 50%
+"""
+    
     return f"""📊 **Расчёт для лота {calc['code']}**
 Площадь: {calc['area']} м² | Цена: {fmt_rub(calc['price'])}
 
@@ -160,7 +174,6 @@ def format_installment_text(calc: Dict[str, Any]) -> str:
 └ 8×150К, 9-й: {fmt_rub(calc['payment_9th'])}, 8×150К, 18-й: {fmt_rub(calc['last_50_18'])}
 └ Итого: {fmt_rub(calc['final_price_50'])}
 """
-
 def format_short_text(calc: Dict[str, Any]) -> str:
     """Короткий вариант для inline-ответов."""
     return f"""💰 Лот {calc['code']} ({calc['area']} м²)
