@@ -316,3 +316,115 @@ sqlite3 /opt/bot-dev/properties.db "SELECT * FROM corp3_whitelist;"
 sed -i 's|/opt/bot-dev/properties.db|/opt/bot/properties.db|' /opt/bot/handlers/corp3.py
 sed -i 's|/opt/bot-dev/properties.db|/opt/bot/properties.db|' /opt/bot/app.py
 ```
+
+---
+
+## СЕССИЯ 27.01.2026
+
+### ЗАДАЧА: Фильтрация новостей (только экономика РФ)
+
+**Файлы:** `handlers/news.py`
+
+**Шаги:**
+1. Заменить RSS источники (строки 333-350)
+2. Добавить include/exclude keywords (строки 380-430)
+
+**RSS источники:**
+- Ведомости: https://www.vedomosti.ru/rss/news
+- Коммерсант Экономика: https://www.kommersant.ru/RSS/section-economics.xml
+- РБК Экономика: https://rssexport.rbc.ru/rbcnews/economics.rss
+
+**Include keywords:** цб, ставк, инфляц, ввп, недвижимость, ипотек, туризм, курорт
+**Exclude keywords:** путин, война, украин, убий, теракт, политик
+
+---
+
+### ЗАДАЧА: Команда /ca для управления лотами Корпуса 3
+
+**Файлы:** `app.py` (после строки 1418)
+
+**Команды:**
+```
+/ca list        — показать скрытые лоты
+/ca hide А300   — скрыть лот (status='sold')
+/ca show А300   — показать лот (status='available')
+```
+
+**Код добавляет функцию:**
+```python
+async def handle_corp3_admin_command(chat_id: int, text: str):
+    # Парсинг команды, изменение JSON, очистка кеша
+```
+
+**Важно:** После изменения JSON вызывать `_units_cache.clear()`
+
+---
+
+### ИНЦИДЕНТ: Сравнение с депозитом показывает 1000₽
+
+**Симптомы:** Кнопка "Сравнить с депозитом" показывает цену 1000₽ вместо реальной
+
+**Причина:** Формат callback изменился с `compare_lot_{code}_{price}` на `compare_lot_{code}_{building}_{price}`, но парсер не обновили
+
+**Файл:** `app.py` (строки 986-993)
+
+**Было:**
+```python
+lot_code = parts[2]
+price = int(parts[3]) * 1000
+```
+
+**Стало:**
+```python
+lot_code = parts[2]
+building = int(parts[3])
+price = int(parts[4]) * 1000 if len(parts) > 4 else int(parts[3]) * 1000
+```
+
+**Урок:** При изменении формата callback — искать ВСЕ места парсинга:
+```bash
+grep -rn "compare_lot_" /opt/bot-dev/
+```
+
+---
+
+### ЗАДАЧА: Список админов ADMIN_IDS
+
+**Файл:** `app.py` (строка 1507)
+
+**Было:**
+```python
+ADMIN_ID = 512319063
+if chat_id == ADMIN_ID:
+```
+
+**Стало:**
+```python
+ADMIN_IDS = [512319063, 8000703751]
+if chat_id in ADMIN_IDS:
+```
+
+**Команда замены:**
+```bash
+sed -i 's/ADMIN_ID = 512319063/ADMIN_IDS = [512319063, 8000703751]/' /opt/bot/app.py
+sed -i 's/chat_id == ADMIN_ID/chat_id in ADMIN_IDS/g' /opt/bot/app.py
+```
+
+---
+
+### ИНФРАСТРУКТУРА: Апгрейд сервера и WAL mode
+
+**Апгрейд Timeweb:**
+- 2 vCPU → 4 vCPU
+- 4 GB RAM → 8 GB RAM
+- Цена: 1500 → 2760 ₽/мес
+
+**WAL mode для SQLite:**
+```bash
+sqlite3 /opt/bot/properties.db "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/bot/secretary.db "PRAGMA journal_mode=WAL;"
+```
+
+**Клонирование сервера:**
+- Создан клон в Амстердаме как резервная копия
+- Для миграции в РФ: создать образ → перенести в Москву → развернуть

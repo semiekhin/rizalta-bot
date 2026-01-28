@@ -122,7 +122,7 @@ async def handle_compare_area_range(chat_id: int, min_area: float, max_area: flo
         price_mln = lot["price"] / 1_000_000
         btn_text = f"{lot['code']} — {lot['area']} м² — {price_mln:.1f} млн"
         # Передаём цену в callback (в тысячах для сокращения)
-        callback = f"compare_lot_{lot['code']}_{int(lot['price'] // 1000)}"
+        callback = f"compare_lot_{lot['code']}_{lot['building']}_{int(lot['price'] // 1000)}"
         inline_buttons.append([{"text": btn_text, "callback_data": callback}])
     
     if len(lots) > 10:
@@ -150,7 +150,7 @@ async def handle_compare_budget_range(chat_id: int, min_budget: int, max_budget:
     for lot in lots[:10]:
         price_mln = lot["price"] / 1_000_000
         btn_text = f"{lot['code']} — {lot['area']} м² — {price_mln:.1f} млн"
-        callback = f"compare_lot_{lot['code']}_{int(lot['price'] // 1000)}"
+        callback = f"compare_lot_{lot['code']}_{lot['building']}_{int(lot['price'] // 1000)}"
         inline_buttons.append([{"text": btn_text, "callback_data": callback}])
     
     if len(lots) > 10:

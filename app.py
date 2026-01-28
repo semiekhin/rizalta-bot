@@ -987,7 +987,8 @@ async def process_callback(callback: Dict[str, Any]):
         from handlers.compare import handle_compare_lot
         parts = data.split("_")
         lot_code = parts[2]
-        price = int(parts[3]) * 1000
+        building = int(parts[3])
+        price = int(parts[4]) * 1000 if len(parts) > 4 else int(parts[3]) * 1000
         await handle_compare_lot(chat_id, lot_code, price)
 
     elif data.startswith("compare_table_"):
@@ -1503,7 +1504,7 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
         return
     
     # === Админ-команда /parse ===
-    ADMIN_ID = 512319063
+    ADMIN_IDS = [512319063, 8000703751]
 
     # === Команда /corp3 (whitelist) ===
     if text == "/corp3":
@@ -1511,14 +1512,14 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
         await handle_corp3_start(chat_id)
         return
     # === Команда /wl (whitelist управление, только админ) ===
-    if text.startswith("/wl") and chat_id == ADMIN_ID:
+    if text.startswith("/wl") and chat_id in ADMIN_IDS:
         await handle_whitelist_command(chat_id, text)
         return
     # === Команда /ca (управление лотами Корпуса 3, только админ) ===
-    if text.startswith("/ca") and chat_id == ADMIN_ID:
+    if text.startswith("/ca") and chat_id in ADMIN_IDS:
         await handle_corp3_admin_command(chat_id, text)
         return
-    if text == "/parse" and chat_id == ADMIN_ID:
+    if text == "/parse" and chat_id in ADMIN_IDS:
         import subprocess
         await send_message(chat_id, "⏳ Запускаю парсер...")
         try:
