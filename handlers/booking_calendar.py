@@ -11,7 +11,7 @@ from services.telegram import send_message, send_message_inline
 from services.user_profiles import get_profile, save_profile, convert_time, format_dual_time, validate_time
 
 # Путь к базе данных
-BOT_DB_PATH = "/opt/bot/properties.db"
+BOT_DB_PATH = "/opt/bot-dev/properties.db"
 
 # === НАСТРОЙКИ ===
 
@@ -350,7 +350,7 @@ async def handle_take_booking(chat_id: int, booking_id: int, from_user: dict):
         return
     
     if booking["status"] != "pending":
-        await send_message(chat_id, "ℹ️ Эта заявка уже обработана.")
+        pass  # Тихо игнорируем повторное нажатие
         return
     
     # Получаем данные специалиста
