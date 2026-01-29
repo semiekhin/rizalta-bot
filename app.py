@@ -1358,7 +1358,7 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
 async def handle_whitelist_command(chat_id: int, text: str):
     """Управление whitelist Корпуса 3: /wl list | add | remove"""
     import sqlite3
-    db_path = "/opt/bot-dev/properties.db"
+    db_path = "properties.db"
     parts = text.strip().split(maxsplit=2)
     cmd = parts[1] if len(parts) > 1 else "help"
     
@@ -1422,7 +1422,7 @@ async def handle_whitelist_command(chat_id: int, text: str):
 async def handle_corp3_admin_command(chat_id: int, text: str):
     """Управление лотами Корпуса 3: /ca list | hide | show"""
     import json
-    json_path = "/opt/bot/data/corp3_units.json"
+    json_path = "data/corp3_units.json"
     parts = text.strip().split(maxsplit=2)
     cmd = parts[1] if len(parts) > 1 else "help"
     
