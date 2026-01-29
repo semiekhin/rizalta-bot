@@ -37,3 +37,4 @@ properties.db
 
 # Корпус 3 планировки (слишком большие для git)
 data/corp3_layouts/
+data/corp3_units.json
