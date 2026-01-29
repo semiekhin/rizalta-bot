@@ -428,3 +428,66 @@ sqlite3 /opt/bot/secretary.db "PRAGMA journal_mode=WAL;"
 **Клонирование сервера:**
 - Создан клон в Амстердаме как резервная копия
 - Для миграции в РФ: создать образ → перенести в Москву → развернуть
+
+---
+
+## Добавлено 29.01.2026
+
+### ИНЦИДЕНТ: Клон сервера перехватывал запросы
+
+**Симптомы:**
+- Два ежедневных отчёта (разные метрики)
+- /wl add работает, но пользователь не видит Корпус 3
+- Непредсказуемое поведение бота
+
+**Диагностика:**
+```bash
+# На клоне — проверить что запущено
+systemctl list-units --type=service --state=running | grep -E "rizalta|bot|watchdog"
+```
+
+**Причина:** Клон сервера в Амстердаме работал с теми же Cloudflare Tunnel, перехватывая часть запросов. Разные БД → рассинхронизация.
+
+**Решение:**
+```bash
+# На клоне
+systemctl stop rizalta-bot rizalta-bot-dev rizalta-watchdog cloudflare-rizalta rizalta-dev-tunnel rizalta-dev-api
+systemctl disable rizalta-bot rizalta-bot-dev rizalta-watchdog cloudflare-rizalta rizalta-dev-tunnel rizalta-dev-api
+```
+
+### ИНЦИДЕНТ: corp3_units.json сбрасывался после git операций
+
+**Симптомы:** Скрытые через /ca hide лоты снова становились видимыми (обычно утром).
+
+**Диагностика:**
+```bash
+cd /opt/bot && git ls-files | grep corp3
+git status data/corp3_units.json
+```
+
+**Причина:** Файл отслеживался git. При любом git checkout/pull — затирался версией из репо.
+
+**Решение:**
+```bash
+echo "data/corp3_units.json" >> .gitignore
+git rm --cached data/corp3_units.json
+git commit -m "fix: исключить corp3_units.json из git"
+git push
+```
+
+### ЗАДАЧА: Исправление жёстких путей к БД
+
+**Файлы:** app.py (строки 1361, 1425)
+
+**Проблема:** PROD бот писал в DEV базу.
+
+**Решение:**
+```bash
+sed -i 's|db_path = "/opt/bot-dev/properties.db"|db_path = "properties.db"|' /opt/bot-dev/app.py
+sed -i 's|json_path = "/opt/bot-dev/data/corp3_units.json"|json_path = "data/corp3_units.json"|' /opt/bot-dev/app.py
+```
+
+**Проверка:**
+```bash
+grep -n "db_path\|json_path" /opt/bot-dev/app.py | grep -E "1361|1425"
+```

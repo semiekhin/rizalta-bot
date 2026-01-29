@@ -354,3 +354,54 @@ ps aux | grep bot-dev | grep -v grep
 ```
 
 **Решение:** Убить лишний процесс или отключить сервис
+
+---
+
+## Добавлено 29.01.2026
+
+### ⚠️ Клон сервера (Амстердам)
+
+**Проблема:** Клон сервера работал параллельно с основным, перехватывая часть запросов через Cloudflare Tunnel.
+
+**Симптомы:**
+- Двойные ежедневные отчёты
+- Whitelist "добавлен", но пользователь не видит
+- Странное поведение бронирований
+
+**Решение:**
+```bash
+# На клоне (6492347-hk015312)
+systemctl stop rizalta-bot rizalta-bot-dev rizalta-watchdog cloudflare-rizalta rizalta-dev-tunnel rizalta-dev-api
+systemctl disable rizalta-bot rizalta-bot-dev rizalta-watchdog cloudflare-rizalta rizalta-dev-tunnel rizalta-dev-api
+```
+
+**Статус:** RIZALTA сервисы на клоне отключены (disabled), Sofia работает.
+
+### corp3_units.json в .gitignore
+
+**Проблема:** Файл отслеживался git → при любых git операциях локальные изменения (скрытые лоты) затирались.
+
+**Решение:**
+```bash
+echo "data/corp3_units.json" >> .gitignore
+git rm --cached data/corp3_units.json
+git commit -m "fix: исключить corp3_units.json из git"
+```
+
+### Относительные пути для БД и JSON
+
+**Проблема:** Жёсткие пути `/opt/bot-dev/...` в коде приводили к тому, что PROD бот работал с DEV базой.
+
+**Было:**
+```python
+db_path = "/opt/bot-dev/properties.db"
+json_path = "/opt/bot-dev/data/corp3_units.json"
+```
+
+**Стало:**
+```python
+db_path = "properties.db"
+json_path = "data/corp3_units.json"
+```
+
+Работает благодаря `WorkingDirectory` в systemd сервисе.
