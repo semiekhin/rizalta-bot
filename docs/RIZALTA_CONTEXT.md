@@ -1,6 +1,6 @@
 # ⚠️ PROD НЕ ТРОГАТЬ! РАБОТАТЬ ТОЛЬКО В DEV! ⚠️
 
-# RIZALTA AI System v2.5.5
+# RIZALTA AI System v2.5.6
 
 📅 **Последняя сессия:** 03.02.2026
 
@@ -25,8 +25,14 @@ AI-консультант для риэлторов. Инвестиционна�
 
 ## Корпуса
 - **Корпус 1 «Family»:** 253 лота (properties.db)
-- **Корпус 2 «Business»:** 102 лота (properties.db) — СКРЫТ в DEV (hidden_buildings.json)
+- **Корпус 2 «Business»:** 102 лота (properties.db) — **СКРЫТ** (hidden_buildings.json, ценовая пауза)
 - **Корпус 3 «Digital»:** 146 available / 136 sold (corp3_units.json, whitelist)
+
+## Управление видимостью корпусов
+- **Конфиг:** `data/hidden_buildings.json` → `{"hidden": [2]}`
+- **Вернуть корпус:** изменить на `{"hidden": []}` + перезапустить сервис
+- **Фильтрация:** units_db.py (бот) + app.py /api/lots (Mini App)
+- **Парсер:** не зависит от скрытия, продолжает обновлять все корпуса в БД
 
 ## Ключевые сервисы (systemd)
 | Сервис | Unit | Описание |
@@ -36,11 +42,21 @@ AI-консультант для риэлторов. Инвестиционна�
 | DEV API | rizalta-dev-api | uvicorn :8002 (Mini App API) |
 | Watchdog | rizalta-watchdog | мониторинг |
 
+## Cron задачи
+| Время | Задача |
+|-------|--------|
+| 03:00 | Бэкап + PROD парсер (parser_rclick.py) |
+| 04:00 (вс) | Еженедельный бэкап |
+| 06:00 | DEV парсер (parser_rclick.py) |
+| */5 мин | Health check |
+
 ## Ключевые файлы
 - `data/hidden_buildings.json` — скрытие корпусов
 - `data/corp3_units.json` — лоты Корпуса 3 (в .gitignore)
 - `services/units_db.py` — работа с БД лотов
 - `services/kp_pdf_generator.py` — генерация КП (PDF)
+- `services/parser_rclick.py` — парсер данных с сайта застройщика (cron)
 - `handlers/kp.py` — навигация по лотам
 - `handlers/corp3.py` — Корпус 3 + whitelist
+- `handlers/mortgage.py` — ипотечный калькулятор (только DEV)
 - `app.py` — главный файл (webhook, API, callbacks)

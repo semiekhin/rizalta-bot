@@ -83,7 +83,7 @@ DEV:
 
 ### properties.db — 355 лотов
 - Корпус 1 «Family»: 253 лота
-- Корпус 2 «Business»: 102 лота (скрыт в DEV через hidden_buildings.json)
+- Корпус 2 «Business»: 102 лота (СКРЫТ в DEV и PROD через hidden_buildings.json)
 - Таблица `bookings`: taken_by_id, taken_by_name, group_message_id
 
 ### secretary.db
