@@ -371,6 +371,7 @@ def get_building_stats() -> List[Dict[str, Any]]:
             MIN(floor) as min_floor,
             MAX(floor) as max_floor
         FROM units
+        WHERE status='available'
         GROUP BY building
         ORDER BY building
     """)

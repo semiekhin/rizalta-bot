@@ -491,3 +491,103 @@ sed -i 's|json_path = "/opt/bot-dev/data/corp3_units.json"|json_path = "data/cor
 ```bash
 grep -n "db_path\|json_path" /opt/bot-dev/app.py | grep -E "1361|1425"
 ```
+
+---
+
+## Добавлено 03.02.2026
+
+### ЗАДАЧА 10: Скрытие/показ целых корпусов (hidden_buildings)
+
+**Контекст:** Иногда нужно временно скрыть целый корпус (ценовая пауза, смена прайса). Должно работать одновременно в боте, API и Mini App.
+
+**Файлы:**
+- `data/hidden_buildings.json` — конфиг (НОВЫЙ)
+- `services/units_db.py` — функция `get_hidden_buildings()` + фильтры в 3 местах
+- `app.py` — фильтр в `/api/lots` endpoint
+- `/opt/miniapp/src/App.jsx` — динамические табы корпусов
+
+**Конфиг:**
+```json
+{"hidden": [2], "comment": "Корпус 2 скрыт — ценовая пауза"}
+```
+
+**Чтобы скрыть корпус:**
+```bash
+# Редактируем конфиг
+echo '{"hidden": [2], "comment": "причина"}' > /opt/bot-dev/data/hidden_buildings.json
+
+# Перезапуск (конфиг читается при каждом запросе, но uvicorn кэширует)
+systemctl restart rizalta-bot-dev
+systemctl restart rizalta-dev-api
+```
+
+**Чтобы вернуть корпус:**
+```bash
+echo '{"hidden": [], "comment": "все корпуса открыты"}' > /opt/bot-dev/data/hidden_buildings.json
+systemctl restart rizalta-bot-dev
+systemctl restart rizalta-dev-api
+```
+
+**Где фильтруется:**
+1. `units_db.py:get_building_stats()` — меню выбора корпуса (Python filter после SQL)
+2. `units_db.py:get_lots_filtered()` — поиск по площади/бюджету (SQL: AND building NOT IN)
+3. `units_db.py:get_lots_by_code()` — поиск по коду (Python filter: row[1] not in hidden)
+4. `app.py:/api/lots` — API для Mini App (SQL: AND building NOT IN)
+
+**⚠️ При деплое в PROD:**
+- В `app.py` путь к конфигу захардкожен! Заменить `/opt/bot-dev/` на `/opt/bot/`
+- Скопировать `hidden_buildings.json` в `/opt/bot/data/`
+
+**Проверка:**
+```bash
+# Python тест
+python3 -c "
+from services.units_db import get_building_stats
+stats = get_building_stats()
+for s in stats: print(f'Корпус {s[\"building\"]}: {s[\"count\"]} лотов')
+"
+
+# API тест
+curl -s http://localhost:8002/api/lots | python3 -c "
+import json,sys; data=json.load(sys.stdin)
+print(set(l['building'] for l in data['lots']))
+"
+```
+
+### ЗАДАЧА 11: Mini App — динамические табы корпусов
+
+**Файл:** `/opt/miniapp/src/App.jsx`
+
+**Что изменено:**
+- Убран хардкод `[1,2].map` → `buildings.map` (из данных API)
+- Добавлен `buildingNames = {1: "Family", 2: "Business", 3: "Digital"}`
+- `fetch('/api/lots')` → `fetch(API_PATH + '/lots')` (DEV/PROD routing через env param)
+- Автовыбор первого доступного корпуса при загрузке
+
+**Сборка и деплой:**
+```bash
+cd /opt/miniapp
+npm run build
+git add src/App.jsx && git commit -m "описание" && git push origin main
+# Vercel автодеплоит (или: npx vercel --prod)
+```
+
+### ИНЦИДЕНТ: Старый uvicorn на порту 8002 (не обновлялся)
+
+**Симптомы:** DEV API возвращает старые данные после изменений кода.
+
+**Причина:** На порту 8002 висел uvicorn запущенный давно, не перезапускался при `systemctl restart rizalta-bot-dev` (это polling бот, не uvicorn).
+
+**Решение:**
+```bash
+# Проверить процесс
+ss -tlnp | grep 8002
+
+# Перезапустить DEV API
+systemctl restart rizalta-dev-api
+```
+
+**Урок:** DEV имеет ДВА сервиса:
+- `rizalta-bot-dev` — polling бот (без HTTP порта)
+- `rizalta-dev-api` — uvicorn :8002 (API для Mini App)
+При изменении app.py нужно перезапускать ОБА!
