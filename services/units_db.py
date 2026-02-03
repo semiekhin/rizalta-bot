@@ -26,6 +26,17 @@ def get_db_connection():
     return sqlite3.connect(str(DB_PATH))
 
 
+def get_hidden_buildings() -> List[int]:
+    """Возвращает список скрытых корпусов из конфига."""
+    import json
+    config_path = Path(__file__).parent.parent / "data" / "hidden_buildings.json"
+    try:
+        with open(config_path) as f:
+            return json.load(f).get("hidden", [])
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
 def normalize_code(code: str) -> Tuple[str, str]:
     """
     Нормализует код лота.
@@ -188,6 +199,12 @@ def get_lots_filtered(
     """
     params = []
     
+    hidden = get_hidden_buildings()
+    if hidden:
+        placeholders = ",".join("?" * len(hidden))
+        query += f" AND building NOT IN ({placeholders})"
+        params.extend(hidden)
+    
     if building is not None:
         query += " AND building = ?"
         params.append(building)
@@ -292,7 +309,8 @@ def get_lots_by_code(code: str) -> List[Dict[str, Any]]:
     
     columns = ['code', 'building', 'floor', 'rooms', 'area', 'price', 
                'layout_url', 'block_section']
-    return [dict(zip(columns, row)) for row in rows]
+    hidden = get_hidden_buildings()
+    return [dict(zip(columns, row)) for row in rows if row[1] not in hidden]
 
 
 def get_lot_by_area(area: float, tolerance: float = 0.05) -> Optional[Dict[str, Any]]:
@@ -396,7 +414,8 @@ def get_building_stats() -> List[Dict[str, Any]]:
         })
     
     conn.close()
-    return stats
+    hidden = get_hidden_buildings()
+    return [s for s in stats if s["building"] not in hidden]
 
 
 def get_stats() -> Dict[str, Any]:

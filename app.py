@@ -249,6 +249,18 @@ async def api_get_lots(building: int = None, floor: int = None, status: str = No
     query = "SELECT code, building, floor, area_m2, price_rub, COALESCE(status, 'available') as status, layout_url FROM units WHERE 1=1"
     params = []
     
+    
+    # Фильтр скрытых корпусов
+    import json
+    try:
+        with open("/opt/bot/data/hidden_buildings.json") as f:
+            hidden = json.load(f).get("hidden", [])
+        if hidden:
+            placeholders = ",".join("?" * len(hidden))
+            query += f" AND building NOT IN ({placeholders})"
+            params.extend(hidden)
+    except:
+        pass
     if building:
         query += " AND building = ?"
         params.append(building)
