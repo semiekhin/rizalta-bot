@@ -405,3 +405,29 @@ json_path = "data/corp3_units.json"
 ```
 
 Работает благодаря `WorkingDirectory` в systemd сервисе.
+
+### Система скрытия корпусов (hidden_buildings)
+
+**Добавлено:** 03.02.2026
+
+**Проблема:** Нужно временно скрывать целый корпус (ценовая пауза, смена прайса). Попытка через mass-update `status='sold'` не работает — Mini App не фильтрует по статусу, и нужен откат.
+
+**Решение:** Конфиг `data/hidden_buildings.json` + фильтрация в 4 точках:
+1. `units_db.py:get_building_stats()` — меню корпусов
+2. `units_db.py:get_lots_filtered()` — поиск по площади/бюджету
+3. `units_db.py:get_lots_by_code()` — поиск по коду
+4. `app.py:/api/lots` — API для Mini App
+
+**⚠️ Известная проблема:** В DEV `app.py` путь к конфигу захардкожен как `/opt/bot-dev/data/hidden_buildings.json`. При деплое в PROD заменить на `/opt/bot/data/...`
+
+### DEV имеет два сервиса
+
+**Важно:** При изменении `app.py` в DEV нужно перезапускать ОБА сервиса:
+- `rizalta-bot-dev` — polling бот (Telegram команды)
+- `rizalta-dev-api` — uvicorn :8002 (API для Mini App)
+
+### Mini App routing (DEV/PROD)
+
+**Проблема:** `fetch('/api/lots')` в Mini App всегда шёл на PROD API, игнорируя `?env=dev`.
+
+**Решение:** Заменено на `fetch(API_PATH + '/lots')`, где `API_PATH` определяется из URL параметра `env`.

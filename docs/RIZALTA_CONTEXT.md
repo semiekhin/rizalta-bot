@@ -1,16 +1,18 @@
 # ⚠️ PROD НЕ ТРОГАТЬ! РАБОТАТЬ ТОЛЬКО В DEV! ⚠️
 
-# RIZALTA AI System v2.4.5
+# RIZALTA AI System v2.5.5
 
-📅 **Последняя сессия:** 24.01.2026
+📅 **Последняя сессия:** 03.02.2026
 
 AI-консультант для риэлторов. Инвестиционная недвижимость RIZALTA Resort Belokurikha (Алтай).
 
 ## Инфраструктура
-- **Сервер:** `ssh -p 2222 root@72.56.64.91`
+- **Сервер:** `ssh -p 2222 root@72.56.64.91` (Timeweb, 4 vCPU, 8 GB RAM)
 - **DEV:** `/opt/bot-dev` (@rizaltatestdevop_bot, polling)
+- **DEV API:** `/opt/bot-dev` (uvicorn :8002, сервис `rizalta-dev-api`)
 - **PROD:** `/opt/bot` (@RealtMeAI_bot, webhook :8000)
 - **Mini App:** `/opt/miniapp` → https://rizalta-miniapp.vercel.app
+- **Клон (Амстердам):** RIZALTA сервисы отключены (disabled)
 
 ## Репозитории
 - **PROD:** github.com/semiekhin/rizalta-bot
@@ -18,36 +20,27 @@ AI-консультант для риэлторов. Инвестиционна�
 - **Mini App:** github.com/semiekhin/rizalta-miniapp
 
 ## Стек
-Python 3.12 · FastAPI · GPT-4o-mini · Whisper · SQLite · Cloudflare Tunnel · React · Vercel
+- Python/FastAPI, SQLite (WAL mode), Telegram Bot API, OpenAI GPT-4o-mini
+- Mini App: React/Vite/Tailwind → Vercel
+
+## Корпуса
+- **Корпус 1 «Family»:** 253 лота (properties.db)
+- **Корпус 2 «Business»:** 102 лота (properties.db) — СКРЫТ в DEV (hidden_buildings.json)
+- **Корпус 3 «Digital»:** 146 available / 136 sold (corp3_units.json, whitelist)
+
+## Ключевые сервисы (systemd)
+| Сервис | Unit | Описание |
+|--------|------|----------|
+| PROD бот | rizalta-bot | webhook :8000 |
+| DEV бот | rizalta-bot-dev | polling |
+| DEV API | rizalta-dev-api | uvicorn :8002 (Mini App API) |
+| Watchdog | rizalta-watchdog | мониторинг |
 
 ## Ключевые файлы
-- `app.py` — главный файл (роутинг, callbacks, API)
-- `config/settings.py` — кнопки меню, константы, CORP3_WHITELIST
-- `services/intent_router.py` — GPT Intent Router
-- `handlers/` — обработчики (kp, booking, secretary, calc, corp3)
-
-## Команды
-```bash
-# DEV
-systemctl restart rizalta-bot-dev    # перезапуск
-journalctl -u rizalta-bot-dev -f     # логи
-
-# PROD (только для деплоя!)
-systemctl restart rizalta-bot
-journalctl -u rizalta-bot -f
-```
-
-## Документация
-- `docs/RIZALTA_CURRENT.md` — текущий статус
-- `docs/RIZALTA_ARCHITECTURE.md` — архитектура
-- `docs/RIZALTA_KNOWLEDGE.md` — база знаний
-- `docs/RIZALTA_TASKS.md` — бэклог задач
-- `docs/OLLAMA_RIZALTA.md` — база знаний для Ollama
-
-## ⚠️ ВАЖНО при деплое
-После копирования app.py из DEV в PROD — исправить URL Mini App!
-```bash
-sed -i 's|https://rizalta-miniapp.vercel.app?env=dev|https://rizalta-miniapp.vercel.app|' /opt/bot/app.py
-```
-- **PROD:** https://rizalta-miniapp.vercel.app (без ?env=dev)
-- **DEV:** https://rizalta-miniapp.vercel.app?env=dev
+- `data/hidden_buildings.json` — скрытие корпусов
+- `data/corp3_units.json` — лоты Корпуса 3 (в .gitignore)
+- `services/units_db.py` — работа с БД лотов
+- `services/kp_pdf_generator.py` — генерация КП (PDF)
+- `handlers/kp.py` — навигация по лотам
+- `handlers/corp3.py` — Корпус 3 + whitelist
+- `app.py` — главный файл (webhook, API, callbacks)

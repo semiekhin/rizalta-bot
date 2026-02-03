@@ -45,7 +45,9 @@
 │   ├── kp.py                 # КП + навигация + пагинация
 │   ├── calc_dynamic.py       # Расчёты ROI
 │   ├── secretary.py          # AI-секретарь
-│   └── media.py              # Медиа/презентации
+│   ├── media.py              # Медиа/презентации
+│   ├── corp3.py              # Корпус 3 + whitelist
+│   └── mortgage.py           # Ипотечный калькулятор (DEV)
 ├── services/
 │   ├── intent_router.py      # GPT Intent Router
 │   ├── telegram.py           # API Telegram
@@ -53,10 +55,15 @@
 │   ├── units_db.py           # БД лотов (348 лотов)
 │   ├── kp_pdf_generator.py   # PDF КП
 │   ├── calc_universal.py     # Расчёты рассрочки
-│   └── secretary_db.py       # БД секретаря
+│   ├── secretary_db.py       # БД секретаря
+│   ├── mortgage_calculator.py # Расчёты ипотеки (DEV)
+│   └── mortgage_pdf_generator.py # PDF ипотеки (DEV)
 ├── data/
 │   ├── units.json            # Данные лотов
-│   └── rizalta_finance.json  # Финансовые данные
+│   ├── rizalta_finance.json  # Финансовые данные
+│   ├── corp3_units.json      # Лоты Корпуса 3 (.gitignore)
+│   ├── hidden_buildings.json # Скрытие корпусов
+│   └── mortgage_config.json  # Конфиг ипотеки (DEV)
 └── *.db                      # SQLite базы
 ```
 
@@ -74,9 +81,9 @@ DEV:
 
 ## База данных
 
-### properties.db — 348 лотов
-- Корпус 1 «Family»: 244 лота
-- Корпус 2 «Business»: 104 лота
+### properties.db — 355 лотов
+- Корпус 1 «Family»: 253 лота
+- Корпус 2 «Business»: 102 лота (скрыт в DEV через hidden_buildings.json)
 - Таблица `bookings`: taken_by_id, taken_by_name, group_message_id
 
 ### secretary.db
