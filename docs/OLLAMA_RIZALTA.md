@@ -591,3 +591,116 @@ systemctl restart rizalta-dev-api
 - `rizalta-bot-dev` — polling бот (без HTTP порта)
 - `rizalta-dev-api` — uvicorn :8002 (API для Mini App)
 При изменении app.py нужно перезапускать ОБА!
+
+### ЗАДАЧА: Деплой скрытия корпуса из DEV в PROD
+
+**Контекст:** Скрытие корпуса уже работает в DEV, нужно перенести в PROD.
+
+**Файлы:**
+- `data/hidden_buildings.json` — конфиг скрытия
+- `services/units_db.py` — фильтрация в боте (get_building_stats, get_lots_filtered, get_lots_by_code)
+- `app.py` — фильтрация в /api/lots endpoint (для Mini App)
+
+**Шаги:**
+
+1. Бэкап PROD перед изменениями:
+```bash
+mkdir -p /opt/bot/data/backup_$(date +%Y%m%d)_prod
+cp /opt/bot/services/units_db.py /opt/bot/app.py /opt/bot/data/backup_$(date +%Y%m%d)_prod/
+```
+
+2. Копирование файлов из DEV:
+```bash
+cp /opt/bot-dev/data/hidden_buildings.json /opt/bot/data/
+cp /opt/bot-dev/services/units_db.py /opt/bot/services/
+```
+
+3. Правка PROD app.py — добавить фильтр в /api/lots:
+В endpoint `/api/lots`, после `params = []`, перед `if building:` вставить:
+```python
+    # Фильтр скрытых корпусов
+    import json
+    try:
+        with open("/opt/bot/data/hidden_buildings.json") as f:
+            hidden = json.load(f).get("hidden", [])
+        if hidden:
+            placeholders = ",".join("?" * len(hidden))
+            query += f" AND building NOT IN ({placeholders})"
+            params.extend(hidden)
+    except:
+        pass
+```
+⚠️ Путь ОБЯЗАТЕЛЬНО `/opt/bot/data/...` (не `/opt/bot-dev/...`!)
+
+4. Проверка синтаксиса:
+```bash
+python3 -m py_compile /opt/bot/app.py && echo "OK"
+python3 -m py_compile /opt/bot/services/units_db.py && echo "OK"
+```
+
+5. Рестарт и проверка:
+```bash
+sudo systemctl restart rizalta-bot
+sleep 3
+curl -s localhost:8000/api/lots | python3 -c "import sys,json; d=json.load(sys.stdin)['lots']; print('Корпуса:', sorted(set(l['building'] for l in d)), 'Лотов:', len(d))"
+```
+
+**Ожидаемый результат:** Корпуса: [1] Лотов: 253 (без скрытого корпуса)
+
+### ЗАДАЧА: Вернуть скрытый корпус
+
+**Контекст:** Корпус скрыт через hidden_buildings.json, нужно вернуть обратно.
+
+**Шаги:**
+
+1. Редактировать конфиг:
+```bash
+# PROD
+echo '{"hidden": [], "comment": "Все корпуса открыты"}' > /opt/bot/data/hidden_buildings.json
+
+# DEV (если нужно)
+echo '{"hidden": [], "comment": "Все корпуса открыты"}' > /opt/bot-dev/data/hidden_buildings.json
+```
+
+2. Перезапуск:
+```bash
+sudo systemctl restart rizalta-bot        # PROD
+sudo systemctl restart rizalta-dev-api    # DEV API
+sudo systemctl restart rizalta-bot-dev    # DEV бот
+```
+
+3. Проверка:
+```bash
+# PROD
+curl -s localhost:8000/api/lots | python3 -c "import sys,json; d=json.load(sys.stdin)['lots']; print('PROD:', sorted(set(l['building'] for l in d)), len(d))"
+# DEV
+curl -s localhost:8002/api/lots | python3 -c "import sys,json; d=json.load(sys.stdin)['lots']; print('DEV:', sorted(set(l['building'] for l in d)), len(d))"
+```
+
+**Ожидаемый результат:** Оба корпуса видны, Mini App обновится автоматически (динамические табы).
+
+**Важно:** Парсер (cron 03:00) не зависит от hidden_buildings.json — он продолжает обновлять все корпуса в БД. Данные скрытого корпуса всегда актуальны.
+
+### ЗАДАЧА: Передеплой Mini App на Vercel
+
+**Контекст:** Vercel не всегда автоматически подхватывает push в GitHub.
+
+**Шаги:**
+
+1. Убедиться что код на GitHub актуальный:
+```bash
+cd /opt/miniapp && git log --oneline -3
+```
+
+2. Ручной деплой:
+```bash
+cd /opt/miniapp && npx vercel --prod
+```
+
+3. Проверка:
+```bash
+# Проверить что хеш JS файла изменился
+curl -s https://rizalta-miniapp.vercel.app | grep -o 'index-[^"]*\.js'
+```
+
+**Альтернатива:** Ретриггернуть деплой через Vercel Dashboard.
