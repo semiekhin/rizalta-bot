@@ -283,6 +283,20 @@ def get_lot_by_code(code: str, building: int = None) -> Optional[Dict[str, Any]]
                    'layout_url', 'block_section']
         return dict(zip(columns, row))
     
+    # Fallback: Корпус 3 (данные в corp3_units.json, не в properties.db)
+    if building == 3 or building is None:
+        try:
+            from handlers.corp3 import get_unit_by_code as corp3_get
+            c3 = corp3_get(code)
+            if c3:
+                return {
+                    'code': c3['code'], 'building': 3, 'floor': c3['floor'],
+                    'rooms': c3['rooms'], 'area': c3['area'], 'price': c3['price'],
+                    'layout_url': c3.get('layout_path', ''), 'block_section': ''
+                }
+        except Exception:
+            pass
+    
     return None
 
 

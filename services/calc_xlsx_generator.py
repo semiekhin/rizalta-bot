@@ -32,6 +32,16 @@ def get_lot_from_db(code: str, building: int = None) -> Optional[Dict]:
     conn.close()
     if row:
         return {"code": row[0], "area": row[1], "price": row[2], "price_m2": int(row[2] / row[1])}
+    
+    # Fallback: Корпус 3
+    if building == 3 or building is None:
+        try:
+            from handlers.corp3 import get_unit_by_code as corp3_get
+            c3 = corp3_get(code)
+            if c3:
+                return {"code": c3["code"], "area": c3["area"], "price": c3["price"], "price_m2": int(c3["price"] / c3["area"])}
+        except Exception:
+            pass
     return None
 
 

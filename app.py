@@ -242,18 +242,17 @@ async def api_get_lots(building: int = None, floor: int = None, status: str = No
     """API для Mini App — список лотов."""
     import sqlite3
     
-    conn = sqlite3.connect("/opt/bot/properties.db")
+    conn = sqlite3.connect("/opt/bot-dev/properties.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
     query = "SELECT code, building, floor, area_m2, price_rub, COALESCE(status, 'available') as status, layout_url FROM units WHERE 1=1"
     params = []
     
-    
     # Фильтр скрытых корпусов
     import json
     try:
-        with open("/opt/bot/data/hidden_buildings.json") as f:
+        with open("/opt/bot-dev/data/hidden_buildings.json") as f:
             hidden = json.load(f).get("hidden", [])
         if hidden:
             placeholders = ",".join("?" * len(hidden))
@@ -261,6 +260,7 @@ async def api_get_lots(building: int = None, floor: int = None, status: str = No
             params.extend(hidden)
     except:
         pass
+
     if building:
         query += " AND building = ?"
         params.append(building)
@@ -357,6 +357,11 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
     
     chat_id = msg["chat"]["id"]
+    
+    # Игнорируем сообщения из групповых чатов (бот отвечает только в личных)
+    chat_type = msg["chat"].get("type", "private")
+    if chat_type != "private":
+        return {"ok": True}
     
     text = (msg.get("text") or "").strip()
     
@@ -573,11 +578,15 @@ async def process_callback(callback: Dict[str, Any]):
         await handle_kp_floor(chat_id, building, floor)
     
     elif data.startswith("kp_lot_"):
-        from handlers.kp import handle_kp_lot
         parts = data.replace("kp_lot_", "").split("_")
         code = parts[0]
         building = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
-        await handle_kp_lot(chat_id, code, building)
+        if building == 3:
+            from handlers.corp3 import handle_corp3_lot_detail
+            await handle_corp3_lot_detail(chat_id, code)
+        else:
+            from handlers.kp import handle_kp_lot
+            await handle_kp_lot(chat_id, code, building)
     
     elif data.startswith("kp_gen_"):
         from handlers.kp import handle_kp_generate
@@ -989,6 +998,37 @@ async def process_callback(callback: Dict[str, Any]):
         min_budget = int(parts[2]) * 1_000_000
         max_budget = int(parts[3]) * 1_000_000
         await handle_compare_budget_range(chat_id, min_budget, max_budget)
+
+    # === MORTGAGE (Ипотека) ===
+    elif data.startswith("mort_pdf_"):
+        # mort_pdf_{code}_{building}_{dp}_{tariff}_{term}
+        from handlers.mortgage import handle_mortgage_pdf
+        parts = data.replace("mort_pdf_", "").split("_")
+        code = parts[0]
+        building = int(parts[1])
+        dp = int(parts[2])
+        tariff = parts[3]
+        term = int(parts[4])
+        await handle_mortgage_pdf(chat_id, code, building, dp, tariff, term)
+
+    elif data.startswith("mortgage_"):
+        # mortgage_{code}_{building} - начальный вызов
+        from handlers.mortgage import handle_mortgage_menu
+        parts = data.replace("mortgage_", "").split("_")
+        code = parts[0]
+        building = int(parts[1])
+        await handle_mortgage_menu(chat_id, code, building)
+
+    elif data.startswith("mort_"):
+        # mort_{code}_{building}_{dp}_{tariff}_{term} - смена параметров
+        from handlers.mortgage import handle_mortgage_menu
+        parts = data.replace("mort_", "").split("_")
+        code = parts[0]
+        building = int(parts[1])
+        dp = int(parts[2])
+        tariff = parts[3]
+        term = int(parts[4])
+        await handle_mortgage_menu(chat_id, code, building, dp, tariff, term)
 
     elif data.startswith("compare_lot_back_"):
         from handlers.compare import handle_compare_lot

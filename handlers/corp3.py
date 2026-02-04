@@ -18,7 +18,7 @@ from typing import List, Dict, Any, Optional
 from services.telegram import send_message, send_message_inline, send_document, send_photo_inline
 import sqlite3
 
-DB_PATH = "/opt/bot-dev/properties.db"
+DB_PATH = "/opt/bot/properties.db"
 
 # Путь к данным корпуса 3
 DATA_PATH = Path(__file__).parent.parent / "data" / "corp3_units.json"
@@ -323,6 +323,8 @@ async def handle_corp3_lot_detail(chat_id: int, code: str):
         [{"text": "📋 КП с рассрочкой 12 мес", "callback_data": f"c3_kp12_{code}"}],
         [{"text": "📋 КП с рассрочкой 12+18 мес", "callback_data": f"c3_kp18_{code}"}],
         [{"text": "🖼 Показать планировку", "callback_data": f"c3_layout_{code}"}],
+        [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{code}_3"}],
+        [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{code}_3_{unit['price']//1000}"}],
         [{"text": "🔙 Назад", "callback_data": "c3_menu"}],
     ]
     
