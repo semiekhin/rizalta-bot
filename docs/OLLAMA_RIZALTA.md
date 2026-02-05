@@ -704,3 +704,93 @@ curl -s https://rizalta-miniapp.vercel.app | grep -o 'index-[^"]*\.js'
 ```
 
 **Альтернатива:** Ретриггернуть деплой через Vercel Dashboard.
+
+---
+
+### ЗАДАЧА: Фикс аренды в "Сравнить с депозитом" (передача area через callback chain)
+
+**Контекст:** Аренда в модуле сравнения с депозитом считалась на захардкоженных 26.8 м² вместо реальной площади лота.
+
+**Причина:** В Telegram callback_data ограничен 64 байтами. Данные передаются между шагами только через эту строку. Площадь лота терялась в цепочке callbacks.
+
+**Файлы (6):**
+- `handlers/compare.py` — функции сравнения
+- `handlers/kp.py` — карточка лота К1/К2 (кнопка "Сравнить с депозитом")
+- `handlers/corp3.py` — карточка лота К3
+- `app.py` — парсинг callback_data
+- `services/compare_pdf_generator.py` — генерация PDF
+- `services/investment_compare.py` — расчёты + format_comparison_table
+
+**Решение:** Передавать `area10 = int(area_m2 * 10)` в callback_data (41.1 м² → 411)
+
+**Шаги:**
+
+1. В handlers/kp.py и handlers/corp3.py — добавить area10 в callback:
+```python
+# Было:
+f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}"
+# Стало:
+f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}_{int(lot['area']*10)}"
+```
+
+2. В handlers/compare.py — добавить area_m2 параметр во все функции:
+```python
+async def handle_compare_lot(chat_id: int, lot_code: str, price: int, area_m2: float = 26.8):
+    area10 = int(area_m2 * 10)
+    # ... и добавить _{area10} во все callback-и внутри
+```
+
+3. В app.py — парсить area10 с обратной совместимостью:
+```python
+elif data.startswith("compare_lot_"):
+    parts = data.split("_")
+    lot_code = parts[2]
+    building = int(parts[3])
+    price = int(parts[4]) * 1000 if len(parts) > 4 else int(parts[3]) * 1000
+    area_m2 = int(parts[5]) / 10 if len(parts) > 5 else 26.8  # ← обратная совместимость
+    await handle_compare_lot(chat_id, lot_code, price, area_m2)
+```
+
+4. В services/investment_compare.py — format_comparison_table:
+```python
+def format_comparison_table(amount: float, area_m2: float = 26.8) -> str:
+    # ...
+    r = compare_investments(amount, years, area_m2)
+```
+
+5. В services/compare_pdf_generator.py:
+```python
+def generate_compare_pdf(amount: int, years: int, username: str = "", area_m2: float = 26.8):
+    rizalta = calculate_rizalta(amount, years, area_m2)
+```
+
+**Callback chain (новый формат):**
+```
+compare_lot_{code}_{building}_{price_k}_{area10}
+  → compare_period_{years}_{amount}_{area10}
+    → compare_full_{years}_{amount}_{area10}
+      → compare_pdf_{years}_{amount}_{area10}
+      → compare_lot_back_{amount}_{area10}
+    → compare_table_{amount}_{area10}
+```
+
+**Проверка:**
+```bash
+# Синтаксис
+python3 -c "import py_compile; [py_compile.compile(f, doraise=True) for f in ['handlers/compare.py', 'handlers/kp.py', 'handlers/corp3.py', 'app.py', 'services/compare_pdf_generator.py', 'services/investment_compare.py']]"
+
+# Перезапуск DEV
+sudo systemctl restart rizalta-bot-dev
+
+# Тест в боте:
+# 1. Лот ~25 м² → "Сравнить с депозитом" → 11 лет → записать аренду
+# 2. Лот ~60 м² → аренда должна быть ~2.4x больше
+```
+
+**Ключевые строки для поиска:**
+```bash
+grep -rn "compare_lot_" handlers/ --include="*.py"
+grep -n "def handle_compare" handlers/compare.py
+grep -n "compare_investments\|calculate_rizalta" services/investment_compare.py
+```
+
