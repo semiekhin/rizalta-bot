@@ -19,7 +19,7 @@ def fmt(value: float) -> str:
     return f"{int(round(value)):,}".replace(",", " ")
 
 
-def generate_compare_pdf(amount: int, years: int, username: str = "") -> Optional[str]:
+def generate_compare_pdf(amount: int, years: int, username: str = "", area_m2: float = 26.8) -> Optional[str]:
     """
     Генерирует PDF со сравнением депозит vs RIZALTA.
     
@@ -28,7 +28,7 @@ def generate_compare_pdf(amount: int, years: int, username: str = "") -> Optiona
     """
     # Расчёты
     deposit = calculate_all_scenarios(amount, years)
-    rizalta = calculate_rizalta(amount, years)
+    rizalta = calculate_rizalta(amount, years, area_m2)
     
     dep_base = deposit["base"]
     dep_pess = deposit["pessimistic"]

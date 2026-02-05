@@ -122,7 +122,7 @@ async def handle_compare_area_range(chat_id: int, min_area: float, max_area: flo
         price_mln = lot["price"] / 1_000_000
         btn_text = f"{lot['code']} — {lot['area']} м² — {price_mln:.1f} млн"
         # Передаём цену в callback (в тысячах для сокращения)
-        callback = f"compare_lot_{lot['code']}_{lot['building']}_{int(lot['price'] // 1000)}"
+        callback = f"compare_lot_{lot['code']}_{lot['building']}_{int(lot['price'] // 1000)}_{int(lot['area']*10)}"
         inline_buttons.append([{"text": btn_text, "callback_data": callback}])
     
     if len(lots) > 10:
@@ -150,7 +150,7 @@ async def handle_compare_budget_range(chat_id: int, min_budget: int, max_budget:
     for lot in lots[:10]:
         price_mln = lot["price"] / 1_000_000
         btn_text = f"{lot['code']} — {lot['area']} м² — {price_mln:.1f} млн"
-        callback = f"compare_lot_{lot['code']}_{lot['building']}_{int(lot['price'] // 1000)}"
+        callback = f"compare_lot_{lot['code']}_{lot['building']}_{int(lot['price'] // 1000)}_{int(lot['area']*10)}"
         inline_buttons.append([{"text": btn_text, "callback_data": callback}])
     
     if len(lots) > 10:
@@ -160,20 +160,22 @@ async def handle_compare_budget_range(chat_id: int, min_budget: int, max_budget:
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_compare_lot(chat_id: int, lot_code: str, price: int):
+async def handle_compare_lot(chat_id: int, lot_code: str, price: int, area_m2: float = 26.8):
     """Меню сравнения для конкретного лота."""
+    area10 = int(area_m2 * 10)
     text = f"""📊 <b>Сравнение для лота {lot_code}</b>
 
 💰 Стоимость: <b>{fmt(price)} ₽</b>
+📐 Площадь: <b>{area_m2} м²</b>
 
 Выберите срок инвестирования:"""
 
     inline_buttons = [
-        [{"text": "📅 1 год", "callback_data": f"compare_period_1_{price}"}],
-        [{"text": "📅 3 года", "callback_data": f"compare_period_3_{price}"}],
-        [{"text": "📅 5 лет", "callback_data": f"compare_period_5_{price}"}],
-        [{"text": "📅 11 лет (полный цикл)", "callback_data": f"compare_period_11_{price}"}],
-        [{"text": "📋 Таблица всех периодов", "callback_data": f"compare_table_{price}"}],
+        [{"text": "📅 1 год", "callback_data": f"compare_period_1_{price}_{area10}"}],
+        [{"text": "📅 3 года", "callback_data": f"compare_period_3_{price}_{area10}"}],
+        [{"text": "📅 5 лет", "callback_data": f"compare_period_5_{price}_{area10}"}],
+        [{"text": "📅 11 лет (полный цикл)", "callback_data": f"compare_period_11_{price}_{area10}"}],
+        [{"text": "📋 Таблица всех периодов", "callback_data": f"compare_table_{price}_{area10}"}],
         [{"text": "🔙 Выбрать другой лот", "callback_data": "compare_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
@@ -184,38 +186,41 @@ async def handle_compare_quick(chat_id: int):
     await handle_compare_lot(chat_id, "пример", DEFAULT_AMOUNT)
 
 
-async def handle_compare_period(chat_id: int, years: int, amount: int = DEFAULT_AMOUNT):
+async def handle_compare_period(chat_id: int, years: int, amount: int = DEFAULT_AMOUNT, area_m2: float = 26.8):
     """Сравнение на заданный период."""
-    result = compare_investments(amount, years)
+    area10 = int(area_m2 * 10)
+    result = compare_investments(amount, years, area_m2)
     text = format_comparison_short(result)
     
     inline_buttons = [
-        [{"text": "📄 Создать PDF", "callback_data": f"compare_pdf_{years}_{amount}"}],
-        [{"text": "🔍 Подробный расчёт", "callback_data": f"compare_full_{years}_{amount}"}],
-        [{"text": "📅 Другой период", "callback_data": f"compare_lot_back_{amount}"}],
+        [{"text": "📄 Создать PDF", "callback_data": f"compare_pdf_{years}_{amount}_{area10}"}],
+        [{"text": "🔍 Подробный расчёт", "callback_data": f"compare_full_{years}_{amount}_{area10}"}],
+        [{"text": "📅 Другой период", "callback_data": f"compare_lot_back_{amount}_{area10}"}],
         [{"text": "🔙 В меню", "callback_data": "main_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_compare_full(chat_id: int, years: int, amount: int = DEFAULT_AMOUNT):
+async def handle_compare_full(chat_id: int, years: int, amount: int = DEFAULT_AMOUNT, area_m2: float = 26.8):
     """Полный отчёт сравнения."""
-    result = compare_investments(amount, years)
+    area10 = int(area_m2 * 10)
+    result = compare_investments(amount, years, area_m2)
     text = format_comparison_full(result)
     
     inline_buttons = [
-        [{"text": "📄 Создать PDF", "callback_data": f"compare_pdf_{years}_{amount}"}],
+        [{"text": "📄 Создать PDF", "callback_data": f"compare_pdf_{years}_{amount}_{area10}"}],
         [{"text": "💰 Другая сумма", "callback_data": f"compare_amount_{years}"}],
-        [{"text": "📅 Другой период", "callback_data": f"compare_lot_back_{amount}"}],
+        [{"text": "📅 Другой период", "callback_data": f"compare_lot_back_{amount}_{area10}"}],
         [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 В меню", "callback_data": "main_menu"}],
     ]
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-async def handle_compare_table(chat_id: int, amount: int = DEFAULT_AMOUNT):
+async def handle_compare_table(chat_id: int, amount: int = DEFAULT_AMOUNT, area_m2: float = 26.8):
     """Сравнительная таблица всех периодов."""
-    text = format_comparison_table(amount)
+    area10 = int(area_m2 * 10)
+    text = format_comparison_table(amount, area_m2)
     
     text += f"""
 
@@ -227,10 +232,10 @@ async def handle_compare_table(chat_id: int, amount: int = DEFAULT_AMOUNT):
 💡 Ставки падают — недвижимость растёт!"""
 
     inline_buttons = [
-        [{"text": "📅 1 год", "callback_data": f"compare_period_1_{amount}"}],
-        [{"text": "📅 3 года", "callback_data": f"compare_period_3_{amount}"}],
-        [{"text": "📅 5 лет", "callback_data": f"compare_period_5_{amount}"}],
-        [{"text": "📅 11 лет", "callback_data": f"compare_period_11_{amount}"}],
+        [{"text": "📅 1 год", "callback_data": f"compare_period_1_{amount}_{area10}"}],
+        [{"text": "📅 3 года", "callback_data": f"compare_period_3_{amount}_{area10}"}],
+        [{"text": "📅 5 лет", "callback_data": f"compare_period_5_{amount}_{area10}"}],
+        [{"text": "📅 11 лет", "callback_data": f"compare_period_11_{amount}_{area10}"}],
         [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 В меню", "callback_data": "main_menu"}],
     ]
@@ -271,13 +276,13 @@ async def handle_compare_with_amount(
             await handle_compare_table(chat_id, amount)
 
 
-async def handle_compare_pdf(chat_id: int, years: int, amount: int, username: str = ""):
+async def handle_compare_pdf(chat_id: int, years: int, amount: int, username: str = "", area_m2: float = 26.8):
     """Генерирует и отправляет PDF со сравнением."""
     from services.compare_pdf_generator import generate_compare_pdf
     
     await send_message(chat_id, "⏳ Создаю PDF-документ...")
     
-    pdf_path = generate_compare_pdf(amount, years, username)
+    pdf_path = generate_compare_pdf(amount, years, username, area_m2)
     
     if pdf_path:
         filename = f"RIZALTA_vs_Депозит_{years}лет_{amount // 1_000_000}млн.pdf"

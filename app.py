@@ -1032,8 +1032,10 @@ async def process_callback(callback: Dict[str, Any]):
 
     elif data.startswith("compare_lot_back_"):
         from handlers.compare import handle_compare_lot
-        amount = int(data.split("_")[3])
-        await handle_compare_lot(chat_id, "выбранный", amount)
+        parts = data.split("_")
+        amount = int(parts[3])
+        area_m2 = int(parts[4]) / 10 if len(parts) > 4 else 26.8
+        await handle_compare_lot(chat_id, "выбранный", amount, area_m2)
 
     elif data.startswith("compare_lot_"):
         from handlers.compare import handle_compare_lot
@@ -1041,12 +1043,15 @@ async def process_callback(callback: Dict[str, Any]):
         lot_code = parts[2]
         building = int(parts[3])
         price = int(parts[4]) * 1000 if len(parts) > 4 else int(parts[3]) * 1000
-        await handle_compare_lot(chat_id, lot_code, price)
+        area_m2 = int(parts[5]) / 10 if len(parts) > 5 else 26.8
+        await handle_compare_lot(chat_id, lot_code, price, area_m2)
 
     elif data.startswith("compare_table_"):
         from handlers.compare import handle_compare_table
-        amount = int(data.split("_")[2])
-        await handle_compare_table(chat_id, amount)
+        parts = data.split("_")
+        amount = int(parts[2])
+        area_m2 = int(parts[3]) / 10 if len(parts) > 3 else 26.8
+        await handle_compare_table(chat_id, amount, area_m2)
 
     elif data == "compare_table":
         from handlers.compare import handle_compare_table
@@ -1057,14 +1062,16 @@ async def process_callback(callback: Dict[str, Any]):
         parts = data.split("_")
         years = int(parts[2])
         amount = int(parts[3]) if len(parts) > 3 else 15_000_000
-        await handle_compare_period(chat_id, years, amount)
+        area_m2 = int(parts[4]) / 10 if len(parts) > 4 else 26.8
+        await handle_compare_period(chat_id, years, amount, area_m2)
 
     elif data.startswith("compare_full_"):
         from handlers.compare import handle_compare_full
         parts = data.split("_")
         years = int(parts[2])
         amount = int(parts[3]) if len(parts) > 3 else 15_000_000
-        await handle_compare_full(chat_id, years, amount)
+        area_m2 = int(parts[4]) / 10 if len(parts) > 4 else 26.8
+        await handle_compare_full(chat_id, years, amount, area_m2)
 
     elif data.startswith("compare_amount_"):
         from handlers.compare import handle_compare_amount_menu
@@ -1083,7 +1090,8 @@ async def process_callback(callback: Dict[str, Any]):
         parts = data.split("_")
         years = int(parts[2])
         amount = int(parts[3])
-        await handle_compare_pdf(chat_id, years, amount, username)
+        area_m2 = int(parts[4]) / 10 if len(parts) > 4 else 26.8
+        await handle_compare_pdf(chat_id, years, amount, username, area_m2)
 
 
     elif data == "booking_menu":

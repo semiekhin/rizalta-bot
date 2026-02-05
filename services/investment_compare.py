@@ -231,7 +231,7 @@ def format_comparison_short(result: ComparisonResult) -> str:
     return "\n".join(lines)
 
 
-def format_comparison_table(amount: float) -> str:
+def format_comparison_table(amount: float, area_m2: float = 26.8) -> str:
     """Таблица сравнения всех периодов."""
     lines = []
     lines.append(f"📊 <b>Сравнение инвестиций: {fmt(amount)} ₽</b>")
@@ -240,7 +240,7 @@ def format_comparison_table(amount: float) -> str:
     lines.append("───────┼──────────┼─────────┼────────")
     
     for years in [1, 3, 5, 11]:
-        r = compare_investments(amount, years)
+        r = compare_investments(amount, years, area_m2)
         dep_roi = f"{r.deposit['base'].total_roi_pct:.0f}%"
         riz_roi = f"{r.rizalta.total_roi_pct:.0f}%"
         
