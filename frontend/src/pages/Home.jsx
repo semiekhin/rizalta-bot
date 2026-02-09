@@ -4,12 +4,12 @@ export default function Home({ stats, onNavigate }) {
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
       {/* Hero */}
-      <div className="bg-rz-green px-4 py-8 text-center border-b border-rz-green-light">
-        <img src="/images/logo.png" alt="RIZALTA" className="h-12 mx-auto mb-3" />
-        <p className="text-rz-cream">Инвестиционная недвижимость</p>
-        <p className="text-rz-cream-dark text-sm">Белокуриха, Алтай</p>
-        <div className="mt-6 bg-rz-green-light/50 rounded-xl p-4 inline-block">
-          <p className="text-4xl font-semibold text-rz-cream">{stats.total || 356}</p>
+      <div className="bg-rz-gold px-4 py-8 text-center">
+        <img src="/images/logo-green.svg" alt="RIZALTA" className="h-12 mx-auto mb-3" />
+        <p className="text-rz-green">Инвестиционная недвижимость</p>
+        <p className="text-rz-green/70 text-sm">Белокуриха, Алтай</p>
+        <div className="mt-6 bg-rz-green rounded-xl p-4 inline-block">
+          <p className="text-4xl font-semibold text-rz-cream">{stats.total || 358}</p>
           <p className="text-sm text-rz-cream-dark">апартаментов</p>
         </div>
       </div>
