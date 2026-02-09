@@ -50,15 +50,15 @@ export default function Chat({ lots, onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
+    <div className="min-h-screen bg-rz-green text-rz-cream flex flex-col">
       {/* Header */}
-      <div className="bg-slate-800 px-4 py-3 flex items-center gap-3 sticky top-0 z-40">
-        <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
-          🤖
+      <div className="bg-rz-green-light px-4 py-3 flex items-center gap-3 sticky top-0 z-40">
+        <div className="w-10 h-10 bg-rz-gold rounded-full flex items-center justify-center text-rz-green-dark font-bold">
+          R
         </div>
         <div>
           <p className="font-bold">RIZALTA AI</p>
-          <p className="text-xs text-emerald-400">● Онлайн</p>
+          <p className="text-xs text-rz-success">● Онлайн</p>
         </div>
       </div>
 
@@ -67,14 +67,14 @@ export default function Chat({ lots, onNavigate }) {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'gap-2'}`}>
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-sm flex-shrink-0">
-                🤖
+              <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0">
+                R
               </div>
             )}
             <div className={`max-w-xs rounded-2xl px-4 py-2 ${
-              msg.role === 'user' 
-                ? 'bg-amber-500 text-black rounded-tr-none' 
-                : 'bg-slate-800 rounded-tl-none'
+              msg.role === 'user'
+                ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
+                : 'bg-rz-green-light rounded-tl-none'
             }`}>
               <p className="text-sm whitespace-pre-line">{msg.content}</p>
             </div>
@@ -88,7 +88,7 @@ export default function Chat({ lots, onNavigate }) {
               <button
                 key={i}
                 onClick={() => qa.action ? qa.action() : sendMessage(qa.query)}
-                className="bg-slate-700 text-sm px-3 py-1.5 rounded-full hover:bg-slate-600 transition-colors"
+                className="bg-rz-green-mid text-sm px-3 py-1.5 rounded-full hover:bg-rz-green-light transition-colors text-rz-cream-dark"
               >
                 {qa.label}
               </button>
@@ -98,14 +98,14 @@ export default function Chat({ lots, onNavigate }) {
 
         {loading && (
           <div className="flex gap-2">
-            <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-sm flex-shrink-0">
-              🤖
+            <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0">
+              R
             </div>
-            <div className="bg-slate-800 rounded-2xl rounded-tl-none px-4 py-3">
+            <div className="bg-rz-green-light rounded-2xl rounded-tl-none px-4 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
               </div>
             </div>
           </div>
@@ -115,19 +115,19 @@ export default function Chat({ lots, onNavigate }) {
       </div>
 
       {/* Input */}
-      <div className="fixed bottom-16 left-0 right-0 p-3 bg-slate-800 border-t border-slate-700">
+      <div className="fixed bottom-16 left-0 right-0 p-3 bg-rz-green-dark border-t border-rz-green-mid">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Введите сообщение..."
-            className="flex-1 bg-slate-700 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 bg-rz-green-mid rounded-full px-4 py-2 text-sm text-rz-cream outline-none focus:ring-2 focus:ring-rz-gold placeholder:text-rz-cream-muted"
           />
-          <button 
+          <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-10 h-10 bg-rz-gold rounded-full flex items-center justify-center hover:bg-rz-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-rz-green-dark font-bold"
           >
             ↑
           </button>

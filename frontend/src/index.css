@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+/* Montserrat font faces */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* RIZALTA brand palette */
+@theme {
+  --font-sans: 'Montserrat', sans-serif;
+
+  --color-rz-green:       #2D3B2D;
+  --color-rz-green-dark:  #1E2A1E;
+  --color-rz-green-light: #3D4F3D;
+  --color-rz-green-mid:   #354535;
+
+  --color-rz-cream:       #F0E6D3;
+  --color-rz-cream-dark:  #D4C4A8;
+  --color-rz-cream-muted: #B8A88C;
+
+  --color-rz-gold:        #C9A96E;
+  --color-rz-gold-light:  #D4B87A;
+  --color-rz-gold-dark:   #B89A5E;
+
+  --color-rz-success:     #5B8C5A;
+  --color-rz-error:       #D4544E;
+  --color-rz-white:       #FAFAF5;
+}
+
+/* Base styles */
+@layer base {
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #2D3B2D;
+    color: #F0E6D3;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

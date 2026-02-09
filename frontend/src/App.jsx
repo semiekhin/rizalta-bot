@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 // Loading spinner
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-400"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rz-gold"></div>
   </div>
 )
 
@@ -61,19 +61,19 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-rz-green text-rz-cream">
       <Suspense fallback={<PageLoader />}>
         {renderScreen()}
       </Suspense>
-      
+
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 flex justify-around py-2 px-1 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-rz-green-dark border-t border-rz-green-mid flex justify-around py-2 px-1 z-50">
         {NAV_ITEMS.map(item => (
           <button
             key={item.id}
             onClick={() => navigate(item.id)}
             className={`flex flex-col items-center px-3 py-1 rounded-lg transition-colors ${
-              screen === item.id ? 'text-amber-400' : 'text-slate-400'
+              screen === item.id ? 'text-rz-gold' : 'text-rz-cream-dark'
             }`}
           >
             <span className="text-lg">{item.icon}</span>
