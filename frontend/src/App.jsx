@@ -67,7 +67,7 @@ export default function App() {
       </Suspense>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-rz-green-dark border-t border-rz-green-mid flex justify-around py-2 px-1 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-rz-green border-t border-rz-green-light flex justify-around py-2 px-1 z-50">
         {NAV_ITEMS.map(item => (
           <button
             key={item.id}

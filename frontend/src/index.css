@@ -27,18 +27,18 @@
 @theme {
   --font-sans: 'Montserrat', sans-serif;
 
-  --color-rz-green:       #2D3B2D;
-  --color-rz-green-dark:  #1E2A1E;
-  --color-rz-green-light: #3D4F3D;
-  --color-rz-green-mid:   #354535;
+  --color-rz-green:       #263524;
+  --color-rz-green-dark:  #1A2619;
+  --color-rz-green-light: #2F4A2D;
+  --color-rz-green-mid:   #1C2A1B;
 
-  --color-rz-cream:       #F0E6D3;
-  --color-rz-cream-dark:  #D4C4A8;
-  --color-rz-cream-muted: #B8A88C;
+  --color-rz-cream:       #F2EBD9;
+  --color-rz-cream-dark:  #C8BBAA;
+  --color-rz-cream-muted: #A89880;
 
-  --color-rz-gold:        #C9A96E;
-  --color-rz-gold-light:  #D4B87A;
-  --color-rz-gold-dark:   #B89A5E;
+  --color-rz-gold:        #D4A84B;
+  --color-rz-gold-light:  #DEAF58;
+  --color-rz-gold-dark:   #C09940;
 
   --color-rz-success:     #5B8C5A;
   --color-rz-error:       #D4544E;
@@ -49,8 +49,8 @@
 @layer base {
   body {
     font-family: 'Montserrat', sans-serif;
-    background-color: #2D3B2D;
-    color: #F0E6D3;
+    background-color: #263524;
+    color: #F2EBD9;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
