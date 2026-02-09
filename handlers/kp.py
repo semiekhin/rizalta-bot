@@ -345,6 +345,47 @@ async def handle_kp_building(chat_id: int, building: int):
     await send_message_inline(chat_id, text, inline_buttons)
 
 
+
+
+async def handle_kp_building_all(chat_id: int, building: int):
+    """Показывает все лоты корпуса с пагинацией."""
+    
+    lots = get_lots_by_building(building)
+    building_name = get_building_name(building)
+    
+    if not lots:
+        await send_message_inline(
+            chat_id,
+            f"❌ В корпусе {building} нет доступных лотов.",
+            [[{"text": "🔙 К корпусам", "callback_data": "kp_by_building"}]]
+        )
+        return
+    
+    min_price = min(lot["price"] for lot in lots)
+    max_price = max(lot["price"] for lot in lots)
+    
+    text = f"""🏢 <b>Корпус {building} «{building_name}» — все лоты</b>
+
+📊 Лотов: {len(lots)}
+💰 Цены: {format_price_short(min_price)} — {format_price_short(max_price)}
+
+<b>Выберите лот:</b>"""
+
+    inline_buttons = []
+    
+    for lot in lots[:MAX_BUTTONS_PER_MESSAGE]:
+        btn_text = f"{lot['code']} ({lot['floor']} эт.) — {lot['area']} м² — {format_price_short(lot['price'])}"
+        inline_buttons.append([{"text": btn_text, "callback_data": f"kp_lot_{lot['code']}"}])
+    
+    if len(lots) > MAX_BUTTONS_PER_MESSAGE:
+        _search_cache[chat_id] = {"lots": lots, "offset": MAX_BUTTONS_PER_MESSAGE, "back_callback": f"kp_building_{building}"}
+        remaining = len(lots) - MAX_BUTTONS_PER_MESSAGE
+        inline_buttons.append([{"text": f"📋 Показать ещё {remaining} лотов", "callback_data": "kp_show_more"}])
+    
+    inline_buttons.append([{"text": "🔙 К этажам", "callback_data": f"kp_building_{building}"}])
+    
+    await send_message_inline(chat_id, text, inline_buttons)
+
 async def handle_kp_floor(chat_id: int, building: int, floor: int):
     """Показывает лоты на конкретном этаже."""
     
