@@ -71,59 +71,41 @@ export default function LotDetail({ lot, onBack, onChat }) {
   }
 
   // === KP Download ===
-  const handleKPDownload = async (type) => {
+  const handleKPDownload = (type) => {
     setKpLoading(true)
-    try {
-      const params = {
-        code: lot.code,
-        include_18m: type === 'full',
-        full_payment: type === '100'
-      }
-      const res = await fetch('/api/generate-kp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params)
-      })
-      if (res.ok) {
-        const blob = await res.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `KP_${lot.code}_${type}.pdf`
-        a.click()
-        window.URL.revokeObjectURL(url)
-      }
-    } catch (e) {
-      console.error(e)
+    const url = `/api/download-kp/${encodeURIComponent(lot.code)}?type=${type}`
+    
+    // Telegram WebApp
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openLink(window.location.origin + url)
+    } else {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `KP_${lot.code}_${type}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     }
-    setKpLoading(false)
-    setShowKP(false)
+    setTimeout(() => {
+      setKpLoading(false)
+      setShowKP(false)
+    }, 1000)
   }
 
   // === Excel Download ===
   const handleExcelDownload = () => {
-    // Используем GET endpoint для совместимости с мобильными
-    window.open(`/api/download-xlsx/${lot.code}`, "_blank");
-  };
-
-  const handleExcelDownloadOld = async () => {
-    try {
-      const res = await fetch('/api/generate-xlsx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: lot.code })
-      })
-      if (res.ok) {
-        const blob = await res.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `ROI_${lot.code}.xlsx`
-        a.click()
-        window.URL.revokeObjectURL(url)
-      }
-    } catch (e) {
-      console.error(e)
+    const url = `/api/download-xlsx/${encodeURIComponent(lot.code)}`
+    
+    // Telegram WebApp
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openLink(window.location.origin + url)
+    } else {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ROI_${lot.code}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     }
   }
 
@@ -249,7 +231,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
       {/* KP Modal */}
       {showKP && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-slate-800 w-full sm:max-w-md sm:rounded-xl rounded-t-xl">
             <div className="px-4 py-3 border-b border-slate-700 flex justify-between items-center">
               <h2 className="font-bold text-lg">📄 Выберите вариант КП</h2>
@@ -280,7 +262,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
       {/* Installment Modal */}
       {showInstallment && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-slate-800 w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
               <h2 className="font-bold text-lg">💳 Варианты оплаты</h2>
@@ -355,7 +337,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
       {/* ROI Modal */}
       {showROI && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-slate-800 w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
               <h2 className="font-bold text-lg">📊 Расчёт доходности</h2>
@@ -406,7 +388,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
       {/* Deposit Modal */}
       {showDeposit && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-slate-800 w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
               <h2 className="font-bold text-lg">🏦 Сравнение с депозитом</h2>
@@ -464,7 +446,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
       {/* Showing Modal */}
       {showShowing && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-slate-800 w-full sm:max-w-md sm:rounded-xl rounded-t-xl">
             <div className="px-4 py-3 border-b border-slate-700 flex justify-between items-center">
               <h2 className="font-bold text-lg">📅 Запись на показ</h2>

@@ -119,6 +119,26 @@ async def api_generate_kp(req: KPRequest):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+
+@app.get("/api/download-kp/{code}")
+async def api_download_kp(code: str, type: str = "100"):
+    """GET endpoint для скачивания PDF КП (для мобильных)."""
+    try:
+        pdf_path = generate_kp_pdf(
+            code=code,
+            include_18m=(type == "full"),
+            full_payment=(type == "100"),
+            output_dir="/tmp"
+        )
+        if pdf_path and os.path.exists(pdf_path):
+            return FileResponse(
+                pdf_path,
+                media_type="application/pdf",
+                filename=os.path.basename(pdf_path)
+            )
+        return {"ok": False, "error": "Лот не найден"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 @app.get("/api/download-xlsx/{code}")
 async def api_download_xlsx(code: str):
     """GET endpoint для скачивания Excel (для мобильных)."""
