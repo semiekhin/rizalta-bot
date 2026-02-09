@@ -794,3 +794,71 @@ grep -n "def handle_compare" handlers/compare.py
 grep -n "compare_investments\|calculate_rizalta" services/investment_compare.py
 ```
 
+
+---
+
+## Добавлено 09.02.2026
+
+### ИНЦИДЕНТ: ImportError handle_kp_building_all — 500 на кнопке "Все лоты корпуса"
+
+**Симптомы:** Пользователи нажимали кнопку «📋 Все лоты корпуса» в меню этажей → бесконечный спиннер. Telegram ретраил запрос 5-6 раз.
+
+**Диагностика:**
+```bash
+journalctl -u rizalta-bot --since "today" | grep -E "500|Error|ImportError"
+# Результат: ImportError: cannot import name 'handle_kp_building_all' from 'handlers.kp'
+```
+
+**Причина:** В app.py был роутинг `kp_building_all_` → `handle_kp_building_all`, кнопка генерировалась в `handle_kp_building`, но сама функция никогда не была написана.
+
+**Решение:** Добавлена функция в handlers/kp.py (после handle_kp_building, перед handle_kp_floor):
+```python
+async def handle_kp_building_all(chat_id: int, building: int):
+    """Показывает все лоты корпуса с пагинацией."""
+    lots = get_lots_by_building(building)
+    building_name = get_building_name(building)
+    # ... стандартная пагинация через _search_cache и MAX_BUTTONS_PER_MESSAGE
+```
+
+**Проверка:**
+```bash
+grep -n "handle_kp_building_all" /opt/bot/handlers/kp.py
+python3 -c "import py_compile; py_compile.compile('handlers/kp.py', doraise=True)"
+systemctl restart rizalta-bot
+journalctl -u rizalta-bot --since "1 min ago" | grep -E "500|Error"
+```
+
+**Урок:** При добавлении кнопки + роутинга — всегда проверять что целевая функция существует:
+```bash
+# Найти все импорты из handlers/kp.py в app.py
+grep "from handlers.kp import" /opt/bot/app.py | awk '{print $NF}' | sort -u
+
+# Проверить что все они есть
+grep "^async def " /opt/bot/handlers/kp.py | awk '{print $3}' | cut -d'(' -f1 | sort -u
+```
+
+### ЗАДАЧА: Создание ARCHITECTURE.md и CALLBACKS.md
+
+**Контекст:** Проект вырос настолько, что LLM-ассистент не может изучить весь код за раз — заканчивается контекстное окно.
+
+**Файлы:**
+- `docs/RIZALTA_ARCHITECTURE.md` — карта проекта
+- `docs/RIZALTA_CALLBACKS.md` — индекс callback паттернов
+
+**Как использовать в начале сессии:**
+```bash
+cat /opt/bot-dev/docs/RIZALTA_ARCHITECTURE.md
+cat /opt/bot-dev/docs/RIZALTA_CALLBACKS.md
+```
+
+**Как собирать данные для обновления:**
+```bash
+# Все callback паттерны
+grep -n "elif data.startswith\|elif data ==" /opt/bot-dev/app.py
+
+# Все функции в handlers
+for f in /opt/bot-dev/handlers/*.py; do echo "=== $(basename $f) ==="; grep -n "^async def " $f; done
+
+# Все функции в services
+for f in /opt/bot-dev/services/*.py; do echo "=== $(basename $f) ==="; grep -n "^def \|^async def " $f; done
+```
