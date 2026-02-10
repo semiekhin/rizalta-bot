@@ -339,7 +339,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
       {showROI && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-rz-green-light px-4 py-3 border-b border-rz-green-mid flex justify-between items-center">
+            <div className="sticky top-0 bg-rz-green-light px-4 py-3 border-b border-rz-green-mid flex justify-between items-center z-10">
               <h2 className="font-bold text-lg">📊 Расчёт доходности</h2>
               <button onClick={() => setShowROI(false)} className="text-rz-cream-dark text-xl">✕</button>
             </div>
@@ -350,15 +350,21 @@ export default function LotDetail({ lot, onBack, onChat }) {
                 </div>
               ) : roiData ? (
                 <div className="space-y-4">
+                  {/* Lot info + price per m² */}
                   <div className="bg-rz-green-mid rounded-xl p-4">
                     <p className="text-rz-cream-dark text-sm">Лот {lot.code}</p>
                     <p>{lot.area} м² • {formatPrice(lot.price)} ₽</p>
+                    <p className="text-rz-cream-dark text-xs mt-1">Цена за м²: {formatPrice(pricePerM2)} ₽</p>
                   </div>
+
+                  {/* Main ROI */}
                   <div className="bg-rz-success/15 rounded-xl p-4">
                     <p className="text-rz-success text-sm">Доходность за 11 лет</p>
                     <p className="text-3xl font-bold text-rz-success">{roiData.roi_pct}%</p>
                     <p className="text-rz-cream-dark text-sm">~{roiData.avg_annual_pct}% годовых</p>
                   </div>
+
+                  {/* Breakdown */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-rz-green-mid rounded-xl p-3">
                       <p className="text-rz-cream-dark text-xs">От аренды</p>
@@ -369,14 +375,51 @@ export default function LotDetail({ lot, onBack, onChat }) {
                       <p className="font-bold text-rz-gold">{formatPrice(roiData.total_growth)} ₽</p>
                     </div>
                   </div>
+
                   <div className="bg-rz-green-mid rounded-xl p-4">
                     <p className="text-rz-cream-dark text-sm">Общая прибыль</p>
                     <p className="text-2xl font-bold text-rz-gold">{formatPrice(roiData.total_profit)} ₽</p>
                   </div>
+
                   <div className="bg-rz-green-mid rounded-xl p-4">
                     <p className="text-rz-cream-dark text-sm">Стоимость в 2035</p>
                     <p className="text-xl font-bold">{formatPrice(roiData.final_value)} ₽</p>
                   </div>
+
+                  {/* Yearly table */}
+                  {roiData.years && roiData.years.length > 0 && (
+                    <div>
+                      <p className="text-rz-cream-dark text-sm font-medium mb-2">Детализация по годам</p>
+                      <div className="overflow-x-auto rounded-xl border border-rz-green-mid">
+                        <table className="w-full text-xs min-w-[340px]">
+                          <thead>
+                            <tr className="bg-rz-green-mid text-rz-cream-dark">
+                              <th className="py-2 px-2 text-left font-medium">Год</th>
+                              <th className="py-2 px-2 text-right font-medium">Рост</th>
+                              <th className="py-2 px-2 text-right font-medium">Аренда</th>
+                              <th className="py-2 px-2 text-right font-medium">Итого %</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roiData.years.map((yr, i) => (
+                              <tr key={yr.year} className={i % 2 === 0 ? 'bg-rz-green-light' : 'bg-rz-green-mid/50'}>
+                                <td className="py-1.5 px-2 font-medium">{yr.year}</td>
+                                <td className="py-1.5 px-2 text-right text-rz-gold">{formatPrice(yr.growth_profit)} ₽</td>
+                                <td className="py-1.5 px-2 text-right text-rz-success">{formatPrice(yr.rental_profit)} ₽</td>
+                                <td className="py-1.5 px-2 text-right font-medium">{yr.total_pct}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Excel download */}
+                  <button onClick={handleExcelDownload} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+                    📥 Скачать Excel
+                  </button>
+                  <p className="text-rz-cream-muted text-xs text-center">Подробный расчёт в файле Excel</p>
                 </div>
               ) : (
                 <p className="text-rz-error">Ошибка загрузки</p>
@@ -390,7 +433,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
       {showDeposit && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-rz-green-light px-4 py-3 border-b border-rz-green-mid flex justify-between items-center">
+            <div className="sticky top-0 bg-rz-green-light px-4 py-3 border-b border-rz-green-mid flex justify-between items-center z-10">
               <h2 className="font-bold text-lg">🏦 Сравнение с депозитом</h2>
               <button onClick={() => setShowDeposit(false)} className="text-rz-cream-dark text-xl">✕</button>
             </div>
@@ -406,20 +449,43 @@ export default function LotDetail({ lot, onBack, onChat }) {
                     <p className="font-bold text-lg">{formatPrice(lot.price)} ₽ на 11 лет</p>
                   </div>
 
-                  {/* RIZALTA */}
+                  {/* RIZALTA with breakdown */}
                   <div className="bg-rz-success/15 rounded-xl p-4">
                     <h3 className="font-bold text-rz-success mb-2">🏠 RIZALTA</h3>
                     {roiData ? (
                       <>
                         <p className="text-2xl font-bold text-rz-success">{formatPrice(roiData.total_profit)} ₽</p>
                         <p className="text-rz-cream-dark text-sm">ROI: {roiData.roi_pct}% за 11 лет</p>
+                        <div className="mt-3 pt-3 border-t border-rz-success/30 grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className="text-rz-cream-dark text-xs">Рост стоимости</p>
+                            <p className="font-medium text-rz-gold">{formatPrice(roiData.total_growth)} ₽</p>
+                          </div>
+                          <div>
+                            <p className="text-rz-cream-dark text-xs">Аренда</p>
+                            <p className="font-medium text-rz-gold">{formatPrice(roiData.total_rental)} ₽</p>
+                          </div>
+                        </div>
                       </>
                     ) : (
-                      <p className="text-rz-cream-dark text-sm">Нажмите "Расчёт доходности"</p>
+                      <p className="text-rz-cream-dark text-sm">Нажмите "Расчёт доходности" для детализации</p>
                     )}
                   </div>
 
-                  {/* Депозиты */}
+                  {/* Advantage block */}
+                  {roiData && depositData.base && (
+                    <div className="bg-rz-gold/15 rounded-xl p-4 border border-rz-gold/30">
+                      <p className="font-bold text-rz-gold">
+                        ✅ RIZALTA выгоднее на {formatPrice(roiData.total_profit - depositData.base.total_net_interest)} ₽
+                        {depositData.base.total_net_interest > 0 && (
+                          <span className="text-sm font-medium"> (+{Math.round((roiData.total_profit / depositData.base.total_net_interest - 1) * 100)}%)</span>
+                        )}
+                      </p>
+                      <p className="text-rz-cream-dark text-xs mt-1">по сравнению с базовым сценарием депозита</p>
+                    </div>
+                  )}
+
+                  {/* Deposits */}
                   <div className="space-y-3">
                     {Object.entries(depositData).map(([key, d]) => (
                       <div key={key} className="bg-rz-green-mid rounded-xl p-4">
@@ -431,6 +497,22 @@ export default function LotDetail({ lot, onBack, onChat }) {
                       </div>
                     ))}
                   </div>
+
+                  {/* Key factors */}
+                  <div className="bg-rz-green-mid rounded-xl p-4">
+                    <p className="text-rz-cream-dark text-xs font-medium mb-2">Ключевые факторы</p>
+                    <div className="space-y-1.5 text-xs">
+                      <p>📉 ЦБ прогнозирует снижение ставки до 7%</p>
+                      <p>💸 Налог 13–15% по депозиту</p>
+                      <p>📈 RIZALTA: рост + пассивный доход с 2028</p>
+                      <p>🛡 Недвижимость — защита от инфляции</p>
+                    </div>
+                  </div>
+
+                  {/* Excel download */}
+                  <button onClick={handleExcelDownload} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+                    📥 Скачать Excel
+                  </button>
 
                   <p className="text-rz-cream-muted text-xs text-center">
                     Данные по депозитам на основе прогноза ЦБ РФ
