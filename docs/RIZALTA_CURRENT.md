@@ -36,11 +36,11 @@
 - **PROD:** работает ✅ v2.5.10
 - **DEV:** работает ✅ v2.5.10
 - **Корпус 1 «Family»:** 255 лотов (properties.db)
-- **Корпус 2 «Business»:** скрыт (ценовая пауза), 103 лота в БД
+- **Корпус 2 «Business»:** 103 лота (properties.db), открыт
 - **Корпус 3 «Digital»:** 282 лота (corp3_units.json, whitelist)
 - **Mini App Vercel:** работает ✅
 - **Watchdog:** работает ✅
-- **WebApp:** работает ✅ v0.5.0 (webapp.rizaltaservice.ru)
+- **WebApp:** работает ✅ v0.6.0 (webapp.rizaltaservice.ru)
 
 ## 🔜 Следующие задачи
 
@@ -49,12 +49,17 @@
 3. 🟡 **Админ-панель** — типовые операции
 4. 🟡 Миграция на российский сервер
 5. 🟡 **Модульные README** — handlers/README.md, services/README.md
-6. 🔴 **WebApp Phase 3** — AI чат (DeepSeek V3.2), белый список, Корпус 3
-7. 🟡 **WebApp авторизация** — белый список + разграничение контента
+6. 🟢 **WebApp Phase 3.1** — белый список + Корпус 3 + systemd ✅
+7. 🔴 **WebApp Phase 3.2** — AI чат (DeepSeek V3.2), отправка заявок
 
-## Как вернуть Корпус 2
 
-Когда новые цены будут готовы:
-1. Отредактировать `/opt/bot/data/hidden_buildings.json`: `{"hidden": []}`
-2. `sudo systemctl restart rizalta-bot`
-3. Корпус 2 появится в боте и Mini App автоматически
+
+### WebApp: Phase 3.1 — Белый список + Корпус 3 + systemd (10.02.2026)
+- **Белый список (токен):** webapp.db + access_tokens, общий токен через URL (?token=XXX)
+- **Корпус 3 в webapp:** Corp3.jsx (шахматка, фильтры), /api/corp3/lots, /api/corp3/layout/{code}
+- **Auth система:** utils/auth.js (captureTokenFromURL, verifyAccess, authFetch)
+- **Home.jsx:** условная кнопка «🏗 Корпус 3» с золотой рамкой (только для white)
+- **LotDetail.jsx:** поддержка лотов К3 (маппинг полей, скрыты КП/Excel)
+- **Catalog.jsx:** упрощены кнопки фильтров: [Свободно] + [Фильтры] (убраны Все/Бронь/Продано)
+- **systemd:** webapp.service (автозапуск, Restart=always)
+- **Версия webapp:** v0.6.0 (ветка webapp)

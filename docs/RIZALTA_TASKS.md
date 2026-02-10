@@ -98,11 +98,19 @@
 - CLAUDE.md + TASK_MAP.md в репо для Claude Code
 - Версия webapp: v0.5.0
 
-### WebApp Phase 3: AI чат + авторизация
+### WebApp Phase 3.2: AI чат + заявки
 - **AI чат:** DeepSeek V3.2 через OpenRouter, function calling, SSE streaming
-- **Белый список:** разграничение контента (общий/белый) по аналогии с TG chat_id
-- **Корпус 3:** временное решение для webapp (данные из corp3_units.json)
 - **Секретарь/Фиксация:** полноценные страницы (сейчас заглушки)
 - **Отправка заявок:** реальная отправка в TG/email (сейчас console.log)
-- **systemd сервис:** автозапуск webapp
 - **Статус:** планируется
+
+### 10.02.2026: WebApp Phase 3.1 — Белый список + Корпус 3 + systemd
+- Белый список: webapp.db, access_tokens, общий токен (?token=XXX → localStorage)
+- Backend: /api/access/check, /api/corp3/lots (whitelist-protected), /api/corp3/layout/{code}
+- Frontend: utils/auth.js, Corp3.jsx (шахматка + фильтры), условная кнопка в Home
+- LotDetail: поддержка К3 (маппинг area→area_m2, price→price_rub, скрыты КП/Excel)
+- Catalog: упрощены кнопки [Свободно] + [Фильтры] (убраны Все/Бронь/Продано)
+- systemd: webapp.service (enabled, Restart=always)
+- Токен К3: MkKGpwCAsq6IF3RtRH7bvg
+- Точка отката: git tag v0.5.0-stable
+- Версия webapp: v0.6.0

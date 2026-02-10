@@ -862,3 +862,68 @@ for f in /opt/bot-dev/handlers/*.py; do echo "=== $(basename $f) ==="; grep -n "
 # Все функции в services
 for f in /opt/bot-dev/services/*.py; do echo "=== $(basename $f) ==="; grep -n "^def \|^async def " $f; done
 ```
+
+---
+
+## Добавлено 10.02.2026
+
+### ЗАДАЧА: WebApp — Белый список + Корпус 3
+
+**Контекст:** В webapp нет chat_id как в TG боте. Реализован доступ через токен в URL.
+
+**Файлы:**
+- `backend/app.py` — webapp.db, init_webapp_db(), seed_token(), get_access_level(), endpoints
+- `frontend/src/utils/auth.js` — captureTokenFromURL, verifyAccess, authFetch, isWhitelisted
+- `frontend/src/pages/Corp3.jsx` — шахматка К3
+- `frontend/src/pages/Home.jsx` — условная кнопка
+- `frontend/src/pages/LotDetail.jsx` — поддержка К3
+- `frontend/src/pages/Catalog.jsx` — упрощённые кнопки фильтров
+
+**Механика:**
+1. Ссылка `?token=XXX` → captureTokenFromURL() → localStorage
+2. verifyAccess() → /api/access/check → level: white/public
+3. isWhitelisted() → показать/скрыть кнопку «Корпус 3»
+4. authFetch() → X-Access-Token header в запросах к К3
+
+**Endpoints:**
+```
+GET /api/access/check         — проверка токена
+GET /api/corp3/lots           — лоты К3 (403 без токена)
+GET /api/corp3/layout/{code}  — планировки К3 (403 без токена)
+```
+
+**Получить токен:**
+```bash
+sqlite3 /opt/webapp/backend/webapp.db "SELECT token FROM access_tokens"
+```
+
+**Тестирование:**
+```bash
+TOKEN=$(sqlite3 /opt/webapp/backend/webapp.db "SELECT token FROM access_tokens LIMIT 1")
+curl -s -H "X-Access-Token: $TOKEN" http://127.0.0.1:8003/api/access/check
+curl -s -H "X-Access-Token: $TOKEN" http://127.0.0.1:8003/api/corp3/lots | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['total'])"
+```
+
+**Откат:**
+```bash
+cd /opt/webapp && git checkout v0.5.0-stable
+rm -f backend/webapp.db
+cd frontend && npm run build
+systemctl restart webapp
+```
+
+### ИНФРАСТРУКТУРА: systemd сервис для WebApp
+
+**Файл:** `/etc/systemd/system/webapp.service`
+
+**Команды:**
+```bash
+systemctl start webapp
+systemctl stop webapp
+systemctl restart webapp
+systemctl status webapp
+journalctl -u webapp -f
+```
+
+**Было:** nohup (умирает при перезагрузке)
+**Стало:** systemd (enabled, Restart=always, RestartSec=5)
