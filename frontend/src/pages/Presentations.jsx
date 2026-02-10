@@ -1,0 +1,51 @@
+import React from 'react'
+
+const PRESENTATIONS = [
+  { key: 'presentation_ru', icon: '📕', label: 'Презентация RIZALTA (RU)' },
+  { key: 'presentation_eng', icon: '📗', label: 'Презентация RIZALTA (ENG)' },
+  { key: 'zont_hotel', icon: '🏨', label: 'ZONT Hotel Group' },
+  { key: 'pergaev_bureau', icon: '🏛', label: 'Pergaev Bureau' },
+  { key: 'analytics_corexp', icon: '📊', label: 'Аналитика CoreXP' },
+]
+
+export default function Presentations({ onBack }) {
+  const handleDownload = (key) => {
+    const url = `/api/files/presentations/${key}`
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openLink(window.location.origin + url)
+    } else {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${key}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
+      <div className="bg-rz-green-light px-4 py-3 flex items-center gap-4 sticky top-0 z-40">
+        <button onClick={onBack} className="text-rz-cream-dark hover:text-rz-cream transition-colors">← Назад</button>
+        <h1 className="font-bold">📸 Презентации</h1>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {PRESENTATIONS.map(p => (
+          <div key={p.key} className="bg-rz-green-light rounded-xl p-4 flex items-center justify-between border border-rz-green-mid">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">{p.icon}</span>
+              <span className="text-sm font-medium">{p.label}</span>
+            </div>
+            <button
+              onClick={() => handleDownload(p.key)}
+              className="bg-rz-gold text-rz-green-dark text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-rz-gold-light transition-colors"
+            >
+              Скачать
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

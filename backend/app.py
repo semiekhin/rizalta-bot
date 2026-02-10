@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 import httpx
@@ -14,7 +14,7 @@ from services.kp_pdf_generator import generate_kp_pdf
 from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
 
-app = FastAPI(title="RIZALTA Web App API", version="0.3.0")
+app = FastAPI(title="RIZALTA Web App API", version="0.5.0")
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -72,7 +72,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.3.0"}
+    return {"status": "healthy", "version": "0.5.0"}
 
 @app.post("/api/calculate-roi")
 async def api_calculate_roi(req: ROIRequest):
@@ -218,6 +218,110 @@ async def api_compare_deposit(req: DepositRequest):
             }}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+# === File serving (whitelist) ===
+
+PRESENTATIONS_DIR = "/opt/bot-dev/presentations"
+DOCUMENTS_DIR = "/opt/bot/docs"
+VIDEOS_DIR = "/opt/bot-dev/videos"
+
+ALLOWED_PRESENTATIONS = {
+    "presentation_ru": "presentation_ru.pdf",
+    "presentation_eng": "presentation_eng.pdf",
+    "analytics_corexp": "analytics_corexp.pdf",
+    "pergaev_bureau": "pergaev_bureau.pdf",
+    "zont_hotel": "zont_hotel.pdf",
+}
+
+ALLOWED_DOCUMENTS = {
+    "ddu": "ddu.pdf",
+    "arenda": "arenda.pdf",
+}
+
+ALLOWED_VIDEOS = {
+    "nerealno": "nerealno.mp4",
+    "vesti_kurort": "vesti_kurort.mp4",
+    "bolshoy_altai": "bolshoy_altai.mp4",
+    "pravilo_30x30": "pravilo_30x30.mp4",
+    "vesti_turpotok": "vesti_turpotok_fixed.mp4",
+    "mihalkova": "mihalkova_altai.mp4",
+}
+
+
+@app.get("/api/files/presentations/{key}")
+async def serve_presentation(key: str):
+    """Отдаёт PDF презентацию из whitelist."""
+    filename = ALLOWED_PRESENTATIONS.get(key)
+    if not filename:
+        raise HTTPException(status_code=404, detail="File not found")
+    path = os.path.join(PRESENTATIONS_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    return FileResponse(path, media_type="application/pdf", filename=filename)
+
+
+@app.get("/api/files/documents/{key}")
+async def serve_document(key: str):
+    """Отдаёт PDF договор из whitelist."""
+    filename = ALLOWED_DOCUMENTS.get(key)
+    if not filename:
+        raise HTTPException(status_code=404, detail="File not found")
+    path = os.path.join(DOCUMENTS_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    return FileResponse(path, media_type="application/pdf", filename=filename)
+
+
+@app.get("/api/files/videos/{key}")
+async def serve_video(key: str):
+    """Отдаёт видео из whitelist (streaming)."""
+    filename = ALLOWED_VIDEOS.get(key)
+    if not filename:
+        raise HTTPException(status_code=404, detail="File not found")
+    path = os.path.join(VIDEOS_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    file_size = os.path.getsize(path)
+
+    def iter_file():
+        with open(path, "rb") as f:
+            while chunk := f.read(1024 * 1024):  # 1MB chunks
+                yield chunk
+
+    return StreamingResponse(
+        iter_file(),
+        media_type="video/mp4",
+        headers={
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "bytes",
+        }
+    )
+
+
+# === Курсы валют ===
+
+@app.get("/api/news/currency")
+async def get_currency():
+    """Курсы валют ЦБ РФ через cbr-xml-daily.ru."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get("https://www.cbr-xml-daily.ru/daily_json.js")
+            data = resp.json()
+            result = []
+            for code in ["USD", "EUR", "CNY"]:
+                v = data["Valute"].get(code)
+                if v:
+                    result.append({
+                        "code": code,
+                        "name": v["Name"],
+                        "value": round(v["Value"] / v["Nominal"], 2),
+                        "change": round((v["Value"] - v["Previous"]) / v["Nominal"], 2),
+                        "date": data.get("Date", "")[:10],
+                    })
+            return {"ok": True, "data": result}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
 
 # === Статика ===

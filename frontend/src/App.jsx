@@ -1,19 +1,24 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react'
 
-// Lazy load pages - каждая станет отдельным чанком
+// Lazy load pages
 const Home = lazy(() => import('./pages/Home'))
-const Catalog = lazy(() => import('./pages/Catalog'))
-const Chat = lazy(() => import('./pages/Chat'))
+const Lots = lazy(() => import('./pages/Catalog'))
 const LotDetail = lazy(() => import('./pages/LotDetail'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Presentations = lazy(() => import('./pages/Presentations'))
+const Documents = lazy(() => import('./pages/Documents'))
+const Media = lazy(() => import('./pages/Media'))
+const Booking = lazy(() => import('./pages/Booking'))
+const News = lazy(() => import('./pages/News'))
+const Secretary = lazy(() => import('./pages/Secretary'))
+const Fixation = lazy(() => import('./pages/Fixation'))
 
 const NAV_ITEMS = [
   { id: 'home', icon: '🏠', label: 'Главная' },
-  { id: 'catalog', icon: '🏢', label: 'Каталог' },
-  { id: 'chat', icon: '💬', label: 'Чат' },
-  { id: 'menu', icon: '☰', label: 'Меню' },
+  { id: 'chat', icon: '💬', label: 'Чат с AI' },
+  { id: 'lots', icon: '🏢', label: 'Лоты' },
 ]
 
-// Loading spinner
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rz-gold"></div>
@@ -49,12 +54,26 @@ export default function App() {
     switch (screen) {
       case 'home':
         return <Home stats={stats} onNavigate={navigate} />
-      case 'catalog':
-        return <Catalog lots={lots} stats={stats} loading={loading} onSelectLot={(lot) => navigate('lot', lot)} />
+      case 'lots':
+        return <Lots lots={lots} stats={stats} loading={loading} onSelectLot={(lot) => navigate('lot', lot)} />
       case 'lot':
-        return <LotDetail lot={selectedLot} onBack={() => navigate('catalog')} onChat={() => navigate('chat')} />
+        return <LotDetail lot={selectedLot} onBack={() => navigate('lots')} onChat={() => navigate('chat')} />
       case 'chat':
         return <Chat lots={lots} onNavigate={navigate} />
+      case 'presentations':
+        return <Presentations onBack={() => navigate('home')} />
+      case 'documents':
+        return <Documents onBack={() => navigate('home')} />
+      case 'media':
+        return <Media onBack={() => navigate('home')} onNavigate={navigate} />
+      case 'booking':
+        return <Booking onBack={() => navigate('home')} />
+      case 'news':
+        return <News onBack={() => navigate('home')} />
+      case 'secretary':
+        return <Secretary onBack={() => navigate('home')} />
+      case 'fixation':
+        return <Fixation onBack={() => navigate('home')} />
       default:
         return <Home stats={stats} onNavigate={navigate} />
     }

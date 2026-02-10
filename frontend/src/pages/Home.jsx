@@ -1,77 +1,64 @@
 import React from 'react'
 
+const MENU_ITEMS = [
+  { id: 'lots', icon: '🏢', label: 'Лоты' },
+  { id: 'presentations', icon: '📸', label: 'Презентации' },
+  { id: 'chat', icon: '💬', label: 'Чат с AI' },
+  { id: 'secretary', icon: '🗓', label: 'Секретарь' },
+  { id: 'documents', icon: '📄', label: 'Договоры' },
+  { id: 'media', icon: '🎬', label: 'Медиа' },
+  { id: 'fixation', icon: '📌', label: 'Фиксация' },
+  { id: 'news', icon: '📰', label: 'Новости' },
+]
+
 export default function Home({ stats, onNavigate }) {
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
-      {/* Hero */}
-      <div className="bg-rz-gold px-4 py-8 text-center">
-        <img src="/images/logo-green.svg" alt="RIZALTA" className="h-12 mx-auto mb-3" />
-        <p className="text-rz-green">Инвестиционная недвижимость</p>
-        <p className="text-rz-green/70 text-sm">Белокуриха, Алтай</p>
-        <div className="mt-6 bg-rz-green rounded-xl p-4 inline-block">
-          <p className="text-4xl font-semibold text-rz-cream">{stats.total || 358}</p>
-          <p className="text-sm text-rz-cream-dark">апартаментов</p>
-        </div>
+      {/* Hero — compact */}
+      <div className="bg-rz-gold px-4 py-6 text-center">
+        <img src="/images/logo-green.svg" alt="RIZALTA" className="h-10 mx-auto mb-1" />
+        <p className="text-rz-green text-sm">Инвестиционная недвижимость</p>
+        <p className="text-rz-green/70 text-xs">Белокуриха, Алтай</p>
       </div>
 
-      {/* Quick actions */}
-      <div className="p-4 space-y-3">
-        <p className="text-rz-cream-dark text-sm font-medium">Быстрые действия</p>
+      {/* Menu grid 2x4 */}
+      <div className="p-4 grid grid-cols-2 gap-3">
+        {MENU_ITEMS.map(item => (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            className="bg-rz-green-light rounded-xl p-4 flex flex-col items-center gap-2 border border-rz-green-mid hover:border-rz-gold transition-colors"
+          >
+            <span className="text-2xl">{item.icon}</span>
+            <span className="text-sm font-medium">{item.label}</span>
+          </button>
+        ))}
+      </div>
 
+      {/* Booking button */}
+      <div className="px-4 mb-4">
         <button
-          onClick={() => onNavigate('catalog')}
-          className="w-full bg-rz-green-light rounded-xl p-4 flex items-center gap-4 border border-rz-green-mid hover:border-rz-gold transition-colors"
+          onClick={() => onNavigate('booking')}
+          className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors text-sm"
         >
-          <span className="text-2xl">🏢</span>
-          <div className="text-left flex-1">
-            <p className="font-medium">Выбрать апартамент</p>
-            <p className="text-xs text-rz-cream-dark">Интерактивная шахматка</p>
-          </div>
-          <span className="text-rz-cream-muted">→</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('chat')}
-          className="w-full bg-rz-green-light rounded-xl p-4 flex items-center gap-4 border border-rz-green-mid hover:border-rz-gold transition-colors"
-        >
-          <span className="text-2xl">💬</span>
-          <div className="text-left flex-1">
-            <p className="font-medium">AI Консультант</p>
-            <p className="text-xs text-rz-cream-dark">Ответим на любые вопросы</p>
-          </div>
-          <span className="text-rz-cream-muted">→</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('catalog')}
-          className="w-full bg-rz-green-light rounded-xl p-4 flex items-center gap-4 border border-rz-green-mid hover:border-rz-gold transition-colors"
-        >
-          <span className="text-2xl">📊</span>
-          <div className="text-left flex-1">
-            <p className="font-medium">Расчёт доходности</p>
-            <p className="text-xs text-rz-cream-dark">ROI vs банковский депозит</p>
-          </div>
-          <span className="text-rz-cream-muted">→</span>
+          ✅ Записаться на онлайн-показ
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Mini stats */}
       <div className="px-4">
-        <div className="bg-rz-green-light rounded-xl p-4">
-          <p className="text-rz-cream-dark text-sm mb-3">Сейчас доступно</p>
-          <div className="flex justify-between text-center">
-            <div>
-              <p className="text-2xl font-bold text-rz-success">{stats.available || 0}</p>
-              <p className="text-xs text-rz-cream-dark">свободно</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-rz-gold">{stats.booked || 0}</p>
-              <p className="text-xs text-rz-cream-dark">бронь</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-rz-cream-muted">{stats.sold || 0}</p>
-              <p className="text-xs text-rz-cream-dark">продано</p>
-            </div>
+        <div className="bg-rz-green-light rounded-xl p-3 flex justify-around text-center">
+          <div>
+            <p className="text-lg font-bold text-rz-success">{stats.available || 0}</p>
+            <p className="text-xs text-rz-cream-dark">свободно</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-rz-gold">{stats.booked || 0}</p>
+            <p className="text-xs text-rz-cream-dark">бронь</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-rz-cream-muted">{stats.sold || 0}</p>
+            <p className="text-xs text-rz-cream-dark">продано</p>
           </div>
         </div>
       </div>

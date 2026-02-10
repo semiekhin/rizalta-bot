@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 
 const formatPrice = (p) => p >= 1e6 ? `${(p/1e6).toFixed(1)} млн` : `${Math.round(p/1e3)} тыс`
 const shortPrice = (p) => p >= 1e6 ? `${(p/1e6).toFixed(1)}` : `${Math.round(p/1e3)}т`
@@ -8,6 +8,21 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
   const [building, setBuilding] = useState(1)
   const [floor, setFloor] = useState(null)
   const [filter, setFilter] = useState('all')
+  const [showFilters, setShowFilters] = useState(false)
+  const [areaMin, setAreaMin] = useState('')
+  const [areaMax, setAreaMax] = useState('')
+  const [priceMin, setPriceMin] = useState('')
+  const [priceMax, setPriceMax] = useState('')
+
+  const hasAdvancedFilters = areaMin || areaMax || priceMin || priceMax
+
+  const resetFilters = () => {
+    setAreaMin('')
+    setAreaMax('')
+    setPriceMin('')
+    setPriceMax('')
+    setFilter('all')
+  }
 
   if (loading) {
     return (
@@ -27,9 +42,21 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
     sold: bLots.filter(l => l.status === 'sold').length,
   }
 
+  const applyFilters = (list) => {
+    let result = list
+    if (filter !== 'all') result = result.filter(l => l.status === filter)
+    if (areaMin) result = result.filter(l => l.area >= parseFloat(areaMin))
+    if (areaMax) result = result.filter(l => l.area <= parseFloat(areaMax))
+    if (priceMin) result = result.filter(l => l.price >= parseFloat(priceMin) * 1e6)
+    if (priceMax) result = result.filter(l => l.price <= parseFloat(priceMax) * 1e6)
+    return result
+  }
+
+  const filteredTotal = applyFilters(bLots).length
+
   const getFloorLots = (f) => {
-    let fl = bLots.filter(l => l.floor === f).sort((a, b) => a.area - b.area)
-    return filter === 'all' ? fl : fl.filter(l => l.status === filter)
+    const fl = bLots.filter(l => l.floor === f).sort((a, b) => a.area - b.area)
+    return applyFilters(fl)
   }
 
   const filters = [
@@ -71,8 +98,8 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 p-2 overflow-x-auto sticky top-28 z-20 bg-rz-green">
+      {/* Status filters + filter toggle */}
+      <div className="flex gap-2 p-2 overflow-x-auto sticky top-28 z-20 bg-rz-green items-center">
         {filters.map(f => (
           <button
             key={f.k}
@@ -86,7 +113,50 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
             {f.i} {f.l} ({f.c})
           </button>
         ))}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ml-auto ${
+            hasAdvancedFilters ? 'bg-rz-gold text-rz-green-dark font-medium' : 'bg-rz-green-mid text-rz-cream-dark'
+          }`}
+        >
+          ⚙ Фильтры
+        </button>
       </div>
+
+      {/* Advanced filters panel */}
+      {showFilters && (
+        <div className="px-2 pb-2 space-y-2 bg-rz-green sticky top-40 z-10">
+          <div className="bg-rz-green-light rounded-xl p-3 space-y-3">
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-rz-cream-dark w-16">Площадь:</span>
+              <input type="number" placeholder="от м²" value={areaMin} onChange={e => setAreaMin(e.target.value)}
+                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
+              <input type="number" placeholder="до м²" value={areaMax} onChange={e => setAreaMax(e.target.value)}
+                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
+            </div>
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-rz-cream-dark w-16">Цена:</span>
+              <input type="number" placeholder="от млн" value={priceMin} onChange={e => setPriceMin(e.target.value)}
+                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
+              <input type="number" placeholder="до млн" value={priceMax} onChange={e => setPriceMax(e.target.value)}
+                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
+            </div>
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {bLots.length}</p>
+              {hasAdvancedFilters && (
+                <button onClick={resetFilters} className="text-xs text-rz-cream-muted hover:text-rz-cream">✕ Сброс</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Found counter (when filters active but panel closed) */}
+      {!showFilters && hasAdvancedFilters && (
+        <div className="px-4 py-1">
+          <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {bLots.length}</p>
+        </div>
+      )}
 
       {/* Floors */}
       <div className="p-2 space-y-2">
@@ -99,7 +169,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
             : Math.min(...allFloorLots.map(l => l.price))
           const isOpen = floor === f
 
-          if (!floorLots.length && filter !== 'all') return null
+          if (!floorLots.length && (filter !== 'all' || hasAdvancedFilters)) return null
 
           return (
             <div key={f} className="bg-rz-green-light rounded-xl overflow-hidden">
