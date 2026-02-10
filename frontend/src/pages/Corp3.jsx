@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
+import { authFetch, getToken } from '../utils/auth'
 
 const formatPrice = (p) => p >= 1e6 ? `${(p/1e6).toFixed(1)} млн` : `${Math.round(p/1e3)} тыс`
 const shortPrice = (p) => p >= 1e6 ? `${(p/1e6).toFixed(1)}` : `${Math.round(p/1e3)}т`
-const statusColor = (s) => s === 'available' ? 'bg-rz-success' : s === 'booked' ? 'bg-rz-gold' : 'bg-rz-cream-muted'
 
-export default function Catalog({ lots, stats, loading, onSelectLot }) {
-  const [building, setBuilding] = useState(1)
+export default function Corp3({ onSelectLot, onBack }) {
+  const [lots, setLots] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [floor, setFloor] = useState(null)
   const [filter, setFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
@@ -14,37 +16,62 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
 
+  useEffect(() => {
+    authFetch('/api/corp3/lots')
+      .then(r => {
+        if (r.status === 403) {
+          setError('denied')
+          setLoading(false)
+          return null
+        }
+        return r.json()
+      })
+      .then(d => {
+        if (d && d.ok) setLots(d.lots || [])
+        setLoading(false)
+      })
+      .catch(() => { setError('network'); setLoading(false) })
+  }, [])
+
   const hasAdvancedFilters = areaMin || areaMax || priceMin || priceMax
 
   const resetFilters = () => {
-    setAreaMin('')
-    setAreaMax('')
-    setPriceMin('')
-    setPriceMax('')
-    setFilter('all')
+    setAreaMin(''); setAreaMax(''); setPriceMin(''); setPriceMax(''); setFilter('all')
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-rz-green flex flex-col items-center justify-center text-rz-cream pb-20">
         <div className="w-10 h-10 border-4 border-rz-gold border-t-transparent rounded-full animate-spin mb-4"/>
-        <p>Загрузка лотов...</p>
+        <p>Загрузка лотов К3...</p>
       </div>
     )
   }
 
-  const bLots = lots.filter(l => l.building === building)
-  const floors = [...new Set(bLots.map(l => l.floor))].sort((a, b) => b - a)
-
-  const bStats = {
-    available: bLots.filter(l => l.status === 'available').length,
-    booked: bLots.filter(l => l.status === 'booked').length,
-    sold: bLots.filter(l => l.status === 'sold').length,
+  if (error === 'denied') {
+    return (
+      <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
+        <div className="bg-rz-green-light px-4 py-3 flex items-center gap-4 sticky top-0 z-40">
+          <button onClick={onBack} className="text-rz-cream-dark hover:text-rz-cream transition-colors">← Назад</button>
+          <h1 className="font-bold">🏗 Корпус 3 «Digital»</h1>
+        </div>
+        <div className="p-4">
+          <div className="bg-rz-green-light rounded-xl p-6 text-center border border-rz-green-mid">
+            <p className="text-4xl mb-4">🔒</p>
+            <h2 className="text-lg font-bold mb-2">Доступ ограничен</h2>
+            <p className="text-rz-cream-dark text-sm">Корпус 3 доступен только по приглашению.</p>
+          </div>
+        </div>
+      </div>
+    )
   }
+
+  const floors = [...new Set(lots.map(l => l.floor))].sort((a, b) => b - a)
+  const availCount = lots.filter(l => l.status === 'available').length
 
   const applyFilters = (list) => {
     let result = list
-    if (filter !== 'all') result = result.filter(l => l.status === filter)
+    if (filter === 'available') result = result.filter(l => l.status === 'available')
     if (areaMin) result = result.filter(l => l.area >= parseFloat(areaMin))
     if (areaMax) result = result.filter(l => l.area <= parseFloat(areaMax))
     if (priceMin) result = result.filter(l => l.price >= parseFloat(priceMin) * 1e6)
@@ -52,47 +79,43 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
     return result
   }
 
-  const filteredTotal = applyFilters(bLots).length
+  const filteredTotal = applyFilters(lots).length
 
   const getFloorLots = (f) => {
-    const fl = bLots.filter(l => l.floor === f).sort((a, b) => a.area - b.area)
+    const fl = lots.filter(l => l.floor === f).sort((a, b) => a.area - b.area)
     return applyFilters(fl)
+  }
+
+  const token = getToken()
+
+  const handleSelectLot = (lot) => {
+    onSelectLot({
+      ...lot,
+      buildingName: 'Digital',
+      layout_url: lot.layout_path ? `/api/corp3/layout/${encodeURIComponent(lot.code)}?token=${encodeURIComponent(token)}` : null,
+      source: 'corp3'
+    })
   }
 
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="bg-rz-gold px-4 py-3 flex justify-between items-center sticky top-0 z-40">
-        <div>
-          <h1 className="font-bold text-lg text-rz-green-dark">RIZALTA</h1>
-          <p className="text-xs text-rz-green-dark/70">Каталог апартаментов</p>
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="text-rz-green-dark hover:text-rz-green transition-colors font-bold">←</button>
+          <div>
+            <h1 className="font-bold text-lg text-rz-green-dark">Корпус 3 «Digital»</h1>
+            <p className="text-xs text-rz-green-dark/70">Эксклюзивные апартаменты</p>
+          </div>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold text-rz-green-dark">{stats.available}</p>
-          <p className="text-xs text-rz-green-dark/70">свободно</p>
+          <p className="text-2xl font-bold text-rz-green-dark">{lots.length}</p>
+          <p className="text-xs text-rz-green-dark/70">лотов</p>
         </div>
       </div>
 
-      {/* Building tabs */}
-      <div className="flex border-b border-rz-green-mid sticky top-14 z-30 bg-rz-green">
-        {[1, 2].map(b => (
-          <button
-            key={b}
-            onClick={() => { setBuilding(b); setFloor(null) }}
-            className={`flex-1 py-3 transition-colors ${
-              building === b
-                ? 'text-rz-gold border-b-2 border-rz-gold bg-rz-green-light'
-                : 'text-rz-cream-dark'
-            }`}
-          >
-            Корпус {b}
-            <span className="block text-xs opacity-70">{b === 1 ? 'Family' : 'Business'}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Status filter + advanced filters toggle */}
-      <div className="flex gap-2 p-2 sticky top-28 z-20 bg-rz-green items-center">
+      {/* Filters */}
+      <div className="flex gap-2 p-2 sticky top-14 z-20 bg-rz-green items-center">
         <button
           onClick={() => setFilter(filter === 'available' ? 'all' : 'available')}
           className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
@@ -101,7 +124,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
               : 'bg-rz-green-mid text-rz-cream-dark'
           }`}
         >
-          Свободно ({bStats.available})
+          Свободно ({availCount})
         </button>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -115,7 +138,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
 
       {/* Advanced filters panel */}
       {showFilters && (
-        <div className="px-2 pb-2 bg-rz-green sticky top-40 z-10 max-w-full">
+        <div className="px-2 pb-2 bg-rz-green sticky top-28 z-10 max-w-full">
           <div className="bg-rz-green-light rounded-xl p-3 space-y-3 overflow-hidden">
             <div>
               <p className="text-xs text-rz-cream-dark mb-1.5">Площадь, м²</p>
@@ -136,19 +159,19 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {bLots.length}</p>
+              <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {lots.length}</p>
               {hasAdvancedFilters && (
-                <button onClick={resetFilters} className="text-xs text-rz-cream-muted hover:text-rz-cream">✕ Сброс</button>
+                <button onClick={resetFilters} className="text-xs text-rz-cream-muted hover:text-rz-cream">Сброс</button>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Found counter (when filters active but panel closed) */}
+      {/* Found counter */}
       {!showFilters && hasAdvancedFilters && (
         <div className="px-4 py-1">
-          <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {bLots.length}</p>
+          <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {lots.length}</p>
         </div>
       )}
 
@@ -156,7 +179,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
       <div className="p-2 space-y-2">
         {floors.map(f => {
           const floorLots = getFloorLots(f)
-          const allFloorLots = bLots.filter(l => l.floor === f)
+          const allFloorLots = lots.filter(l => l.floor === f)
           const availLots = allFloorLots.filter(l => l.status === 'available')
           const minPrice = availLots.length
             ? Math.min(...availLots.map(l => l.price))
@@ -193,10 +216,8 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
                   {floorLots.map(l => (
                     <button
                       key={l.code}
-                      onClick={() => l.status !== 'sold' && onSelectLot(l)}
-                      disabled={l.status === 'sold'}
-                      className={`rounded-lg p-2 flex flex-col items-center justify-center transition-transform
-                        ${statusColor(l.status)} ${l.status === 'sold' ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105'}`}
+                      onClick={() => handleSelectLot(l)}
+                      className="rounded-lg p-2 flex flex-col items-center justify-center transition-transform bg-rz-success hover:scale-105"
                     >
                       <span className="text-white font-bold text-sm">{l.area} м²</span>
                       <span className="text-white/80 text-xs font-medium">{shortPrice(l.price)} млн</span>

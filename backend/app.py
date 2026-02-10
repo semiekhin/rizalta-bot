@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +7,10 @@ from pydantic import BaseModel
 from typing import Optional
 import httpx
 import os
+import sqlite3
+import secrets
+import json
+from contextlib import asynccontextmanager
 
 from services.calculator import calculate_roi
 from services.installment_calculator import calc_full
@@ -14,7 +18,64 @@ from services.kp_pdf_generator import generate_kp_pdf
 from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
 
-app = FastAPI(title="RIZALTA Web App API", version="0.5.0")
+# === Whitelist DB ===
+WEBAPP_DB = "/opt/webapp/backend/webapp.db"
+CORP3_DATA_PATH = "/opt/bot-dev/data/corp3_units.json"
+CORP3_LAYOUTS_DIR = "/opt/bot-dev/data/corp3_layouts"
+
+
+def init_webapp_db():
+    """Creates webapp tables on startup."""
+    conn = sqlite3.connect(WEBAPP_DB)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS access_tokens (
+            token TEXT PRIMARY KEY,
+            name TEXT,
+            level TEXT DEFAULT 'white',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def seed_token():
+    """Creates a token if DB is empty."""
+    conn = sqlite3.connect(WEBAPP_DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM access_tokens")
+    if cursor.fetchone()[0] == 0:
+        token = secrets.token_urlsafe(16)
+        cursor.execute(
+            "INSERT INTO access_tokens (token, name, level) VALUES (?, ?, ?)",
+            (token, "Общий белый список", "white")
+        )
+        conn.commit()
+        print(f"[WEBAPP] Created whitelist token: {token}")
+    conn.close()
+
+
+def get_access_level(request: Request) -> str:
+    """Determines access level from token (header or query param)."""
+    token = request.headers.get("X-Access-Token", "") or request.query_params.get("token", "")
+    if not token:
+        return "public"
+    conn = sqlite3.connect(WEBAPP_DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT level FROM access_tokens WHERE token = ?", (token,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else "public"
+
+
+@asynccontextmanager
+async def lifespan(app_instance):
+    init_webapp_db()
+    seed_token()
+    yield
+
+
+app = FastAPI(title="RIZALTA Web App API", version="0.6.0", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -218,6 +279,58 @@ async def api_compare_deposit(req: DepositRequest):
             }}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+# === Whitelist endpoints ===
+
+@app.get("/api/access/check")
+async def check_access(level: str = Depends(get_access_level)):
+    """Checks token and returns access level."""
+    return {"level": level}
+
+
+@app.get("/api/corp3/lots")
+async def get_corp3_lots(level: str = Depends(get_access_level)):
+    """Returns Corp3 lots (whitelist only)."""
+    if level != "white":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    units = [u for u in data.get("units", [])
+             if u.get("area", 0) >= 23.5 and u.get("status") == "available"]
+
+    return {
+        "ok": True,
+        "building_name": data.get("building_name", "Корпус 3"),
+        "total": len(units),
+        "lots": units
+    }
+
+
+@app.get("/api/corp3/layout/{code}")
+async def get_corp3_layout(code: str, level: str = Depends(get_access_level)):
+    """Serves Corp3 lot layout image (whitelist only)."""
+    if level != "white":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    unit = next((u for u in data.get("units", []) if u.get("code") == code), None)
+    if not unit or not unit.get("layout_path"):
+        raise HTTPException(status_code=404, detail="Layout not found")
+
+    layout_path = unit["layout_path"]
+    real_path = os.path.realpath(layout_path)
+    if not real_path.startswith(os.path.realpath(CORP3_LAYOUTS_DIR)):
+        raise HTTPException(status_code=403, detail="Invalid path")
+
+    if not os.path.isfile(real_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(real_path, media_type="image/jpeg")
 
 
 # === File serving (whitelist) ===

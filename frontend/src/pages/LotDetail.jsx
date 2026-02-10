@@ -205,9 +205,11 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
         {/* Actions */}
         <div className="space-y-2 pt-2">
-          <button onClick={() => setShowKP(true)} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
-            📄 Получить КП
-          </button>
+          {lot.source !== 'corp3' && (
+            <button onClick={() => setShowKP(true)} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+              📄 Получить КП
+            </button>
+          )}
           <button onClick={handleInstallment} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             💳 Варианты оплаты
           </button>
@@ -217,9 +219,11 @@ export default function LotDetail({ lot, onBack, onChat }) {
           <button onClick={handleDeposit} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             🏦 Сравнить с депозитом
           </button>
-          <button onClick={handleExcelDownload} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
-            📥 Скачать Excel
-          </button>
+          {lot.source !== 'corp3' && (
+            <button onClick={handleExcelDownload} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
+              📥 Скачать Excel
+            </button>
+          )}
           <button onClick={() => setShowShowing(true)} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             📅 Записаться на показ
           </button>

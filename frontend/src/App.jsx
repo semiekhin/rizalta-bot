@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react'
+import { captureTokenFromURL, verifyAccess } from './utils/auth'
 
 // Lazy load pages
 const Home = lazy(() => import('./pages/Home'))
@@ -12,6 +13,7 @@ const Booking = lazy(() => import('./pages/Booking'))
 const News = lazy(() => import('./pages/News'))
 const Secretary = lazy(() => import('./pages/Secretary'))
 const Fixation = lazy(() => import('./pages/Fixation'))
+const Corp3 = lazy(() => import('./pages/Corp3'))
 
 const NAV_ITEMS = [
   { id: 'home', icon: '🏠', label: 'Главная' },
@@ -31,8 +33,12 @@ export default function App() {
   const [stats, setStats] = useState({ available: 0, booked: 0, sold: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const [selectedLot, setSelectedLot] = useState(null)
+  const [accessLevel, setAccessLevel] = useState('public')
 
   useEffect(() => {
+    captureTokenFromURL()
+    verifyAccess().then(level => setAccessLevel(level))
+
     fetch('/api/lots')
       .then(r => r.json())
       .then(d => {
@@ -53,11 +59,11 @@ export default function App() {
   const renderScreen = () => {
     switch (screen) {
       case 'home':
-        return <Home stats={stats} onNavigate={navigate} />
+        return <Home stats={stats} onNavigate={navigate} accessLevel={accessLevel} />
       case 'lots':
         return <Lots lots={lots} stats={stats} loading={loading} onSelectLot={(lot) => navigate('lot', lot)} />
       case 'lot':
-        return <LotDetail lot={selectedLot} onBack={() => navigate('lots')} onChat={() => navigate('chat')} />
+        return <LotDetail lot={selectedLot} onBack={() => navigate(selectedLot?.source === 'corp3' ? 'corp3' : 'lots')} onChat={() => navigate('chat')} />
       case 'chat':
         return <Chat lots={lots} onNavigate={navigate} />
       case 'presentations':
@@ -74,8 +80,10 @@ export default function App() {
         return <Secretary onBack={() => navigate('home')} />
       case 'fixation':
         return <Fixation onBack={() => navigate('home')} />
+      case 'corp3':
+        return <Corp3 onSelectLot={(lot) => navigate('lot', lot)} onBack={() => navigate('home')} />
       default:
-        return <Home stats={stats} onNavigate={navigate} />
+        return <Home stats={stats} onNavigate={navigate} accessLevel={accessLevel} />
     }
   }
 

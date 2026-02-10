@@ -11,7 +11,12 @@ const MENU_ITEMS = [
   { id: 'news', icon: '📰', label: 'Новости' },
 ]
 
-export default function Home({ stats, onNavigate }) {
+export default function Home({ stats, onNavigate, accessLevel }) {
+  const menuItems = [
+    ...MENU_ITEMS,
+    ...(accessLevel === 'white' ? [{ id: 'corp3', icon: '🏗', label: 'Корпус 3' }] : []),
+  ]
+
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
       {/* Hero — compact */}
@@ -21,13 +26,15 @@ export default function Home({ stats, onNavigate }) {
         <p className="text-rz-green/70 text-xs">Белокуриха, Алтай</p>
       </div>
 
-      {/* Menu grid 2x4 */}
+      {/* Menu grid */}
       <div className="p-4 grid grid-cols-2 gap-3">
-        {MENU_ITEMS.map(item => (
+        {menuItems.map(item => (
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
-            className="bg-rz-green-light rounded-xl p-4 flex flex-col items-center gap-2 border border-rz-green-mid hover:border-rz-gold transition-colors"
+            className={`bg-rz-green-light rounded-xl p-4 flex flex-col items-center gap-2 border transition-colors ${
+              item.id === 'corp3' ? 'border-rz-gold' : 'border-rz-green-mid hover:border-rz-gold'
+            }`}
           >
             <span className="text-2xl">{item.icon}</span>
             <span className="text-sm font-medium">{item.label}</span>
