@@ -67,7 +67,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
   ]
 
   return (
-    <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
+    <div className="min-h-screen bg-rz-green text-rz-cream pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="bg-rz-gold px-4 py-3 flex justify-between items-center sticky top-0 z-40">
         <div>
@@ -125,21 +125,25 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
 
       {/* Advanced filters panel */}
       {showFilters && (
-        <div className="px-2 pb-2 space-y-2 bg-rz-green sticky top-40 z-10">
-          <div className="bg-rz-green-light rounded-xl p-3 space-y-3">
-            <div className="flex gap-2 items-center">
-              <span className="text-xs text-rz-cream-dark w-16">Площадь:</span>
-              <input type="number" placeholder="от м²" value={areaMin} onChange={e => setAreaMin(e.target.value)}
-                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
-              <input type="number" placeholder="до м²" value={areaMax} onChange={e => setAreaMax(e.target.value)}
-                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
+        <div className="px-2 pb-2 bg-rz-green sticky top-40 z-10 max-w-full">
+          <div className="bg-rz-green-light rounded-xl p-3 space-y-3 overflow-hidden">
+            <div>
+              <p className="text-xs text-rz-cream-dark mb-1.5">Площадь, м²</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" placeholder="от" value={areaMin} onChange={e => setAreaMin(e.target.value)}
+                  className="w-full bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold min-w-0"/>
+                <input type="number" placeholder="до" value={areaMax} onChange={e => setAreaMax(e.target.value)}
+                  className="w-full bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold min-w-0"/>
+              </div>
             </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-xs text-rz-cream-dark w-16">Цена:</span>
-              <input type="number" placeholder="от млн" value={priceMin} onChange={e => setPriceMin(e.target.value)}
-                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
-              <input type="number" placeholder="до млн" value={priceMax} onChange={e => setPriceMax(e.target.value)}
-                className="flex-1 bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold"/>
+            <div>
+              <p className="text-xs text-rz-cream-dark mb-1.5">Цена, млн ₽</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" placeholder="от" value={priceMin} onChange={e => setPriceMin(e.target.value)}
+                  className="w-full bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold min-w-0"/>
+                <input type="number" placeholder="до" value={priceMax} onChange={e => setPriceMax(e.target.value)}
+                  className="w-full bg-rz-green-mid rounded-lg px-2 py-1.5 text-xs text-rz-cream outline-none focus:ring-1 focus:ring-rz-gold min-w-0"/>
+              </div>
             </div>
             <div className="flex justify-between items-center">
               <p className="text-xs text-rz-cream-dark">Найдено: <span className="text-rz-gold font-medium">{filteredTotal}</span> из {bLots.length}</p>
