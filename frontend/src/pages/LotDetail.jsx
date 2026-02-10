@@ -88,17 +88,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
     setKpLoading(true)
     const url = `/api/download-kp/${encodeURIComponent(lot.code)}?type=${type}`
 
-    // Telegram WebApp
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.openLink(window.location.origin + url)
-    } else {
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `KP_${lot.code}_${type}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
+    window.open(url, '_blank')
     setTimeout(() => {
       setKpLoading(false)
       setShowKP(false)
@@ -108,18 +98,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
   // === Excel Download ===
   const handleExcelDownload = () => {
     const url = `/api/download-xlsx/${encodeURIComponent(lot.code)}`
-
-    // Telegram WebApp
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.openLink(window.location.origin + url)
-    } else {
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `ROI_${lot.code}.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
+    window.open(url, '_blank')
   }
 
   // === Installment ===
@@ -360,7 +339,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
               <h2 className="font-bold text-lg">📊 Расчёт доходности</h2>
               <button onClick={() => setShowROI(false)} className="text-rz-cream-dark text-xl">✕</button>
             </div>
-            <div className="p-4">
+            <div className="p-4 pb-24">
               {roiLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="w-8 h-8 border-4 border-rz-gold border-t-transparent rounded-full animate-spin"/>
@@ -454,7 +433,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
               <h2 className="font-bold text-lg">🏦 Сравнение с депозитом</h2>
               <button onClick={() => setShowDeposit(false)} className="text-rz-cream-dark text-xl">✕</button>
             </div>
-            <div className="p-4">
+            <div className="p-4 pb-24">
               {depositLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="w-8 h-8 border-4 border-rz-gold border-t-transparent rounded-full animate-spin"/>
@@ -526,10 +505,14 @@ export default function LotDetail({ lot, onBack, onChat }) {
                     </div>
                   </div>
 
-                  {/* Excel download */}
-                  <button onClick={handleExcelDownload} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
-                    📥 Скачать Excel
+                  {/* Compare PDF download */}
+                  <button onClick={() => window.open(`/api/download-compare-pdf?amount=${lot.price}&years=11&area=${lot.area}`, "_blank")} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+                    📄 Скачать PDF сравнение
                   </button>
+
+
+
+
 
                   <p className="text-rz-cream-muted text-xs text-center">
                     Данные по депозитам на основе прогноза ЦБ РФ

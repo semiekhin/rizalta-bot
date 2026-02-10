@@ -20,6 +20,7 @@ from services.installment_calculator import calc_full
 from services.kp_pdf_generator import generate_kp_pdf
 from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
+from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
 
 # === Whitelist DB ===
@@ -300,6 +301,22 @@ async def api_compare_deposit(req: DepositRequest):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+
+
+@app.get("/api/download-compare-pdf")
+async def api_download_compare_pdf(amount: int, years: int = 11, area: float = 26.8):
+    """Генерация PDF сравнения Депозит vs RIZALTA."""
+    try:
+        pdf_path = generate_compare_pdf(amount, years, area_m2=area)
+        if pdf_path and os.path.exists(pdf_path):
+            return FileResponse(
+                pdf_path,
+                media_type="application/pdf",
+                filename=f"RIZALTA_vs_Deposit_{amount}.pdf"
+            )
+        return {"ok": False, "error": "Ошибка генерации PDF"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 # === Whitelist endpoints ===
 

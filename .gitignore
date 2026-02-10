@@ -2,3 +2,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+
+# Ignore
+backend/webapp.db
+backend/__pycache__/
