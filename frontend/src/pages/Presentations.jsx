@@ -11,16 +11,7 @@ const PRESENTATIONS = [
 export default function Presentations({ onBack }) {
   const handleDownload = (key) => {
     const url = `/api/files/presentations/${key}`
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.openLink(window.location.origin + url)
-    } else {
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${key}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
+    window.open(url, '_blank')
   }
 
   return (
