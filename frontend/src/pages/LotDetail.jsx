@@ -12,6 +12,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
   const [showShowing, setShowShowing] = useState(false)
   const [showingForm, setShowingForm] = useState({ name: '', phone: '', comment: '' })
   const [showingSent, setShowingSent] = useState(false)
+  const [showingError, setShowingError] = useState('')
 
   // KP
   const [showKP, setShowKP] = useState(false)
@@ -58,15 +59,27 @@ export default function LotDetail({ lot, onBack, onChat }) {
   // === Showing ===
   const handleShowingSubmit = async (e) => {
     e.preventDefault()
+    const phoneClean = showingForm.phone.replace(/[\s\-\(\)]/g, '')
+    if (phoneClean.length < 10) {
+      setShowingError('Введите корректный номер телефона')
+      return
+    }
+    setShowingError('')
     try {
-      await fetch('/api/book-showing', {
+      const resp = await fetch('/api/book-showing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...showingForm, lot_code: lot.code })
       })
-      setShowingSent(true)
+      const data = await resp.json()
+      if (data.ok) {
+        setShowingSent(true)
+      } else {
+        setShowingError('Ошибка отправки. Попробуйте ещё раз.')
+      }
     } catch (e) {
       console.error(e)
+      setShowingError('Ошибка соединения. Попробуйте ещё раз.')
     }
   }
 
@@ -536,7 +549,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
           <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl">
             <div className="px-4 py-3 border-b border-rz-green-mid flex justify-between items-center">
               <h2 className="font-bold text-lg">📅 Запись на показ</h2>
-              <button onClick={() => {setShowShowing(false); setShowingSent(false)}} className="text-rz-cream-dark text-xl">✕</button>
+              <button onClick={() => {setShowShowing(false); setShowingSent(false); setShowingError('')}} className="text-rz-cream-dark text-xl">✕</button>
             </div>
             <div className="p-4">
               {showingSent ? (
@@ -565,6 +578,9 @@ export default function LotDetail({ lot, onBack, onChat }) {
                       onChange={(e) => setShowingForm({...showingForm, comment: e.target.value})}
                       className="w-full bg-rz-green-mid rounded-xl px-4 py-3 mt-1 text-rz-cream resize-none outline-none focus:ring-2 focus:ring-rz-gold" rows={2} placeholder="Удобное время для звонка"/>
                   </div>
+                  {showingError && (
+                    <p className="text-rz-error text-sm text-center">{showingError}</p>
+                  )}
                   <button type="submit" className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
                     Отправить заявку
                   </button>

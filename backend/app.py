@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Response, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -17,6 +20,7 @@ from services.installment_calculator import calc_full
 from services.kp_pdf_generator import generate_kp_pdf
 from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
+from services.notifications import notify_showing_request
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -133,7 +137,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.5.0"}
+    return {"status": "healthy", "version": "0.6.1"}
 
 @app.post("/api/calculate-roi")
 async def api_calculate_roi(req: ROIRequest):
@@ -146,10 +150,26 @@ async def api_calculate_roi(req: ROIRequest):
 
 @app.post("/api/book-showing")
 async def api_book_showing(req: ShowingRequest):
-    """Заявка на показ."""
-    # TODO: отправка в Telegram/email
-    print(f"[SHOWING] {req.name} / {req.phone} / {req.lot_code}")
-    return {"ok": True, "message": "Заявка принята"}
+    """Заявка на показ — отправка в Telegram и Email."""
+    try:
+        result = await notify_showing_request(
+            name=req.name,
+            phone=req.phone,
+            lot_code=req.lot_code,
+            comment=req.comment,
+            source="webapp"
+        )
+
+        # Заявка "принята" даже если отправка частично провалилась
+        return {
+            "ok": True,
+            "message": "Заявка принята! Мы свяжемся с вами в ближайшее время.",
+            "notifications": result
+        }
+    except Exception as e:
+        import logging
+        logging.error(f"[SHOWING ERROR] {e}")
+        return {"ok": True, "message": "Заявка принята! Мы свяжемся с вами в ближайшее время."}
 
 @app.post("/api/installment")
 async def api_installment(req: InstallmentRequest):

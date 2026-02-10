@@ -4,19 +4,34 @@ export default function Booking({ onBack }) {
   const [form, setForm] = useState({ name: '', phone: '', comment: '' })
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    const phoneClean = form.phone.replace(/[\s\-\(\)]/g, '')
+    if (phoneClean.length < 10) {
+      setError('Пожалуйста, введите корректный номер телефона')
+      return
+    }
+
     setSending(true)
+    setError('')
     try {
-      await fetch('/api/book-showing', {
+      const resp = await fetch('/api/book-showing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })
-      setSent(true)
+      const data = await resp.json()
+      if (data.ok) {
+        setSent(true)
+      } else {
+        setError('Ошибка отправки. Попробуйте ещё раз.')
+      }
     } catch (err) {
       console.error(err)
+      setError('Ошибка соединения. Попробуйте ещё раз.')
     }
     setSending(false)
   }
@@ -68,6 +83,9 @@ export default function Booking({ onBack }) {
                   className="w-full bg-rz-green-mid rounded-xl px-4 py-3 mt-1 text-rz-cream resize-none outline-none focus:ring-2 focus:ring-rz-gold"
                   rows={3} placeholder="Удобное время для звонка"/>
               </div>
+              {error && (
+                <p className="text-rz-error text-sm text-center">{error}</p>
+              )}
               <button
                 type="submit"
                 disabled={sending}
