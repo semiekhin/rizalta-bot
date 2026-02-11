@@ -25,7 +25,7 @@ from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
 from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
-from services.ai_chat import stream_chat_response
+from services.ai_chat import stream_chat_response, analyze_user_intent
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -168,12 +168,22 @@ async def health():
 
 @app.post("/api/chat")
 async def api_chat(req: ChatRequest, request: Request):
-    """AI chat with SSE streaming."""
+    """AI chat — returns action JSON or SSE stream depending on intent."""
     check_chat_rate(request)
 
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Empty message")
 
+    # Check if message has an actionable intent
+    try:
+        action = analyze_user_intent(req.message)
+        if action:
+            return action  # JSON response with type: "action"
+    except Exception as e:
+        import logging
+        logging.error(f"[CHAT] Intent analysis error: {e}")
+
+    # Fallback: SSE streaming chat
     return StreamingResponse(
         stream_chat_response(req.message, req.history),
         media_type="text/event-stream",

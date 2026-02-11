@@ -5,6 +5,31 @@ const WELCOME_MSG = {
   content: 'Здравствуйте! Я AI-консультант RIZALTA. Помогу подобрать апартамент, рассчитать доходность или ответить на вопросы об инвестициях. Что вас интересует?'
 }
 
+// Map navigate "to" paths to internal screen names
+function resolveNavigation(to, onNavigate) {
+  // Parse path like /catalog/А209?modal=roi or /lots or /booking
+  const [path, query] = to.split('?')
+  const segments = path.split('/').filter(Boolean)
+
+  const screen = segments[0]
+  const screenMap = {
+    lots: 'lots',
+    catalog: 'lots',
+    booking: 'booking',
+    presentations: 'presentations',
+    documents: 'documents',
+    media: 'media',
+    news: 'news',
+    secretary: 'secretary',
+    fixation: 'fixation',
+  }
+
+  const targetScreen = screenMap[screen]
+  if (targetScreen) {
+    onNavigate(targetScreen)
+  }
+}
+
 export default function Chat({ lots, onNavigate }) {
   const [messages, setMessages] = useState([WELCOME_MSG])
   const [input, setInput] = useState('')
@@ -44,11 +69,11 @@ export default function Chat({ lots, onNavigate }) {
     setMessages(newMessages)
     setIsStreaming(true)
 
-    // Prepare history (exclude welcome message actions, keep role+content)
+    // Prepare history
     const history = newMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role, content: m.content }))
-      .slice(0, -1) // exclude current message (sent separately)
+      .slice(0, -1)
 
     // Add placeholder assistant message
     setMessages(prev => [...prev, { role: 'assistant', content: '' }])
@@ -66,7 +91,7 @@ export default function Chat({ lots, onNavigate }) {
 
       if (response.status === 429) {
         setError('Слишком много запросов. Подождите минуту.')
-        setMessages(prev => prev.slice(0, -1)) // remove empty assistant msg
+        setMessages(prev => prev.slice(0, -1))
         setIsStreaming(false)
         return
       }
@@ -75,6 +100,27 @@ export default function Chat({ lots, onNavigate }) {
         throw new Error(`HTTP ${response.status}`)
       }
 
+      const contentType = response.headers.get('content-type') || ''
+
+      // Action response (JSON)
+      if (contentType.includes('application/json')) {
+        const data = await response.json()
+        if (data.type === 'action') {
+          setMessages(prev => {
+            const updated = [...prev]
+            updated[updated.length - 1] = {
+              role: 'assistant',
+              content: data.message,
+              actions: data.actions,
+            }
+            return updated
+          })
+          setIsStreaming(false)
+          return
+        }
+      }
+
+      // SSE streaming response
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -85,7 +131,7 @@ export default function Chat({ lots, onNavigate }) {
 
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // keep incomplete line
+        buffer = lines.pop() || ''
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
@@ -109,7 +155,6 @@ export default function Chat({ lots, onNavigate }) {
             } else if (event.type === 'error') {
               setError(event.content)
             }
-            // 'done' — just stop
           } catch {
             // skip malformed JSON
           }
@@ -118,7 +163,6 @@ export default function Chat({ lots, onNavigate }) {
     } catch (err) {
       if (err.name !== 'AbortError') {
         setError('Не удалось связаться с AI. Попробуйте позже.')
-        // Remove empty assistant message if no content was streamed
         setMessages(prev => {
           const last = prev[prev.length - 1]
           if (last && last.role === 'assistant' && !last.content) {
@@ -167,19 +211,40 @@ export default function Chat({ lots, onNavigate }) {
       {/* Messages area */}
       <div className="flex-1 p-4 space-y-4 overflow-auto pb-36">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'gap-2'}`}>
-            {msg.role === 'assistant' && (
-              <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0 mt-1">
-                R
+          <div key={i}>
+            <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'gap-2'}`}>
+              {msg.role === 'assistant' && (
+                <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0 mt-1">
+                  R
+                </div>
+              )}
+              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                msg.role === 'user'
+                  ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
+                  : 'bg-rz-green-light rounded-tl-none'
+              }`}>
+                <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            {msg.actions && msg.actions.length > 0 && (
+              <div className="flex flex-wrap gap-2 pl-10 mt-2">
+                {msg.actions.map((action, j) => (
+                  <button
+                    key={j}
+                    onClick={() => {
+                      if (action.type === 'navigate') {
+                        resolveNavigation(action.to, onNavigate)
+                      }
+                    }}
+                    className="bg-transparent border border-rz-gold text-rz-gold text-sm px-4 py-2 rounded-xl hover:bg-rz-gold hover:text-rz-green-dark transition-colors font-medium"
+                  >
+                    {action.label}
+                  </button>
+                ))}
               </div>
             )}
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-              msg.role === 'user'
-                ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
-                : 'bg-rz-green-light rounded-tl-none'
-            }`}>
-              <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
-            </div>
           </div>
         ))}
 
