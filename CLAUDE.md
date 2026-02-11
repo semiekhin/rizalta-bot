@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.6.1** (Phase 3.2.1 complete)
+**v0.7.0** (Phase 3.2.2 complete)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -25,9 +25,14 @@ ssh -p 2222 root@72.56.64.91
 /opt/webapp/
 ├── backend/
 │   ├── .env                          # Secrets (NOT in git)
-│   ├── .env.example                  # Template
-│   ├── app.py                        # FastAPI, порт 8003, lifespan
+│   ├── .env.example                  # Template (+OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS)
+│   ├── app.py                        # FastAPI, порт 8003, lifespan, ~580+ lines
 │   ├── webapp.db                     # Whitelist tokens (NOT in git)
+│   ├── secretary.db                  # Secretary tasks (NOT in git)
+│   ├── config/
+│   │   └── instructions.txt          # AI system prompt
+│   ├── data/
+│   │   └── README.md                 # Note to copy rizalta_finance.json
 │   └── services/
 │       ├── calculator.py             # ROI расчёт
 │       ├── installment_calculator.py # Варианты рассрочки
@@ -37,6 +42,12 @@ ssh -p 2222 root@72.56.64.91
 │       ├── kp_pdf_generator.py       # PDF КП (wkhtmltopdf)
 │       ├── calc_xlsx_generator.py    # Excel ROI
 │       ├── notifications.py          # Telegram + Email уведомления
+│       ├── ai_chat.py               # AI chat with OpenAI streaming
+│       ├── data_loader.py           # Loads finance data + instructions
+│       ├── intent_router.py         # Intent classification (quick patterns + GPT)
+│       ├── secretary_db.py          # SQLite CRUD for tasks (secretary.db)
+│       ├── secretary_ai.py          # GPT task parsing
+│       ├── rclick_service.py        # rclick.ru auth + fixation
 │       ├── calc_universal.py
 │       └── calculations.py
 ├── frontend/                         # Preact + Tailwind CSS 4 + Vite 7
@@ -50,14 +61,14 @@ ssh -p 2222 root@72.56.64.91
 │   │       ├── Catalog.jsx           # Шахматка К1+К2 (358 лотов)
 │   │       ├── Corp3.jsx             # Шахматка К3 (282 лота, whitelist)
 │   │       ├── LotDetail.jsx         # Карточка лота + 5 модалок
-│   │       ├── Chat.jsx              # AI чат (заглушка)
+│   │       ├── Chat.jsx              # AI чат (SSE streaming + action buttons)
 │   │       ├── Presentations.jsx     # PDF презентации
 │   │       ├── Documents.jsx         # Договоры
 │   │       ├── Media.jsx             # Видео
 │   │       ├── Booking.jsx           # Запись на показ (с валидацией)
 │   │       ├── News.jsx              # Курсы валют ЦБ
-│   │       ├── Secretary.jsx         # Заглушка → бот
-│   │       └── Fixation.jsx          # Заглушка → бот
+│   │       ├── Secretary.jsx         # Календарь + управление задачами + AI парсинг
+│   │       └── Fixation.jsx          # rclick авторизация + формы фиксации
 │   ├── public/
 │   │   ├── fonts/                    # Montserrat Regular, Medium, SemiBold (.ttf)
 │   │   └── images/
@@ -70,8 +81,9 @@ ssh -p 2222 root@72.56.64.91
 ## Стек
 - **Frontend**: Preact (via @preact/preset-vite with react alias), Tailwind CSS 4, Vite 7
 - **Backend**: Python 3.12, FastAPI 0.109, uvicorn, python-dotenv
-- **БД**: SQLite `/opt/bot/properties.db` (PROD, read-only) + `/opt/webapp/backend/webapp.db` (whitelist tokens)
+- **БД**: SQLite `/opt/bot/properties.db` (PROD, read-only) + `/opt/webapp/backend/webapp.db` (whitelist tokens) + `/opt/webapp/backend/secretary.db` (tasks)
 - **PDF**: wkhtmltopdf (KP + compare)
+- **AI**: OpenAI API (streaming SSE) — chat, intent routing, task parsing
 - **Уведомления**: Telegram Bot API (httpx) + SMTP email
 - **Nginx**: proxy /api/ → 127.0.0.1:8003, static из frontend/dist
 
@@ -94,10 +106,10 @@ ssh -p 2222 root@72.56.64.91
 ```
 ### Шрифт: Montserrat (Regular 400, Medium 500, SemiBold 600)
 
-## API (все endpoints v0.6.1)
+## API (все endpoints v0.7.0)
 ```
 # Общие
-GET  /api/health                      # version: "0.6.1"
+GET  /api/health                      # version: "0.7.0"
 GET  /api/lots                        # прокси к PROD боту :8000
 
 # Калькуляторы
@@ -127,6 +139,25 @@ GET  /api/corp3/layout/{code}         # Whitelist only, JPG планировки
 
 # Курсы валют
 GET  /api/news/currency               # USD/EUR/CNY через cbr-xml-daily.ru
+
+# AI Чат (Phase 3.2.2)
+POST /api/chat                        # SSE stream или action JSON, rate limited
+
+# Секретарь (Phase 3.2.2)
+GET  /api/secretary/tasks             # Задачи по дате
+GET  /api/secretary/tasks/week        # Задачи за неделю
+POST /api/secretary/tasks             # Создать задачу
+PUT  /api/secretary/tasks/{id}/done   # Отметить выполненной
+PUT  /api/secretary/tasks/{id}/undone # Отметить невыполненной
+PUT  /api/secretary/tasks/{id}/move   # Перенести дату
+DELETE /api/secretary/tasks/{id}      # Удалить задачу
+POST /api/secretary/parse             # AI парсинг текста в задачу
+
+# Фиксация (Phase 3.2.2)
+POST /api/fixation/auth               # rclick.ru логин
+GET  /api/fixation/status             # Проверка авторизации
+POST /api/fixation/create             # Создать фиксацию
+POST /api/fixation/logout             # Выход
 ```
 
 ## Whitelist система (Phase 3.1)
@@ -168,6 +199,28 @@ CREATE TABLE units (
 - Конфиг в `backend/.env` (TELEGRAM_BOT_TOKEN, MANAGER_CHAT_ID, SMTP_*)
 - book-showing всегда возвращает ok=true (даже если уведомление не дошло)
 
+## AI Чат (Phase 3.2.2)
+- `backend/services/ai_chat.py` — OpenAI streaming через SSE
+- `backend/services/data_loader.py` — загрузка rizalta_finance.json + instructions.txt
+- `backend/services/intent_router.py` — классификация интентов (быстрые паттерны + GPT fallback)
+- `backend/config/instructions.txt` — системный промпт для AI
+- `backend/data/rizalta_finance.json` — финансовые данные (копировать вручную, см. README.md)
+- Frontend: `Chat.jsx` — полноценный SSE streaming + кнопки действий
+- Конфиг в `backend/.env` (OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS)
+- Rate limiting на `/api/chat`
+
+## Секретарь (Phase 3.2.2)
+- `backend/services/secretary_db.py` — SQLite CRUD для задач (secretary.db)
+- `backend/services/secretary_ai.py` — GPT парсинг текста в структурированную задачу
+- `backend/secretary.db` — БД задач (NOT in git, см. .gitignore)
+- Frontend: `Secretary.jsx` — лента календаря + управление задачами + AI парсинг
+- 8 API endpoints для полного CRUD + AI парсинг
+
+## Фиксация (Phase 3.2.2)
+- `backend/services/rclick_service.py` — авторизация и фиксация на rclick.ru
+- Frontend: `Fixation.jsx` — авторизация rclick + формы фиксации
+- 4 API endpoints: auth, status, create, logout
+
 ## Команды
 ```bash
 # Backend
@@ -182,6 +235,8 @@ cd /opt/webapp/frontend && npm run build
 curl -s http://127.0.0.1:8003/api/health
 curl -s http://127.0.0.1:8003/api/lots | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['ok'], len(d.get('lots',[])))"
 curl -s "http://127.0.0.1:8003/api/download-compare-pdf?amount=5000000" -o /tmp/test.pdf && file /tmp/test.pdf
+curl -s http://127.0.0.1:8003/api/secretary/tasks?date=2026-02-11
+curl -s http://127.0.0.1:8003/api/fixation/status
 ```
 
 ## Nginx
@@ -195,7 +250,8 @@ server {
 }
 ```
 
-## TODO (Phase 3.2.2+)
-1. Chat.jsx → полноценный AI чат с SSE streaming (DeepSeek V3.2 через OpenRouter)
-2. Function calling в AI чате
-3. Когда К3 выходит в продажу — убрать проверку токена
+## TODO (Phase 3.3+)
+1. Function calling в AI чате (инструменты: расчёт, поиск лота, бронирование)
+2. Когда К3 выходит в продажу — убрать проверку токена
+3. История чата (сохранение сессий)
+4. Push-уведомления для задач секретаря
