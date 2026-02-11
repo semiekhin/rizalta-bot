@@ -15,10 +15,12 @@ WEBAPP_DB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 def init_rclick_table():
     """Create rclick_sessions table in webapp.db."""
     conn = sqlite3.connect(WEBAPP_DB)
+    # Drop old table with 'login' column if it exists (schema changed to 'phone')
+    conn.execute("DROP TABLE IF EXISTS rclick_sessions")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS rclick_sessions (
             session_id TEXT PRIMARY KEY,
-            login TEXT NOT NULL,
+            phone TEXT NOT NULL,
             cookies TEXT,
             agent_name TEXT,
             created_at TEXT DEFAULT (datetime('now')),
@@ -43,13 +45,13 @@ def _get_session(session_id: str) -> dict | None:
     return None
 
 
-def _save_session(session_id: str, login: str, cookies: str, agent_name: str = ""):
+def _save_session(session_id: str, phone: str, cookies: str, agent_name: str = ""):
     """Save rclick session."""
     conn = sqlite3.connect(WEBAPP_DB)
     conn.execute("""
-        INSERT OR REPLACE INTO rclick_sessions (session_id, login, cookies, agent_name, last_used)
+        INSERT OR REPLACE INTO rclick_sessions (session_id, phone, cookies, agent_name, last_used)
         VALUES (?, ?, ?, ?, datetime('now'))
-    """, (session_id, login, cookies, agent_name))
+    """, (session_id, phone, cookies, agent_name))
     conn.commit()
     conn.close()
 
@@ -62,32 +64,32 @@ def _delete_session(session_id: str):
     conn.close()
 
 
-async def rclick_auth(login: str, password: str, session_id: str) -> dict:
+async def rclick_auth(phone: str, password: str, session_id: str) -> dict:
     """Authenticate with ri.rclick.ru.
 
     Returns: {ok: bool, message: str, agent_name?: str}
     """
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-            # Attempt login
+            # Attempt login via phone + password
             resp = await client.post(
-                f"{RCLICK_BASE_URL}/api/auth/login",
-                json={"login": login, "password": password},
+                f"{RCLICK_BASE_URL}/auth/login/",
+                data={"phone": phone, "password": password},
             )
 
             if resp.status_code == 200:
                 data = resp.json()
                 if data.get("success") or data.get("ok"):
-                    agent_name = data.get("name", data.get("agent_name", login))
+                    agent_name = data.get("name", data.get("agent_name", phone))
                     # Store cookies for future requests
                     cookies_str = "; ".join(f"{k}={v}" for k, v in resp.cookies.items())
-                    _save_session(session_id, login, cookies_str, agent_name)
+                    _save_session(session_id, phone, cookies_str, agent_name)
                     return {"ok": True, "message": f"Авторизован как {agent_name}", "agent_name": agent_name}
                 else:
-                    return {"ok": False, "message": data.get("message", "Неверный логин или пароль")}
+                    return {"ok": False, "message": data.get("message", "Неверный телефон или пароль")}
 
             elif resp.status_code == 401:
-                return {"ok": False, "message": "Неверный логин или пароль"}
+                return {"ok": False, "message": "Неверный телефон или пароль"}
             else:
                 logger.error(f"[RCLICK] Auth error: HTTP {resp.status_code}")
                 return {"ok": False, "message": "Ошибка авторизации, попробуйте позже"}
@@ -100,7 +102,7 @@ async def rclick_auth(login: str, password: str, session_id: str) -> dict:
 
 
 async def rclick_check_status(session_id: str) -> dict:
-    """Check if session is still valid.
+    """Check if session is still valid by checking local DB.
 
     Returns: {ok: bool, authenticated: bool, agent_name?: str}
     """
@@ -108,41 +110,11 @@ async def rclick_check_status(session_id: str) -> dict:
     if not session:
         return {"ok": True, "authenticated": False}
 
-    # Try to validate the session with rclick
-    try:
-        cookies = {}
-        if session.get("cookies"):
-            for pair in session["cookies"].split("; "):
-                if "=" in pair:
-                    k, v = pair.split("=", 1)
-                    cookies[k] = v
-
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            resp = await client.get(
-                f"{RCLICK_BASE_URL}/api/auth/check",
-                cookies=cookies,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("authenticated") or data.get("ok"):
-                    return {
-                        "ok": True,
-                        "authenticated": True,
-                        "agent_name": session.get("agent_name", session.get("login", "")),
-                    }
-
-        # Session expired
-        _delete_session(session_id)
-        return {"ok": True, "authenticated": False}
-
-    except Exception as e:
-        logger.warning(f"[RCLICK] Status check error: {e}")
-        # If we can't reach rclick, assume session is still valid
-        return {
-            "ok": True,
-            "authenticated": True,
-            "agent_name": session.get("agent_name", session.get("login", "")),
-        }
+    return {
+        "ok": True,
+        "authenticated": True,
+        "agent_name": session.get("agent_name", session.get("phone", "")),
+    }
 
 
 async def rclick_create_fixation(session_id: str, client_name: str, client_phone: str,
@@ -165,8 +137,8 @@ async def rclick_create_fixation(session_id: str, client_name: str, client_phone
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             resp = await client.post(
-                f"{RCLICK_BASE_URL}/api/fixation/create",
-                json={
+                f"{RCLICK_BASE_URL}/notice/newbooking/",
+                data={
                     "client_name": client_name,
                     "client_phone": client_phone,
                     "comment": comment,

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 export default function Fixation({ onBack }) {
   const [authState, setAuthState] = useState('loading') // loading | login | authenticated
   const [agentName, setAgentName] = useState('')
-  const [login, setLogin] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState(null)
   const [authLoading, setAuthLoading] = useState(false)
@@ -38,7 +38,7 @@ export default function Fixation({ onBack }) {
 
   async function handleLogin(e) {
     e.preventDefault()
-    if (!login.trim() || !password.trim()) return
+    if (!phone.trim() || !password.trim()) return
     setAuthLoading(true)
     setAuthError(null)
 
@@ -46,11 +46,11 @@ export default function Fixation({ onBack }) {
       const res = await fetch('/api/fixation/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password }),
+        body: JSON.stringify({ phone, password }),
       })
       const data = await res.json()
       if (data.ok) {
-        setAgentName(data.agent_name || login)
+        setAgentName(data.agent_name || phone)
         setAuthState('authenticated')
         setPassword('')
       } else {
@@ -71,7 +71,7 @@ export default function Fixation({ onBack }) {
     }
     setAuthState('login')
     setAgentName('')
-    setLogin('')
+    setPhone('')
     setFixResult(null)
   }
 
@@ -141,11 +141,12 @@ export default function Fixation({ onBack }) {
 
             <form onSubmit={handleLogin} className="space-y-3">
               <div>
-                <label className="text-xs text-rz-cream-dark mb-1 block">Логин</label>
+                <label className="text-xs text-rz-cream-dark mb-1 block">Телефон</label>
                 <input
-                  value={login}
-                  onChange={e => setLogin(e.target.value)}
-                  placeholder="Ваш логин на ri.rclick.ru"
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+7 (999) 123-45-67"
                   className="w-full bg-rz-green-mid rounded-xl px-4 py-2.5 text-sm text-rz-cream outline-none focus:ring-2 focus:ring-rz-gold placeholder:text-rz-cream-muted"
                   autoFocus
                 />
@@ -169,7 +170,7 @@ export default function Fixation({ onBack }) {
 
               <button
                 type="submit"
-                disabled={authLoading || !login.trim() || !password.trim()}
+                disabled={authLoading || !phone.trim() || !password.trim()}
                 className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl disabled:opacity-50 transition-colors hover:bg-rz-gold-light"
               >
                 {authLoading ? 'Вхожу...' : 'Войти'}

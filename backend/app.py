@@ -150,7 +150,7 @@ class TaskParseRequest(BaseModel):
     text: str
 
 class FixationAuthRequest(BaseModel):
-    login: str
+    phone: str
     password: str
 
 class FixationCreateRequest(BaseModel):
@@ -494,7 +494,7 @@ def _get_session_id(request: Request) -> str:
 async def api_fixation_auth(req: FixationAuthRequest, request: Request):
     """Authenticate with ri.rclick.ru."""
     session_id = _get_session_id(request)
-    result = await rclick_auth(req.login, req.password, session_id)
+    result = await rclick_auth(req.phone, req.password, session_id)
     if result.get("ok"):
         from fastapi.responses import JSONResponse
         resp = JSONResponse(result)

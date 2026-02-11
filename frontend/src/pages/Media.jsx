@@ -9,7 +9,7 @@ const VIDEOS = [
   { key: 'mihalkova', label: 'Михалкова — Алтай' },
 ]
 
-export default function Media({ onBack, onNavigate }) {
+export default function Media({ onBack }) {
   const [playing, setPlaying] = useState(null)
 
   return (
@@ -20,17 +20,6 @@ export default function Media({ onBack, onNavigate }) {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Link to presentations */}
-        <button
-          onClick={() => onNavigate('presentations')}
-          className="w-full bg-rz-green-light rounded-xl p-4 flex items-center gap-3 border border-rz-green-mid hover:border-rz-gold transition-colors"
-        >
-          <span className="text-xl">📸</span>
-          <span className="text-sm font-medium flex-1 text-left">Презентации (PDF)</span>
-          <span className="text-rz-cream-muted">→</span>
-        </button>
-
-        {/* Videos */}
         <p className="text-rz-cream-dark text-sm font-medium">🎬 Видеоматериалы RIZALTA</p>
 
         <div className="space-y-3">

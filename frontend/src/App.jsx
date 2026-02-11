@@ -71,7 +71,7 @@ export default function App() {
       case 'documents':
         return <Documents onBack={() => navigate('home')} />
       case 'media':
-        return <Media onBack={() => navigate('home')} onNavigate={navigate} />
+        return <Media onBack={() => navigate('home')} />
       case 'booking':
         return <Booking onBack={() => navigate('home')} />
       case 'news':

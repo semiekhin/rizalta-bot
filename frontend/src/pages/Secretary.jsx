@@ -257,7 +257,7 @@ export default function Secretary({ onBack }) {
       {/* Create task modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end">
-          <div className="w-full bg-rz-green-dark rounded-t-2xl p-4 pb-8 max-h-[80vh] overflow-auto">
+          <div className="w-full bg-rz-green-dark rounded-t-2xl p-4 pb-24 max-h-[80vh] overflow-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-lg">Новая задача</h2>
               <button
