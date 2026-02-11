@@ -28,6 +28,11 @@ export default function LotDetail({ lot, onBack, onChat }) {
   const [depositData, setDepositData] = useState(null)
   const [depositLoading, setDepositLoading] = useState(false)
 
+  // MGP
+  const [showMGP, setShowMGP] = useState(false)
+  const [mgpData, setMgpData] = useState(null)
+  const [mgpLoading, setMgpLoading] = useState(false)
+
   // Mortgage
   const [showMortgage, setShowMortgage] = useState(false)
   const [mortgageData, setMortgageData] = useState(null)
@@ -146,7 +151,20 @@ export default function LotDetail({ lot, onBack, onChat }) {
   }
 
   // === MGP ===
-  const handleMGP = () => {
+  const handleMGP = async () => {
+    setShowMGP(true)
+    setMgpLoading(true)
+    try {
+      const res = await fetch(`/api/mgp/calculate?area=${lot.area}`)
+      const data = await res.json()
+      if (data.ok) setMgpData(data)
+    } catch (e) {
+      console.error(e)
+    }
+    setMgpLoading(false)
+  }
+
+  const handleMGPDownload = () => {
     const url = `/api/mgp/pdf?code=${encodeURIComponent(lot.code)}&area=${lot.area}&building=${lot.building}`
     window.open(url, '_blank')
   }
@@ -247,11 +265,6 @@ export default function LotDetail({ lot, onBack, onChat }) {
           <button onClick={handleDeposit} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             🏦 Сравнить с депозитом
           </button>
-          {lot.source !== 'corp3' && (
-            <button onClick={handleExcelDownload} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
-              📥 Скачать Excel
-            </button>
-          )}
           <button onClick={handleMGP} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             📊 Расчёт МГП
           </button>
@@ -719,6 +732,69 @@ export default function LotDetail({ lot, onBack, onChat }) {
                   <p className="text-xs text-rz-cream-muted text-center pt-2 border-t border-rz-green-mid">
                     Расчёт предварительный. Точные условия уточняйте в банке.
                   </p>
+                  <button
+                    onClick={() => window.open(`/api/mortgage/pdf?price=${lot.price}&down_payment_pct=${mortgageDP}&tariff=${mortgageTariff}&loan_term_months=${mortgageTerm}`, '_blank')}
+                    className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors mt-3"
+                  >
+                    📄 Скачать PDF
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MGP Modal */}
+      {showMGP && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[90vh] overflow-auto pb-24">
+            <div className="px-4 py-3 border-b border-rz-green-mid flex justify-between items-center sticky top-0 bg-rz-green-light z-10">
+              <h2 className="font-bold text-lg">📊 Расчёт МГП</h2>
+              <button onClick={() => { setShowMGP(false); setMgpData(null) }} className="text-rz-cream-dark text-xl">✕</button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-rz-cream-dark text-xs">Минимальный гарантированный платёж • {lot.code} • {lot.area} м²</p>
+
+              {mgpLoading && (
+                <div className="flex justify-center py-8">
+                  <div className="w-8 h-8 border-4 border-rz-gold border-t-transparent rounded-full animate-spin"/>
+                </div>
+              )}
+
+              {mgpData && (
+                <div className="space-y-3">
+                  <div className="overflow-x-auto rounded-xl border border-rz-green-mid">
+                    <table className="w-full text-xs min-w-[320px]">
+                      <thead>
+                        <tr className="bg-rz-green-mid text-rz-cream-dark">
+                          <th className="py-2 px-2 text-left font-medium">Год</th>
+                          <th className="py-2 px-2 text-right font-medium">Номерной, ₽</th>
+                          <th className="py-2 px-2 text-right font-medium">Коммерч., ₽</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mgpData.years.map((yr, i) => (
+                          <tr key={yr.year} className={i % 2 === 0 ? 'bg-rz-green-light' : 'bg-rz-green-mid/50'}>
+                            <td className="py-1.5 px-2 font-medium">{yr.year}</td>
+                            <td className="py-1.5 px-2 text-right text-rz-gold">{formatPrice(yr.nominal)} ₽</td>
+                            <td className="py-1.5 px-2 text-right text-rz-cream-dark">{formatPrice(yr.commercial)} ₽</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-rz-green-mid font-bold">
+                          <td className="py-2 px-2">Итого</td>
+                          <td className="py-2 px-2 text-right text-rz-gold">{formatPrice(mgpData.total_nominal)} ₽</td>
+                          <td className="py-2 px-2 text-right text-rz-cream-dark">{formatPrice(mgpData.total_commercial)} ₽</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  <button onClick={handleMGPDownload} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+                    📄 Скачать PDF
+                  </button>
                 </div>
               )}
             </div>

@@ -194,7 +194,7 @@ EXCLUDE_KEYWORDS = [
 ]
 
 
-async def _fetch_rss(url: str, limit: int = 10) -> List[Dict]:
+async def _fetch_rss(url: str, limit: int = 30) -> List[Dict]:
     items = []
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -215,13 +215,14 @@ async def _fetch_rss(url: str, limit: int = 10) -> List[Dict]:
 
 
 def _filter_news(items: List[Dict]) -> List[Dict]:
+    """Filter news: exclude unwanted topics. All non-excluded items pass through
+    (RSS sources are already business-focused, so no INCLUDE filter needed)."""
     filtered = []
     for item in items:
         title_lower = item["title"].lower()
         if any(excl in title_lower for excl in EXCLUDE_KEYWORDS):
             continue
-        if any(incl in title_lower for incl in INCLUDE_KEYWORDS):
-            filtered.append(item)
+        filtered.append(item)
     return filtered
 
 
@@ -229,7 +230,7 @@ async def get_news_digest() -> List[Dict]:
     """Gets filtered investment news from RSS sources."""
     all_news = []
     for source in RSS_SOURCES:
-        items = await _fetch_rss(source["url"], limit=10)
+        items = await _fetch_rss(source["url"], limit=30)
         for item in items:
             item["source"] = source["name"]
         all_news.extend(items)

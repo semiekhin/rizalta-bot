@@ -31,7 +31,7 @@ from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
 from services.news_service import get_weather, get_flights, get_news_digest
 from services.mgp_calculator import calc_mgp, generate_mgp_pdf, fmt as mgp_fmt
-from services.mortgage_calculator import calc_mortgage, get_mortgage_options
+from services.mortgage_calculator import calc_mortgage, get_mortgage_options, generate_mortgage_pdf
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -204,24 +204,30 @@ async def health():
 
 @app.post("/api/chat")
 async def api_chat(req: ChatRequest, request: Request):
-    """AI chat — returns action JSON or SSE stream depending on intent."""
+    """AI chat — returns action JSON for navigation intents, or SSE stream (with optional action buttons) for everything else."""
     check_chat_rate(request)
 
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Empty message")
 
     # Check if message has an actionable intent
+    actions_to_append = None
     try:
-        action = analyze_user_intent(req.message)
-        if action:
-            return action  # JSON response with type: "action"
+        result = analyze_user_intent(req.message)
+        if result:
+            if result["type"] == "action":
+                # Navigation intent → return JSON immediately
+                return result
+            elif result["type"] == "enriched":
+                # Informational intent → stream AI + append action buttons
+                actions_to_append = result["actions"]
     except Exception as e:
         import logging
         logging.error(f"[CHAT] Intent analysis error: {e}")
 
-    # Fallback: SSE streaming chat
+    # SSE streaming chat (with optional action buttons at the end)
     return StreamingResponse(
-        stream_chat_response(req.message, req.history),
+        stream_chat_response(req.message, req.history, actions=actions_to_append),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -799,6 +805,23 @@ async def api_mortgage_calculate(req: MortgageRequest):
             loan_term_months=req.loan_term_months,
         )
         return {"ok": True, "data": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/mortgage/pdf")
+async def api_mortgage_pdf(price: int, down_payment_pct: int = 30, tariff: str = "base", loan_term_months: int = 360):
+    """Generate and download mortgage PDF."""
+    try:
+        data = calc_mortgage(price, down_payment_pct, tariff, loan_term_months)
+        pdf_path = generate_mortgage_pdf(data)
+        if pdf_path and os.path.exists(pdf_path):
+            return FileResponse(
+                pdf_path,
+                media_type="application/pdf",
+                filename=f"Mortgage_{price}.pdf"
+            )
+        return {"ok": False, "error": "Ошибка генерации PDF"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

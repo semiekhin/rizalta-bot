@@ -10,103 +10,76 @@ from services.intent_router import classify_intent
 
 logger = logging.getLogger(__name__)
 
-# Intent → webapp action mapping
+# Navigation intents — return JSON action immediately (open a screen)
+NAVIGATION_INTENTS = {
+    "open_shahmatka", "send_presentation", "show_media", "send_documents",
+    "open_fixation", "show_news", "show_schedule", "create_task",
+}
+
+# Intent → action buttons mapping (used for both navigation and enriched intents)
 INTENT_ACTIONS = {
-    "calculate_roi": {
-        "message": "Вот расчёт доходности{unit_suffix}:",
-        "actions": lambda p: [
-            {"label": "Посмотреть ROI", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=roi"} if p.get("unit_code") else
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "show_installment": {
-        "message": "Варианты рассрочки{unit_suffix}:",
-        "actions": lambda p: [
-            {"label": "Рассрочка", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=deposit"} if p.get("unit_code") else
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "compare_deposit": {
-        "message": "Сравнение с банковским депозитом:",
-        "actions": lambda p: [
-            {"label": "Сравнить с депозитом", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=deposit"} if p.get("unit_code") else
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "book_showing": {
-        "message": "Запишитесь на онлайн-показ апартаментов:",
-        "actions": lambda _: [
-            {"label": "Записаться на показ", "type": "navigate", "to": "/booking"},
-        ],
-    },
-    "show_layouts": {
-        "message": "Планировки апартаментов{unit_suffix}:",
-        "actions": lambda p: [
-            {"label": "Посмотреть планировку", "type": "navigate", "to": f"/catalog/{p['unit_code']}"} if p.get("unit_code") else
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "get_commercial_proposal": {
-        "message": "Коммерческое предложение{unit_suffix}:",
-        "actions": lambda p: [
-            {"label": "Скачать КП", "type": "navigate", "to": f"/catalog/{p['unit_code']}"} if p.get("unit_code") else
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "send_presentation": {
-        "message": "Презентации проекта RIZALTA:",
-        "actions": lambda _: [
-            {"label": "Открыть презентации", "type": "navigate", "to": "/presentations"},
-        ],
-    },
-    "open_fixation": {
-        "message": "Для фиксации клиента за вами перейдите в раздел Фиксация:",
-        "actions": lambda _: [
-            {"label": "Открыть фиксацию", "type": "navigate", "to": "/fixation"},
-        ],
-    },
-    "open_shahmatka": {
-        "message": "Каталог апартаментов RIZALTA:",
-        "actions": lambda _: [
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "send_documents": {
-        "message": "Документы проекта RIZALTA:",
-        "actions": lambda _: [
-            {"label": "Открыть документы", "type": "navigate", "to": "/documents"},
-        ],
-    },
-    "show_media": {
-        "message": "Видеоматериалы о проекте:",
-        "actions": lambda _: [
-            {"label": "Открыть видео", "type": "navigate", "to": "/media"},
-        ],
-    },
-    "show_news": {
-        "message": "Актуальные курсы валют:",
-        "actions": lambda _: [
-            {"label": "Курсы валют", "type": "navigate", "to": "/news"},
-        ],
-    },
-    "build_portfolio": {
-        "message": "Подбор апартаментов{budget_suffix}:",
-        "actions": lambda _: [
-            {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-        ],
-    },
-    "create_task": {
-        "message": "Задача создана. Откройте секретарь для просмотра:",
-        "actions": lambda _: [
-            {"label": "Открыть секретарь", "type": "navigate", "to": "/secretary"},
-        ],
-    },
-    "show_schedule": {
-        "message": "Ваше расписание и задачи:",
-        "actions": lambda _: [
-            {"label": "Открыть секретарь", "type": "navigate", "to": "/secretary"},
-        ],
-    },
+    "calculate_roi": lambda p: [
+        {"label": "Посмотреть ROI", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=roi"} if p.get("unit_code") else
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "show_installment": lambda p: [
+        {"label": "Рассрочка", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=deposit"} if p.get("unit_code") else
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "compare_deposit": lambda p: [
+        {"label": "Сравнить с депозитом", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=deposit"} if p.get("unit_code") else
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "book_showing": lambda _: [
+        {"label": "Записаться на показ", "type": "navigate", "to": "/booking"},
+    ],
+    "show_layouts": lambda p: [
+        {"label": "Посмотреть планировку", "type": "navigate", "to": f"/catalog/{p['unit_code']}"} if p.get("unit_code") else
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "get_commercial_proposal": lambda p: [
+        {"label": "Скачать КП", "type": "navigate", "to": f"/catalog/{p['unit_code']}"} if p.get("unit_code") else
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "send_presentation": lambda _: [
+        {"label": "Открыть презентации", "type": "navigate", "to": "/presentations"},
+    ],
+    "open_fixation": lambda _: [
+        {"label": "Открыть фиксацию", "type": "navigate", "to": "/fixation"},
+    ],
+    "open_shahmatka": lambda _: [
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "send_documents": lambda _: [
+        {"label": "Открыть документы", "type": "navigate", "to": "/documents"},
+    ],
+    "show_media": lambda _: [
+        {"label": "Открыть видео", "type": "navigate", "to": "/media"},
+    ],
+    "show_news": lambda _: [
+        {"label": "Курсы валют", "type": "navigate", "to": "/news"},
+    ],
+    "build_portfolio": lambda _: [
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ],
+    "create_task": lambda _: [
+        {"label": "Открыть секретарь", "type": "navigate", "to": "/secretary"},
+    ],
+    "show_schedule": lambda _: [
+        {"label": "Открыть секретарь", "type": "navigate", "to": "/secretary"},
+    ],
+}
+
+# Navigation intent messages (short, for JSON-only responses)
+NAVIGATION_MESSAGES = {
+    "open_shahmatka": "Каталог апартаментов RIZALTA:",
+    "send_presentation": "Презентации проекта RIZALTA:",
+    "show_media": "Видеоматериалы о проекте:",
+    "send_documents": "Документы проекта RIZALTA:",
+    "open_fixation": "Для фиксации клиента перейдите в раздел Фиксация:",
+    "show_news": "Актуальные курсы валют:",
+    "show_schedule": "Ваше расписание и задачи:",
+    "create_task": "Задача создана. Откройте секретарь для просмотра:",
 }
 
 # OpenAI client (initialized lazily)
@@ -232,10 +205,11 @@ def build_system_prompt() -> str:
     return instructions + context
 
 
-def stream_chat_response(message: str, history: list[dict]):
+def stream_chat_response(message: str, history: list[dict], actions: list[dict] | None = None):
     """Generator that yields SSE events from OpenAI streaming response.
 
     Yields strings in SSE format: 'data: {"type": "token", "content": "..."}\n\n'
+    If actions are provided, yields them as a final "actions" event after streaming.
     """
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
@@ -266,6 +240,10 @@ def stream_chat_response(message: str, history: list[dict]):
                 token = chunk.choices[0].delta.content
                 yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
 
+        # Append action buttons after streaming completes
+        if actions:
+            yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
+
         yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
 
     except Exception as e:
@@ -274,29 +252,35 @@ def stream_chat_response(message: str, history: list[dict]):
 
 
 def analyze_user_intent(message: str) -> dict | None:
-    """Analyze message intent. Returns action dict if actionable, None for chat."""
+    """Analyze message intent and classify it.
+
+    Returns:
+    - For navigation intents: dict with type="action" (JSON response)
+    - For enriched intents: dict with type="enriched" + actions list (stream AI + buttons)
+    - None: pure chat, no intent detected
+    """
     intent, params = classify_intent(message)
 
     if intent == "chat" or intent not in INTENT_ACTIONS:
         return None
 
-    mapping = INTENT_ACTIONS[intent]
+    actions = INTENT_ACTIONS[intent](params)
 
-    # Build message with substitutions
-    unit_suffix = f" по юниту {params['unit_code']}" if params.get("unit_code") else ""
-    budget_suffix = f" на бюджет {params['budget']:,} руб.".replace(",", " ") if params.get("budget") else ""
-    msg_text = mapping["message"].format(
-        unit_suffix=unit_suffix,
-        budget_suffix=budget_suffix,
-    )
+    # Navigation intents → return JSON immediately
+    if intent in NAVIGATION_INTENTS:
+        msg_text = NAVIGATION_MESSAGES.get(intent, "")
+        return {
+            "type": "action",
+            "intent": intent,
+            "params": params,
+            "message": msg_text,
+            "actions": actions,
+        }
 
-    # Build actions
-    actions = mapping["actions"](params)
-
+    # Enriched intents → stream AI response + append action buttons
     return {
-        "type": "action",
+        "type": "enriched",
         "intent": intent,
         "params": params,
-        "message": msg_text,
         "actions": actions,
     }

@@ -2,6 +2,9 @@
 Ported from /opt/bot-dev/services/mortgage_calculator.py."""
 
 import json
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, Any
 
@@ -90,3 +93,61 @@ def get_mortgage_options() -> Dict[str, Any]:
         "loan_terms": cfg["loan_terms"],
         "service_fee": cfg["service_fee"],
     }
+
+
+def _fmt(val: int) -> str:
+    return f"{val:,}".replace(",", " ")
+
+
+def generate_mortgage_pdf(data: Dict[str, Any]) -> str:
+    """Generates PDF with mortgage calculation. Returns path to temp file."""
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+    body {{ font-family: Arial, sans-serif; margin: 40px; color: #1a1a1a; }}
+    h1 {{ font-size: 20px; color: #1a3a5c; margin-bottom: 5px; }}
+    h2 {{ font-size: 14px; color: #555; font-weight: normal; margin-top: 0; }}
+    table {{ width: 75%; border-collapse: collapse; margin-top: 20px; }}
+    th {{ background: #1a3a5c; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }}
+    td {{ padding: 8px 14px; border-bottom: 1px solid #ddd; font-size: 13px; }}
+    td.val {{ text-align: right; font-family: monospace; font-weight: bold; }}
+    tr:nth-child(even) {{ background: #f5f7fa; }}
+    .highlight td {{ background: #e8f5e9; }}
+    .footer {{ margin-top: 30px; font-size: 11px; color: #888; }}
+</style></head><body>
+    <h1>🏦 Ипотека Совкомбанк — Акция «Сниженный платёж»</h1>
+    <h2>Тариф: {data['tariff_name']} | Срок: {data['loan_term_years']} лет | ПВ: {data['down_payment_pct']}%</h2>
+    <table>
+        <tr><th colspan="2">Параметры расчёта</th></tr>
+        <tr><td>Стоимость объекта</td><td class="val">{_fmt(data['price'])} ₽</td></tr>
+        <tr><td>Первоначальный взнос ({data['down_payment_pct']}%)</td><td class="val">{_fmt(data['down_payment'])} ₽</td></tr>
+        <tr><td>Удорожание ({data['markup_pct']}%)</td><td class="val">{_fmt(data['markup'])} ₽</td></tr>
+        <tr><td>Сумма кредита</td><td class="val">{_fmt(data['loan_amount'])} ₽</td></tr>
+        <tr><th colspan="2">Льготный период ({data['grace_months']} мес)</th></tr>
+        <tr class="highlight"><td>Платёж в льготный период</td><td class="val">{_fmt(data['grace_payment'])} ₽/мес</td></tr>
+        <tr><td>Комиссия аккредитива</td><td class="val">{data['accreditive_pct']}%</td></tr>
+        <tr><th colspan="2">После льготного ({data['remaining_months']} мес)</th></tr>
+        <tr><td>Ставка</td><td class="val">{data['rate_after_grace']}%</td></tr>
+        <tr class="highlight"><td>Ежемесячный платёж</td><td class="val">{_fmt(data['regular_payment'])} ₽/мес</td></tr>
+        <tr><th colspan="2">Итого</th></tr>
+        <tr><td>Общая сумма выплат</td><td class="val">{_fmt(data['total_paid'])} ₽</td></tr>
+        <tr><td>Переплата</td><td class="val">{_fmt(data['overpayment'])} ₽</td></tr>
+    </table>
+    <p class="footer">Расчёт предварительный. Точные условия уточняйте в банке.</p>
+</body></html>"""
+
+    tmp_html = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+    tmp_html.write(html.encode())
+    tmp_html.close()
+
+    pdf_path = tmp_html.name.replace(".html", ".pdf")
+    subprocess.run([
+        "wkhtmltopdf", "--quiet",
+        "--page-size", "A4",
+        "--margin-top", "10mm",
+        "--margin-bottom", "10mm",
+        tmp_html.name, pdf_path
+    ], check=True)
+
+    os.unlink(tmp_html.name)
+    return pdf_path

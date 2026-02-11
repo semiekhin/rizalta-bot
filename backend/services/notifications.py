@@ -242,7 +242,7 @@ async def notify_showing_request(
         except Exception as e:
             logger.error(f"[SHOWING] Group notify error: {e}")
 
-    # --- 2. Отправляем менеджерам (plain text) ---
+    # --- 2. Отправляем менеджерам (plain text), исключая группу показов ---
     lot_info_html = f"\n🏢 <b>Лот:</b> {lot_code}" if lot_code else ""
     comment_info_html = f"\n💬 <b>Комментарий:</b> {comment}" if comment else ""
 
@@ -258,7 +258,13 @@ async def notify_showing_request(
         f"🕐 {now}"
     )
 
-    tg_count = await send_telegram_to_managers(tg_text)
+    # Exclude SHOWS_GROUP_ID from manager list to avoid duplicate messages
+    shows_id = int(SHOWS_GROUP_ID) if SHOWS_GROUP_ID else None
+    manager_ids = [cid for cid in get_manager_chat_ids() if cid != shows_id]
+    tg_count = 0
+    for cid in manager_ids:
+        if await send_telegram_message(cid, tg_text):
+            tg_count += 1
 
     # --- 3. Email ---
     email_subject = f"RIZALTA — Заявка на показ от {name}"

@@ -141,12 +141,12 @@ export default function Fixation({ onBack }) {
 
             <form onSubmit={handleLogin} className="space-y-3">
               <div>
-                <label className="text-xs text-rz-cream-dark mb-1 block">Телефон</label>
+                <label className="text-xs text-rz-cream-dark mb-1 block">Телефон или email</label>
                 <input
-                  type="tel"
+                  type="text"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  placeholder="+7 (999) 123-45-67"
+                  placeholder="Телефон или email"
                   className="w-full bg-rz-green-mid rounded-xl px-4 py-2.5 text-sm text-rz-cream outline-none focus:ring-2 focus:ring-rz-gold placeholder:text-rz-cream-muted"
                   autoFocus
                 />

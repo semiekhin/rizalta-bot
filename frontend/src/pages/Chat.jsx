@@ -152,6 +152,19 @@ export default function Chat({ lots, onNavigate }) {
                 }
                 return updated
               })
+            } else if (event.type === 'actions') {
+              // Action buttons appended after AI streaming
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                if (last && last.role === 'assistant') {
+                  updated[updated.length - 1] = {
+                    ...last,
+                    actions: event.actions,
+                  }
+                }
+                return updated
+              })
             } else if (event.type === 'error') {
               setError(event.content)
             }
