@@ -28,6 +28,7 @@ from services.notifications import notify_showing_request
 from services.ai_chat import stream_chat_response, analyze_user_intent
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.secretary_ai import parse_task_with_ai
+from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -84,6 +85,7 @@ async def lifespan(app_instance):
     init_webapp_db()
     seed_token()
     init_secretary_db()
+    init_rclick_table()
     yield
 
 
@@ -147,6 +149,15 @@ class TaskMoveRequest(BaseModel):
 class TaskParseRequest(BaseModel):
     text: str
 
+class FixationAuthRequest(BaseModel):
+    login: str
+    password: str
+
+class FixationCreateRequest(BaseModel):
+    client_name: str
+    client_phone: str
+    comment: str = ""
+
 
 # === Rate limiter (10 req/min per IP for /api/chat) ===
 _chat_rate: dict[str, list[float]] = defaultdict(list)
@@ -179,7 +190,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.7.0-alpha"}
+    return {"status": "healthy", "version": "0.7.0"}
 
 
 @app.post("/api/chat")
@@ -466,6 +477,60 @@ async def api_parse_task(req: TaskParseRequest):
         return {"ok": True, **parsed}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+# === Fixation endpoints ===
+
+def _get_session_id(request: Request) -> str:
+    """Get or generate session ID from cookie or header."""
+    sid = request.cookies.get("rclick_session") or request.headers.get("X-Session-Id", "")
+    if not sid:
+        import secrets as sec
+        sid = sec.token_urlsafe(16)
+    return sid
+
+
+@app.post("/api/fixation/auth")
+async def api_fixation_auth(req: FixationAuthRequest, request: Request):
+    """Authenticate with ri.rclick.ru."""
+    session_id = _get_session_id(request)
+    result = await rclick_auth(req.login, req.password, session_id)
+    if result.get("ok"):
+        from fastapi.responses import JSONResponse
+        resp = JSONResponse(result)
+        resp.set_cookie("rclick_session", session_id, httponly=True, max_age=86400 * 30)
+        return resp
+    return result
+
+
+@app.get("/api/fixation/status")
+async def api_fixation_status(request: Request):
+    """Check if user is authenticated with rclick."""
+    session_id = _get_session_id(request)
+    return await rclick_check_status(session_id)
+
+
+@app.post("/api/fixation/create")
+async def api_fixation_create(req: FixationCreateRequest, request: Request):
+    """Create a client fixation."""
+    session_id = _get_session_id(request)
+    return await rclick_create_fixation(
+        session_id=session_id,
+        client_name=req.client_name,
+        client_phone=req.client_phone,
+        comment=req.comment,
+    )
+
+
+@app.post("/api/fixation/logout")
+async def api_fixation_logout(request: Request):
+    """Logout from rclick."""
+    session_id = _get_session_id(request)
+    result = await rclick_logout(session_id)
+    from fastapi.responses import JSONResponse
+    resp = JSONResponse(result)
+    resp.delete_cookie("rclick_session")
+    return resp
 
 
 # === Whitelist endpoints ===
