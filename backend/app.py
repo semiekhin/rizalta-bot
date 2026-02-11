@@ -26,6 +26,8 @@ from services.deposit_calculator import calculate_deposit, calculate_all_scenari
 from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
 from services.ai_chat import stream_chat_response, analyze_user_intent
+from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
+from services.secretary_ai import parse_task_with_ai
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -81,6 +83,7 @@ def get_access_level(request: Request) -> str:
 async def lifespan(app_instance):
     init_webapp_db()
     seed_token()
+    init_secretary_db()
     yield
 
 
@@ -130,6 +133,19 @@ class DepositRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
+
+class TaskCreateRequest(BaseModel):
+    task: str
+    date: str
+    time: Optional[str] = None
+    client_name: Optional[str] = None
+    priority: str = "normal"
+
+class TaskMoveRequest(BaseModel):
+    new_date: str
+
+class TaskParseRequest(BaseModel):
+    text: str
 
 
 # === Rate limiter (10 req/min per IP for /api/chat) ===
@@ -370,6 +386,87 @@ async def api_download_compare_pdf(amount: int, years: int = 11, area: float = 2
         return {"ok": False, "error": "Ошибка генерации PDF"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+# === Secretary endpoints ===
+
+@app.get("/api/secretary/tasks")
+async def api_get_tasks(date: str):
+    """Get tasks for a specific date (YYYY-MM-DD)."""
+    try:
+        tasks = get_tasks_for_date(date)
+        return {"ok": True, "date": date, "tasks": tasks}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/secretary/tasks/week")
+async def api_get_tasks_week(start: str):
+    """Get tasks for 7 days starting from date."""
+    try:
+        week = get_tasks_for_week(start)
+        return {"ok": True, "start": start, "week": week}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/secretary/tasks")
+async def api_create_task(req: TaskCreateRequest):
+    """Create a new task."""
+    try:
+        task = add_task(
+            task=req.task, date=req.date, time=req.time,
+            client_name=req.client_name, priority=req.priority
+        )
+        return {"ok": True, "task": task}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.put("/api/secretary/tasks/{task_id}/done")
+async def api_mark_done(task_id: int):
+    """Mark task as done."""
+    success = mark_done(task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
+
+
+@app.put("/api/secretary/tasks/{task_id}/undone")
+async def api_mark_undone(task_id: int):
+    """Mark task as not done."""
+    success = mark_undone(task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
+
+
+@app.put("/api/secretary/tasks/{task_id}/move")
+async def api_move_task(task_id: int, req: TaskMoveRequest):
+    """Move task to a different date."""
+    success = move_task(task_id, req.new_date)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
+
+
+@app.delete("/api/secretary/tasks/{task_id}")
+async def api_delete_task(task_id: int):
+    """Delete a task."""
+    success = delete_task(task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
+
+
+@app.post("/api/secretary/parse")
+async def api_parse_task(req: TaskParseRequest):
+    """AI-parse free text into a structured task."""
+    try:
+        parsed = parse_task_with_ai(req.text)
+        return {"ok": True, **parsed}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 
 # === Whitelist endpoints ===
 
