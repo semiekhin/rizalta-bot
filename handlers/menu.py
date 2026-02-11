@@ -82,11 +82,13 @@ async def handle_back(chat_id: int):
 
 async def handle_main_menu(chat_id: int):
     """Показ главного меню."""
+    buttons = MAIN_MENU_BUTTONS
+
     await send_message(
         chat_id,
         "Главное меню:",
         with_keyboard=True,
-        buttons=MAIN_MENU_BUTTONS,
+        buttons=buttons,
     )
 
 
@@ -115,7 +117,7 @@ RIZALTA RESORT BELOKURIKHA — премиальный комплекс куро�
         [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
     ]
     
-    await send_photo_inline(chat_id, "/opt/bot-dev/data/images/rizalta_resort.jpg", text, inline_buttons)
+    await send_photo_inline(chat_id, "/opt/bot/data/images/rizalta_resort.jpg", text, inline_buttons)
 
 
 async def handle_why_altai(chat_id: int):

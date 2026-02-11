@@ -242,7 +242,7 @@ async def api_get_lots(building: int = None, floor: int = None, status: str = No
     """API для Mini App — список лотов."""
     import sqlite3
     
-    conn = sqlite3.connect("/opt/bot-dev/properties.db")
+    conn = sqlite3.connect("/opt/bot/properties.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
@@ -252,7 +252,7 @@ async def api_get_lots(building: int = None, floor: int = None, status: str = No
     # Фильтр скрытых корпусов
     import json
     try:
-        with open("/opt/bot-dev/data/hidden_buildings.json") as f:
+        with open("/opt/bot/data/hidden_buildings.json") as f:
             hidden = json.load(f).get("hidden", [])
         if hidden:
             placeholders = ",".join("?" * len(hidden))
@@ -846,6 +846,22 @@ async def process_callback(callback: Dict[str, Any]):
         code, building = parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
         from handlers.calc_dynamic import handle_calc_roi_by_code
         await handle_calc_roi_by_code(chat_id, code, building)
+
+    elif data.startswith("mgp_pdf_"):
+        # mgp_pdf_{code}_{building}_{area10}
+        parts = data.replace("mgp_pdf_", "").rsplit("_", 2)
+        code, building, area10 = parts[0], int(parts[1]), int(parts[2])
+        area = area10 / 10.0
+        from handlers.mgp import handle_mgp_pdf
+        await handle_mgp_pdf(chat_id, code, area, building if building > 0 else None)
+
+    elif data.startswith("mgp_calc_"):
+        # mgp_calc_{code}_{building}_{area10}
+        parts = data.replace("mgp_calc_", "").rsplit("_", 2)
+        code, building, area10 = parts[0], int(parts[1]), int(parts[2])
+        area = area10 / 10.0
+        from handlers.mgp import handle_mgp_calc
+        await handle_mgp_calc(chat_id, code, area, building if building > 0 else None)
 
     elif data.startswith("calc_finance_code_"):
         parts = data.replace("calc_finance_code_", "").rsplit("_", 1)

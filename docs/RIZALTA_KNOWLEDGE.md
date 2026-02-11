@@ -431,3 +431,50 @@ json_path = "data/corp3_units.json"
 **Проблема:** `fetch('/api/lots')` в Mini App всегда шёл на PROD API, игнорируя `?env=dev`.
 
 **Решение:** Заменено на `fetch(API_PATH + '/lots')`, где `API_PATH` определяется из URL параметра `env`.
+
+---
+
+## Добавлено 04.02.2026
+
+### ⚠️ Парсер rclick: почему пропадают корпуса и как вернуть
+
+**Как работает парсер:**
+- Файл: `services/parser_rclick.py`
+- Cron: 03:00 каждую ночь
+- Логика: `DELETE FROM units` → парсит ri.rclick.ru → `INSERT` новые данные
+- Если застройщик убрал корпус с сайта — парсер удаляет его из БД
+
+**Как понять что корпус пропал:**
+```bash
+sqlite3 /opt/bot/properties.db "SELECT building, status, COUNT(*) FROM units GROUP BY building, status;"
+```
+
+**Как вернуть корпус (когда застройщик вернул на сайт):**
+```bash
+# 1. Запустить парсер вручную
+cd /opt/bot && /opt/bot/venv/bin/python3 services/parser_rclick.py
+
+# 2. Проверить что данные появились
+sqlite3 /opt/bot/properties.db "SELECT building, status, COUNT(*) FROM units GROUP BY building, status;"
+
+# 3. Убрать из скрытых (если был скрыт)
+echo '{"hidden": []}' > /opt/bot/data/hidden_buildings.json
+
+# 4. Рестарт
+systemctl restart rizalta-bot
+```
+
+**Для DEV — то же самое:**
+```bash
+cd /opt/bot-dev && /opt/bot-dev/venv/bin/python3 services/parser_rclick.py
+echo '{"hidden": []}' > /opt/bot-dev/data/hidden_buildings.json
+systemctl restart rizalta-bot-dev
+systemctl restart rizalta-dev-api
+```
+
+**hidden_buildings.json — дополнительная страховка:**
+- `{"hidden": [2]}` — Корпус 2 скрыт (даже если в БД есть)
+- `{"hidden": []}` — все корпуса видны
+- Mini App подхватывает автоматически
+
+**На будущее:** Рассмотреть замену DELETE на UPSERT, чтобы не терять данные которых нет на сайте

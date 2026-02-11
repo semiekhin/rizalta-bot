@@ -241,6 +241,7 @@ async def handle_nav_lot(chat_id: int, code: str, building: int = None, mode: st
     if not is_custom:
         inline_buttons.append([{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}])
     inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}_{lot['building']}"}])
+    inline_buttons.append([{"text": "📊 Расчёт МГП", "callback_data": f"mgp_calc_{lot['code']}_{lot['building']}_{int(lot['area']*10)}"}])
     inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}_{int(lot['area']*10)}"}],
@@ -346,7 +347,6 @@ async def handle_kp_building(chat_id: int, building: int):
 
 
 
-
 async def handle_kp_building_all(chat_id: int, building: int):
     """Показывает все лоты корпуса с пагинацией."""
     
@@ -385,6 +385,7 @@ async def handle_kp_building_all(chat_id: int, building: int):
     inline_buttons.append([{"text": "🔙 К этажам", "callback_data": f"kp_building_{building}"}])
     
     await send_message_inline(chat_id, text, inline_buttons)
+
 
 async def handle_kp_floor(chat_id: int, building: int, floor: int):
     """Показывает лоты на конкретном этаже."""
@@ -747,6 +748,7 @@ async def handle_kp_lot(chat_id: int, code: str, building: int = None):
     if not is_custom:
         inline_buttons.append([{"text": "📄 КП с рассрочкой 12+18 мес", "callback_data": f"kp_gen_{lot_id}_full"}])
     inline_buttons.append([{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{lot['code']}_{lot['building']}"}])
+    inline_buttons.append([{"text": "📊 Расчёт МГП", "callback_data": f"mgp_calc_{lot['code']}_{lot['building']}_{int(lot['area']*10)}"}])
     inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}_{int(lot['area']*10)}"}],

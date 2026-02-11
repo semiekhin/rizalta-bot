@@ -2,6 +2,15 @@
 
 ## ✅ Выполнено
 
+### 11.02.2026: МГП калькулятор + обновление К3 + презентация + Web App кнопка
+- МГП калькулятор: 2 модели (номерной + коммерческий), текст + PDF
+- Новые файлы: services/mgp_calculator.py, handlers/mgp.py
+- Обновлены статусы Корпуса 3: 150 sold / 132 available (Excel 09.02)
+- Замена презентации RIZALTA (43 MB)
+- Web App кнопка в DEV меню (whitelist → URL с токеном)
+- Ипотека: код в PROD, кнопка скрыта (готово к включению)
+- Версия: 2.6.0
+
 ### 09.02.2026: Фикс handle_kp_building_all + ARCHITECTURE/CALLBACKS
 - Критический баг: кнопка «Все лоты корпуса» → ImportError 500 (функция не существовала)
 - Написана handle_kp_building_all в handlers/kp.py (пагинация через _search_cache)
@@ -49,8 +58,12 @@
 ## 🟡 Средний приоритет
 
 ### Деплой ипотечного калькулятора
-- **Файлы:** mortgage_config.json, mortgage_calculator.py, mortgage_pdf_generator.py, mortgage.py + правки kp.py, app.py
-- **Статус:** Готово в DEV, ждёт проверки расчётов
+- **Файлы:** mortgage_config.json, mortgage_calculator.py, mortgage.py + правки kp.py, app.py
+- **Статус:** Код и конфиг в PROD, кнопка скрыта. Для включения: добавить строку в /opt/bot/handlers/kp.py
+
+### Деплой Web App кнопки в PROD
+- **Статус:** Готово в DEV, не задеплоено
+- **Действие:** скопировать menu.py или добавить кнопку вручную
 
 ### Вопрос "11 лет / полный цикл"
 - **Описание:** В кнопке "11 лет (полный цикл)" расчёт до 2035, а не 2036
@@ -101,8 +114,8 @@
 ### WebApp Phase 3.2: AI чат + заявки
 - **AI чат:** DeepSeek V3.2 через OpenRouter, function calling, SSE streaming
 - **Секретарь/Фиксация:** полноценные страницы (сейчас заглушки)
-- **Отправка заявок:** реальная отправка в TG/email (сейчас console.log)
-- **Статус:** планируется
+- **Отправка заявок:** ✅ ВЫПОЛНЕНО в Phase 3.2.1 (TG группа + email)
+- **Статус:** частично выполнено (заявки готовы, AI чат и секретарь — следующий этап)
 
 ### 10.02.2026: WebApp Phase 3.1 — Белый список + Корпус 3 + systemd
 - Белый список: webapp.db, access_tokens, общий токен (?token=XXX → localStorage)
@@ -114,3 +127,24 @@
 - Токен К3: MkKGpwCAsq6IF3RtRH7bvg
 - Точка отката: git tag v0.5.0-stable
 - Версия webapp: v0.6.0
+
+### 10.02.2026: WebApp Phase 3.2.1 — Уведомления + Compare PDF + фиксы
+- Уведомления: POST /api/book-showing → Telegram группа (-1003301897674) + email менеджерам
+- backend/.env: секреты скопированы из /opt/bot/.env + MANAGER_CHAT_ID
+- services/notifications.py: httpx async Telegram + aiosmtplib email
+- Compare PDF: /api/download-compare-pdf (wkhtmltopdf, HTML→PDF, 2 страницы)
+- services/compare_pdf_generator.py + investment_compare.py из бота
+- Фикс скачиваний: window.open(_blank) вместо Telegram.WebApp.openLink для всех файлов
+- Фикс модалок ROI/Deposit: pb-24 (кнопки не перекрываются навбаром)
+- Booking.jsx: валидация телефона (≥10 цифр), error display
+- LotDetail.jsx: кнопка «Скачать PDF сравнение» в модалке депозита
+- Presentations.jsx + Documents.jsx: window.open фикс
+- .gitignore: webapp.db, __pycache__/
+- Версия webapp: v0.6.1
+
+### Следующее: WebApp Phase 3.2.2
+- AI чат: DeepSeek V3.2 через OpenRouter, function calling, SSE streaming
+- System prompt из /opt/bot/config/instructions.txt + rizalta_knowledge_base.txt
+- Секретарь/Фиксация: полноценные страницы (сейчас заглушки)
+- Inline PDF viewer (модалки вместо скачивания) — под вопросом
+- Обновить CLAUDE.md и TASK_MAP.md до v0.6.x

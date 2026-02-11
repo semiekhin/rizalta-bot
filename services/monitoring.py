@@ -14,7 +14,7 @@ import os
 # Настройки
 ADMIN_CHAT_ID = 512319063
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-DB_PATH = Path("/opt/bot-dev/monitoring.db")
+DB_PATH = Path("/opt/bot/monitoring.db")
 
 # Счётчик запросов (последние 60 секунд)
 request_times = deque(maxlen=1000)

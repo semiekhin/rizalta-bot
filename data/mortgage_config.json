@@ -1,0 +1,52 @@
+{
+  "_comment": "Конфиг ипотеки Совкомбанк. Акция 'Сниженный платёж'",
+  "_updated": "30.01.2026",
+  
+  "service_fee": 150000,
+  
+  "down_payment_options": {
+    "30": {
+      "pct": 30,
+      "grace_months": 12,
+      "markup_pct": 6
+    },
+    "40": {
+      "pct": 40,
+      "grace_months": 18,
+      "markup_pct": 9
+    },
+    "50": {
+      "pct": 50,
+      "grace_months": 24,
+      "markup_pct": 12
+    }
+  },
+  
+  "loan_terms": [240, 360],
+  
+  "tariffs": {
+    "base": {
+      "name": "Базовый",
+      "rate_after_grace": 21.49,
+      "grace_rate": 4.40,
+      "accreditive_pct": 0.50
+    },
+    "profitable": {
+      "name": "Выгодный", 
+      "rate_after_grace": 15.99,
+      "grace_rate": 14.20,
+      "accreditive_pct": 1.20
+    }
+  },
+  
+  "texts": {
+    "title": "🏦 Ипотека Совкомбанк",
+    "subtitle": "Акция «Сниженный платёж»",
+    "down_payment": "Первоначальный взнос",
+    "loan_amount": "Сумма кредита",
+    "grace_payment": "Платёж в льготный период",
+    "regular_payment": "Платёж после льготного",
+    "grace_period": "Льготный период",
+    "disclaimer": "Расчёт предварительный. Точные условия уточняйте в банке."
+  }
+}

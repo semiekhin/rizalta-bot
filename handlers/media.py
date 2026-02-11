@@ -40,7 +40,7 @@ async def handle_send_presentation(chat_id: int):
     await send_message_inline(chat_id, text, inline_buttons)
 
 
-PRESENTATIONS_DIR = "/opt/bot-dev/presentations"
+PRESENTATIONS_DIR = "/opt/bot/presentations"
 
 PRESENTATIONS = {
     "pres_rizalta_ru": ("presentation_ru.pdf", "📕 Презентация RIZALTA RESORT BELOKURIKHA"),
@@ -50,7 +50,7 @@ PRESENTATIONS = {
     "pres_zont": ("zont_hotel.pdf", "🏨 ZONT Hotel Group — Управляющая компания"),
 }
 
-VIDEOS_DIR = "/opt/bot-dev/videos"
+VIDEOS_DIR = "/opt/bot/videos"
 
 VIDEOS = {
     "video_nerealno": ("nerealno.mp4", "🎬 Нереально"),

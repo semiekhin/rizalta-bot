@@ -324,6 +324,7 @@ async def handle_corp3_lot_detail(chat_id: int, code: str):
         [{"text": "📋 КП с рассрочкой 12+18 мес", "callback_data": f"c3_kp18_{code}"}],
         [{"text": "🖼 Показать планировку", "callback_data": f"c3_layout_{code}"}],
         [{"text": "📊 Расчёт доходности", "callback_data": f"calc_roi_code_{code}_3"}],
+        [{"text": "📊 Расчёт МГП", "callback_data": f"mgp_calc_{code}_3_{int(unit['area']*10)}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{code}_3_{unit['price']//1000}_{int(unit['area']*10)}"}],
         [{"text": "🔙 Назад", "callback_data": "c3_menu"}],
     ]
