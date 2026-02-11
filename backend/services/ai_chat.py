@@ -124,66 +124,104 @@ def get_client() -> OpenAI:
     return _client
 
 
-def build_finance_system_context(finance_data: dict) -> str:
-    """Build financial context string from rizalta_finance.json for system prompt."""
-    if not finance_data:
+def build_finance_system_context(finance: dict) -> str:
+    """Build financial context from rizalta_finance.json for the system prompt.
+
+    Real JSON structure: project(str), completion_year(int), defaults(dict),
+    units(list), installment_programs(list), mortgage_programs(list),
+    investment_scenarios(list), extra_notes(dict), installment_notes(dict).
+    """
+    if not finance:
         return ""
 
-    parts = []
+    completion = finance.get("completion_year", 2027)
+    project = finance.get("project", "RIZALTA Resort Belokurikha")
+    defaults = finance.get("defaults", {})
+    installments = finance.get("installment_programs", [])
+    mortgages = finance.get("mortgage_programs", [])
+    units = finance.get("units", [])
+    extra_notes = finance.get("extra_notes", {})
+    installment_notes = finance.get("installment_notes", {})
 
-    # General project info
-    if "project" in finance_data:
-        proj = finance_data["project"]
-        parts.append(f"Проект: {proj.get('name', 'RIZALTA')}")
-        if "location" in proj:
-            parts.append(f"Локация: {proj['location']}")
-        if "description" in proj:
-            parts.append(f"Описание: {proj['description']}")
+    lines = []
+    lines.append("=== ФИНАНСОВЫЕ ДАННЫЕ ПРОЕКТА (используй только эти цифры) ===")
+    lines.append("")
+    lines.append(f"Проект: {project}")
+    lines.append(f"Срок сдачи: Q4 {completion} года")
+    lines.append("")
 
-    # Buildings info
-    if "buildings" in finance_data:
-        for b in finance_data["buildings"]:
-            name = b.get("name", "")
-            total = b.get("total_units", "")
-            parts.append(f"{name}: {total} юнитов")
+    # === Units ===
+    lines.append("=== АПАРТАМЕНТЫ ===")
+    for u in units:
+        code = u.get("unit_code", "")
+        title = u.get("title", code)
+        area = u.get("area_m2", 0)
+        price = u.get("price_rub", 0)
+        daily = u.get("daily_rate_rub", defaults.get("daily_rate_rub", 15000))
+        occ = u.get("occupancy_pct", defaults.get("occupancy_pct", 60))
+        exp = u.get("expenses_pct", defaults.get("expenses_pct", 50))
 
-    # Financial parameters
-    if "financial" in finance_data:
-        fin = finance_data["financial"]
-        if "rental_yield" in fin:
-            parts.append(f"Арендная доходность: {fin['rental_yield']}")
-        if "occupancy_rate" in fin:
-            parts.append(f"Загрузка: {fin['occupancy_rate']}")
-        if "price_growth" in fin:
-            parts.append(f"Рост стоимости: {fin['price_growth']}")
-        if "management_fee" in fin:
-            parts.append(f"Комиссия УК: {fin['management_fee']}")
+        gross_year = daily * 365 * (occ / 100)
+        net_year = gross_year * (1 - exp / 100)
+        roi_pct = (net_year / price * 100) if price > 0 else 0
 
-    # Installment plans
-    if "installment" in finance_data:
-        inst = finance_data["installment"]
-        plans = []
-        for plan in inst if isinstance(inst, list) else [inst]:
-            if isinstance(plan, dict):
-                plans.append(f"  - {plan.get('name', '')}: {plan.get('description', '')}")
-        if plans:
-            parts.append("Варианты оплаты:\n" + "\n".join(plans))
+        cap = u.get("capitalization_projection", {})
+        price_2027 = cap.get("price_2027_rub", 0)
+        price_2029 = cap.get("price_2029_rub", 0)
 
-    # Price ranges
-    if "price_ranges" in finance_data:
-        ranges = finance_data["price_ranges"]
-        for r in ranges if isinstance(ranges, list) else [ranges]:
-            if isinstance(r, dict):
-                parts.append(f"Цены {r.get('type', '')}: от {r.get('min', '')} до {r.get('max', '')} руб.")
+        lines.append(f"• {title} ({area} м²):")
+        lines.append(f"  Цена: {price:,.0f} ₽")
+        lines.append(f"  Точка входа (ПВ 30%): ~{price * 0.3:,.0f} ₽")
+        lines.append(f"  Доход от аренды: ~{net_year:,.0f} ₽/год ({roi_pct:.1f}% годовых)")
+        if price_2027:
+            growth_2027 = ((price_2027 - price) / price * 100)
+            lines.append(f"  Прогноз 2027: {price_2027:,.0f} ₽ (+{growth_2027:.0f}%)")
+        if price_2029:
+            growth_2029 = ((price_2029 - price) / price * 100)
+            lines.append(f"  Прогноз 2029: {price_2029:,.0f} ₽ (+{growth_2029:.0f}%)")
+        lines.append("")
 
-    if not parts:
-        # Fallback: dump the whole thing as context (truncated)
-        raw = json.dumps(finance_data, ensure_ascii=False, indent=None)
-        if len(raw) > 4000:
-            raw = raw[:4000] + "..."
-        return f"\n\nФинансовые данные проекта:\n{raw}"
+    # === Installment programs ===
+    if installments:
+        lines.append("=== ПРОГРАММЫ РАССРОЧКИ ===")
+        for p in installments:
+            name = p.get("name", "")
+            pv = p.get("first_payment_pct", 0)
+            months = p.get("months", 0)
+            rate = p.get("rate_pct", 0)
+            comment = p.get("comment", "")
+            lines.append(f"• {name}: ПВ {pv}%, {months} мес, ставка {rate}%")
+            if comment:
+                lines.append(f"  ({comment})")
+        if installment_notes:
+            q = installment_notes.get("quarterly_option", "")
+            fp = installment_notes.get("full_payment_discount", "")
+            if q:
+                lines.append(f"  Поквартальная оплата: {q}")
+            if fp:
+                lines.append(f"  Скидка за 100% оплату: {fp}")
+        lines.append("")
 
-    return "\n\nФинансовые данные проекта:\n" + "\n".join(parts)
+    # === Mortgage ===
+    if mortgages:
+        lines.append("=== ИПОТЕКА ===")
+        for m in mortgages:
+            lines.append(f"• {m.get('name', '')}")
+            lines.append(f"  Стоимость: {m.get('object_price_rub', 0):,.0f} ₽")
+            lines.append(f"  ПВ: {m.get('first_payment_rub', 0):,.0f} ₽ ({m.get('first_payment_pct', 0)}%)")
+            lines.append(f"  Сумма кредита: {m.get('credit_amount_rub', 0):,.0f} ₽")
+            lines.append(f"  Срок: {m.get('term_months', 0)} мес")
+        lines.append("")
+
+    # === Extra notes ===
+    if extra_notes:
+        lines.append("=== ДОПОЛНИТЕЛЬНО ===")
+        for key, val in extra_notes.items():
+            if isinstance(val, str):
+                lines.append(f"• {val}")
+        lines.append("")
+
+    return "\n\n" + "\n".join(lines)
 
 
 def build_system_prompt() -> str:
