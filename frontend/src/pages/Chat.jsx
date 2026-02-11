@@ -1,53 +1,155 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+
+const WELCOME_MSG = {
+  role: 'assistant',
+  content: 'Здравствуйте! Я AI-консультант RIZALTA. Помогу подобрать апартамент, рассчитать доходность или ответить на вопросы об инвестициях. Что вас интересует?'
+}
 
 export default function Chat({ lots, onNavigate }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Здравствуйте! Я AI-консультант RIZALTA. Помогу подобрать апартамент, рассчитать доходность или ответить на вопросы. Что вас интересует?'
-    }
-  ])
+  const [messages, setMessages] = useState([WELCOME_MSG])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [error, setError] = useState(null)
   const messagesEndRef = useRef(null)
+  const textareaRef = useRef(null)
+  const abortRef = useRef(null)
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, scrollToBottom])
 
-  const quickActions = [
-    { label: 'Подобрать апартамент', action: () => onNavigate('catalog') },
-    { label: 'Условия рассрочки', query: 'Расскажи про условия рассрочки' },
-    { label: 'Доходность', query: 'Какая доходность у апартаментов?' },
-  ]
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    }
+  }, [input])
 
   const sendMessage = async (text) => {
-    if (!text.trim() || loading) return
+    const trimmed = text.trim()
+    if (!trimmed || isStreaming) return
 
-    const userMessage = { role: 'user', content: text }
-    setMessages(prev => [...prev, userMessage])
+    setError(null)
     setInput('')
-    setLoading(true)
 
-    // Пока заглушка — потом подключим GPT
-    setTimeout(() => {
-      const botResponse = {
-        role: 'assistant',
-        content: `Спасибо за вопрос! Сейчас чат работает в демо-режиме. В полной версии я смогу:\n\n• Подобрать апартаменты по вашим критериям\n• Рассчитать доходность и сравнить с депозитом\n• Рассказать про условия рассрочки\n• Записать на онлайн-показ\n\nПока можете посмотреть каталог — там ${lots.filter(l => l.status === 'available').length} свободных апартаментов.`
+    // Add user message
+    const userMsg = { role: 'user', content: trimmed }
+    const newMessages = [...messages, userMsg]
+    setMessages(newMessages)
+    setIsStreaming(true)
+
+    // Prepare history (exclude welcome message actions, keep role+content)
+    const history = newMessages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: m.content }))
+      .slice(0, -1) // exclude current message (sent separately)
+
+    // Add placeholder assistant message
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+
+    try {
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: trimmed, history }),
+        signal: controller.signal,
+      })
+
+      if (response.status === 429) {
+        setError('Слишком много запросов. Подождите минуту.')
+        setMessages(prev => prev.slice(0, -1)) // remove empty assistant msg
+        setIsStreaming(false)
+        return
       }
-      setMessages(prev => [...prev, botResponse])
-      setLoading(false)
-    }, 1000)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const jsonStr = line.slice(6)
+          if (!jsonStr) continue
+
+          try {
+            const event = JSON.parse(jsonStr)
+            if (event.type === 'token') {
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                if (last && last.role === 'assistant') {
+                  updated[updated.length - 1] = {
+                    ...last,
+                    content: last.content + event.content,
+                  }
+                }
+                return updated
+              })
+            } else if (event.type === 'error') {
+              setError(event.content)
+            }
+            // 'done' — just stop
+          } catch {
+            // skip malformed JSON
+          }
+        }
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError('Не удалось связаться с AI. Попробуйте позже.')
+        // Remove empty assistant message if no content was streamed
+        setMessages(prev => {
+          const last = prev[prev.length - 1]
+          if (last && last.role === 'assistant' && !last.content) {
+            return prev.slice(0, -1)
+          }
+          return prev
+        })
+      }
+    } finally {
+      setIsStreaming(false)
+      abortRef.current = null
+    }
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     sendMessage(input)
   }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage(input)
+    }
+  }
+
+  const quickActions = [
+    { label: 'Подобрать апартамент', action: () => onNavigate('lots') },
+    { label: 'Доходность', query: 'Какая доходность у апартаментов RIZALTA?' },
+    { label: 'Условия рассрочки', query: 'Расскажи про условия рассрочки' },
+  ]
 
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream flex flex-col">
@@ -57,38 +159,38 @@ export default function Chat({ lots, onNavigate }) {
           R
         </div>
         <div>
-          <p className="font-bold">RIZALTA AI</p>
+          <p className="font-semibold">AI Консультант</p>
           <p className="text-xs text-rz-success">● Онлайн</p>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 p-4 space-y-4 overflow-auto pb-32">
+      {/* Messages area */}
+      <div className="flex-1 p-4 space-y-4 overflow-auto pb-36">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'gap-2'}`}>
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0">
+              <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0 mt-1">
                 R
               </div>
             )}
-            <div className={`max-w-xs rounded-2xl px-4 py-2 ${
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
               msg.role === 'user'
                 ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
                 : 'bg-rz-green-light rounded-tl-none'
             }`}>
-              <p className="text-sm whitespace-pre-line">{msg.content}</p>
+              <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
             </div>
           </div>
         ))}
 
-        {/* Quick actions после первого сообщения */}
-        {messages.length === 1 && (
+        {/* Quick actions after welcome */}
+        {messages.length === 1 && !isStreaming && (
           <div className="flex flex-wrap gap-2 pl-10">
             {quickActions.map((qa, i) => (
               <button
                 key={i}
                 onClick={() => qa.action ? qa.action() : sendMessage(qa.query)}
-                className="bg-rz-green-mid text-sm px-3 py-1.5 rounded-full hover:bg-rz-green-light transition-colors text-rz-cream-dark"
+                className="bg-rz-green-mid text-sm px-3 py-1.5 rounded-full hover:bg-rz-green-light transition-colors text-rz-cream-dark border border-rz-green-light"
               >
                 {qa.label}
               </button>
@@ -96,38 +198,48 @@ export default function Chat({ lots, onNavigate }) {
           </div>
         )}
 
-        {loading && (
+        {/* Typing indicator */}
+        {isStreaming && messages[messages.length - 1]?.content === '' && (
           <div className="flex gap-2">
             <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0">
               R
             </div>
             <div className="bg-rz-green-light rounded-2xl rounded-tl-none px-4 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-rz-cream-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="ml-10 bg-rz-error/20 text-rz-error rounded-lg px-4 py-2 text-sm">
+            {error}
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="fixed bottom-16 left-0 right-0 p-3 bg-rz-green-dark border-t border-rz-green-mid">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
+      {/* Input area */}
+      <div className="fixed bottom-16 left-0 right-0 p-3 bg-rz-green-dark border-t border-rz-green-mid pb-4">
+        <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Введите сообщение..."
-            className="flex-1 bg-rz-green-mid rounded-full px-4 py-2 text-sm text-rz-cream outline-none focus:ring-2 focus:ring-rz-gold placeholder:text-rz-cream-muted"
+            rows={1}
+            className="flex-1 bg-rz-green-mid rounded-2xl px-4 py-2.5 text-sm text-rz-cream outline-none focus:ring-2 focus:ring-rz-gold placeholder:text-rz-cream-muted resize-none max-h-[120px]"
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
-            className="w-10 h-10 bg-rz-gold rounded-full flex items-center justify-center hover:bg-rz-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-rz-green-dark font-bold"
+            disabled={isStreaming || !input.trim()}
+            className="w-10 h-10 bg-rz-gold rounded-full flex items-center justify-center hover:bg-rz-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-rz-green-dark font-bold flex-shrink-0"
           >
             ↑
           </button>

@@ -13,7 +13,10 @@ import os
 import sqlite3
 import secrets
 import json
+import time
+import logging
 from contextlib import asynccontextmanager
+from collections import defaultdict
 
 from services.calculator import calculate_roi
 from services.installment_calculator import calc_full
@@ -22,6 +25,7 @@ from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
 from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
+from services.ai_chat import stream_chat_response
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -123,6 +127,27 @@ class DepositRequest(BaseModel):
     years: int = 11
     scenario: str = "base"  # base, optimistic, pessimistic
 
+class ChatRequest(BaseModel):
+    message: str
+    history: list[dict] = []
+
+
+# === Rate limiter (10 req/min per IP for /api/chat) ===
+_chat_rate: dict[str, list[float]] = defaultdict(list)
+CHAT_RATE_LIMIT = 10
+CHAT_RATE_WINDOW = 60  # seconds
+
+
+def check_chat_rate(request: Request):
+    """Simple in-memory rate limiter for chat endpoint."""
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    # Clean old entries
+    _chat_rate[ip] = [t for t in _chat_rate[ip] if now - t < CHAT_RATE_WINDOW]
+    if len(_chat_rate[ip]) >= CHAT_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Слишком много запросов, подождите минуту")
+    _chat_rate[ip].append(now)
+
 
 # === API endpoints ===
 
@@ -138,7 +163,25 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.6.1"}
+    return {"status": "healthy", "version": "0.7.0-alpha"}
+
+
+@app.post("/api/chat")
+async def api_chat(req: ChatRequest, request: Request):
+    """AI chat with SSE streaming."""
+    check_chat_rate(request)
+
+    if not req.message.strip():
+        raise HTTPException(status_code=400, detail="Empty message")
+
+    return StreamingResponse(
+        stream_chat_response(req.message, req.history),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 @app.post("/api/calculate-roi")
 async def api_calculate_roi(req: ROIRequest):
