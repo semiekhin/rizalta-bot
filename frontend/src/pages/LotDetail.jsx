@@ -28,6 +28,14 @@ export default function LotDetail({ lot, onBack, onChat }) {
   const [depositData, setDepositData] = useState(null)
   const [depositLoading, setDepositLoading] = useState(false)
 
+  // Mortgage
+  const [showMortgage, setShowMortgage] = useState(false)
+  const [mortgageData, setMortgageData] = useState(null)
+  const [mortgageLoading, setMortgageLoading] = useState(false)
+  const [mortgageDP, setMortgageDP] = useState(30)
+  const [mortgageTariff, setMortgageTariff] = useState('base')
+  const [mortgageTerm, setMortgageTerm] = useState(360)
+
   if (!lot) {
     return (
       <div className="min-h-screen bg-rz-green text-rz-cream flex items-center justify-center pb-20">
@@ -137,6 +145,34 @@ export default function LotDetail({ lot, onBack, onChat }) {
     setDepositLoading(false)
   }
 
+  // === MGP ===
+  const handleMGP = () => {
+    const url = `/api/mgp/pdf?code=${encodeURIComponent(lot.code)}&area=${lot.area}&building=${lot.building}`
+    window.open(url, '_blank')
+  }
+
+  // === Mortgage ===
+  const handleMortgageCalc = async (dp = mortgageDP, tariff = mortgageTariff, term = mortgageTerm) => {
+    setMortgageLoading(true)
+    try {
+      const res = await fetch('/api/mortgage/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          price: lot.price,
+          down_payment_pct: dp,
+          tariff: tariff,
+          loan_term_months: term,
+        })
+      })
+      const data = await res.json()
+      if (data.ok) setMortgageData(data.data)
+    } catch (e) {
+      console.error(e)
+    }
+    setMortgageLoading(false)
+  }
+
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
       {/* Header */}
@@ -216,6 +252,12 @@ export default function LotDetail({ lot, onBack, onChat }) {
               📥 Скачать Excel
             </button>
           )}
+          <button onClick={handleMGP} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
+            📊 Расчёт МГП
+          </button>
+          <button onClick={() => setShowMortgage(true)} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
+            🏦 Ипотека
+          </button>
           <button onClick={() => setShowShowing(true)} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             📅 Записаться на показ
           </button>
@@ -568,6 +610,116 @@ export default function LotDetail({ lot, onBack, onChat }) {
                     Отправить заявку
                   </button>
                 </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mortgage Modal */}
+      {showMortgage && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[90vh] overflow-auto pb-24">
+            <div className="px-4 py-3 border-b border-rz-green-mid flex justify-between items-center sticky top-0 bg-rz-green-light z-10">
+              <h2 className="font-bold text-lg">🏦 Ипотека Совкомбанк</h2>
+              <button onClick={() => { setShowMortgage(false); setMortgageData(null) }} className="text-rz-cream-dark text-xl">✕</button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-rz-cream-dark text-xs">Акция «Сниженный платёж»</p>
+
+              {/* Down payment selector */}
+              <div>
+                <p className="text-xs text-rz-cream-muted mb-1">Первоначальный взнос</p>
+                <div className="flex gap-2">
+                  {[30, 40, 50].map(dp => (
+                    <button key={dp} onClick={() => { setMortgageDP(dp); handleMortgageCalc(dp, mortgageTariff, mortgageTerm) }}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        mortgageDP === dp ? 'bg-rz-gold text-rz-green-dark' : 'bg-rz-green-mid text-rz-cream'
+                      }`}>
+                      {dp}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tariff selector */}
+              <div>
+                <p className="text-xs text-rz-cream-muted mb-1">Тариф</p>
+                <div className="flex gap-2">
+                  {[['base', 'Базовый'], ['profitable', 'Выгодный']].map(([key, label]) => (
+                    <button key={key} onClick={() => { setMortgageTariff(key); handleMortgageCalc(mortgageDP, key, mortgageTerm) }}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        mortgageTariff === key ? 'bg-rz-gold text-rz-green-dark' : 'bg-rz-green-mid text-rz-cream'
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Term selector */}
+              <div>
+                <p className="text-xs text-rz-cream-muted mb-1">Срок кредита</p>
+                <div className="flex gap-2">
+                  {[[240, '20 лет'], [360, '30 лет']].map(([months, label]) => (
+                    <button key={months} onClick={() => { setMortgageTerm(months); handleMortgageCalc(mortgageDP, mortgageTariff, months) }}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        mortgageTerm === months ? 'bg-rz-gold text-rz-green-dark' : 'bg-rz-green-mid text-rz-cream'
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Calculate button */}
+              {!mortgageData && !mortgageLoading && (
+                <button onClick={() => handleMortgageCalc()} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl">
+                  Рассчитать
+                </button>
+              )}
+
+              {mortgageLoading && (
+                <div className="flex justify-center py-4">
+                  <div className="w-6 h-6 border-3 border-rz-gold border-t-transparent rounded-full animate-spin"/>
+                </div>
+              )}
+
+              {/* Results */}
+              {mortgageData && (
+                <div className="space-y-3 bg-rz-green-mid rounded-xl p-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-rz-cream-dark">Первонач. взнос</span>
+                    <span className="font-bold">{formatPrice(mortgageData.down_payment)} ₽</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-rz-cream-dark">Удорожание ({mortgageData.markup_pct}%)</span>
+                    <span>{formatPrice(mortgageData.markup)} ₽</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-rz-cream-dark">Сумма кредита</span>
+                    <span className="font-bold">{formatPrice(mortgageData.loan_amount)} ₽</span>
+                  </div>
+                  <div className="border-t border-rz-green-mid pt-2">
+                    <p className="text-xs text-rz-cream-muted mb-1">Льготный период ({mortgageData.grace_months} мес)</p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-rz-cream-dark">Платёж</span>
+                      <span className="font-bold text-rz-gold">{formatPrice(mortgageData.grace_payment)} ₽/мес</span>
+                    </div>
+                    <p className="text-xs text-rz-cream-muted">комиссия аккредитива {mortgageData.accreditive_pct}%</p>
+                  </div>
+                  <div className="border-t border-rz-green-mid pt-2">
+                    <p className="text-xs text-rz-cream-muted mb-1">После льготного ({mortgageData.remaining_months} мес)</p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-rz-cream-dark">Платёж</span>
+                      <span className="font-bold">{formatPrice(mortgageData.regular_payment)} ₽/мес</span>
+                    </div>
+                    <p className="text-xs text-rz-cream-muted">ставка {mortgageData.rate_after_grace}% годовых</p>
+                  </div>
+                  <p className="text-xs text-rz-cream-muted text-center pt-2 border-t border-rz-green-mid">
+                    Расчёт предварительный. Точные условия уточняйте в банке.
+                  </p>
+                </div>
               )}
             </div>
           </div>

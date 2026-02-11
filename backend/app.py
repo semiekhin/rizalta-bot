@@ -29,6 +29,9 @@ from services.ai_chat import stream_chat_response, analyze_user_intent
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
+from services.news_service import get_weather, get_flights, get_news_digest
+from services.mgp_calculator import calc_mgp, generate_mgp_pdf, fmt as mgp_fmt
+from services.mortgage_calculator import calc_mortgage, get_mortgage_options
 
 # === Whitelist DB ===
 WEBAPP_DB = "/opt/webapp/backend/webapp.db"
@@ -89,7 +92,7 @@ async def lifespan(app_instance):
     yield
 
 
-app = FastAPI(title="RIZALTA Web App API", version="0.6.1", lifespan=lifespan)
+app = FastAPI(title="RIZALTA Web App API", version="0.8.0", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -158,6 +161,12 @@ class FixationCreateRequest(BaseModel):
     client_phone: str
     comment: str = ""
 
+class MortgageRequest(BaseModel):
+    price: int
+    down_payment_pct: int = 30
+    tariff: str = "base"
+    loan_term_months: int = 360
+
 
 # === Rate limiter (10 req/min per IP for /api/chat) ===
 _chat_rate: dict[str, list[float]] = defaultdict(list)
@@ -190,7 +199,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.7.0"}
+    return {"status": "healthy", "version": "0.8.0"}
 
 
 @app.post("/api/chat")
@@ -687,6 +696,111 @@ async def get_currency():
             return {"ok": True, "data": result}
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+
+# === News endpoints ===
+
+@app.get("/api/news/weather")
+async def api_news_weather():
+    """Weather in Belokurikha via Open-Meteo."""
+    try:
+        data = await get_weather()
+        if data:
+            return {"ok": True, "data": data}
+        return {"ok": False, "error": "Не удалось получить погоду"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/news/flights")
+async def api_news_flights():
+    """Flight prices Moscow → Gorno-Altaysk via Aviasales."""
+    try:
+        data = await get_flights()
+        if data:
+            return {"ok": True, "data": data}
+        return {"ok": False, "error": "Нет данных о рейсах"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/news/digest")
+async def api_news_digest():
+    """Investment news digest from RSS feeds."""
+    try:
+        news = await get_news_digest()
+        return {"ok": True, "data": news}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# === MGP endpoints ===
+
+@app.get("/api/mgp/calculate")
+async def api_mgp_calculate(area: float):
+    """Calculate MGP for a given area."""
+    try:
+        rows = calc_mgp(area)
+        data = []
+        for year_num, mgp_nom, mgp_comm in rows:
+            data.append({
+                "year": year_num,
+                "nominal": mgp_nom,
+                "commercial": mgp_comm,
+            })
+        total_nom = sum(r[1] for r in rows)
+        total_comm = sum(r[2] for r in rows)
+        return {
+            "ok": True,
+            "area": area,
+            "years": data,
+            "total_nominal": total_nom,
+            "total_commercial": total_comm,
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/mgp/pdf")
+async def api_mgp_pdf(code: str, area: float, building: int = None):
+    """Generate and download MGP PDF."""
+    try:
+        pdf_path = generate_mgp_pdf(code, area, building)
+        if pdf_path and os.path.exists(pdf_path):
+            return FileResponse(
+                pdf_path,
+                media_type="application/pdf",
+                filename=f"MGP_{code}.pdf"
+            )
+        return {"ok": False, "error": "Ошибка генерации PDF"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# === Mortgage endpoints ===
+
+@app.get("/api/mortgage/options")
+async def api_mortgage_options():
+    """Returns available mortgage options (tariffs, terms, down payments)."""
+    try:
+        return {"ok": True, "data": get_mortgage_options()}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/mortgage/calculate")
+async def api_mortgage_calculate(req: MortgageRequest):
+    """Calculate mortgage for given parameters."""
+    try:
+        result = calc_mortgage(
+            price=req.price,
+            down_payment_pct=req.down_payment_pct,
+            tariff=req.tariff,
+            loan_term_months=req.loan_term_months,
+        )
+        return {"ok": True, "data": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 # === Статика ===
