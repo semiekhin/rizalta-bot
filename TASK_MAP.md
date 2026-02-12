@@ -1,281 +1,105 @@
-# RIZALTA WebApp — Карта доработок для 1Code
+# RIZALTA WebApp — Карта задач для 1Code
 
-## ОБЗОР ИЗМЕНЕНИЙ
-
-Переделка UI/UX: из минимального приложения (4 экрана) в полноценный клон бота RIZALTA.
-Главный экран — меню-навигация (как в боте). Подвал — 3 кнопки.
+## ТЕКУЩИЙ СТАТУС: v0.8.0 (Phase 3.2.2 завершена)
 
 **КРИТИЧНО:** Код в /opt/bot и /opt/bot-dev НЕ ТРОГАЕМ. Только читаем файлы.
 
 ---
 
-## 1. СТРУКТУРА НАВИГАЦИИ
+## ✅ ВЫПОЛНЕНО
 
-### Главный экран (Home.jsx) — Меню
-```
-[Hero: лого + заголовок]
+### Phase 1-2 (v0.3.0 → v0.5.0) — Базовый UI
+- 12 экранов: Home, Catalog, Corp3, LotDetail, Chat, Secretary, Fixation, News, Booking, Presentations, Documents, Media
+- Навбар 3 кнопки (Главная / Чат с AI / Лоты)
+- Фирменный стиль RIZALTA (палитра, Montserrat, лого)
+- Whitelist система (Corp3 доступ по токену)
+- Файловый сервер (презентации, договоры, видео)
 
-🏢 Лоты                    📸 Презентации
-💬 Чат с AI                 🗓 Секретарь  
-📄 Договоры                 🎬 Медиа
-📌 Фиксация                📰 Новости
-        ✅ Записаться на онлайн-показ
+### Phase 3.1 (v0.5.0 → v0.6.1) — Функциональность
+- ROI калькулятор + Excel генерация
+- КП генерация (PDF, wkhtmltopdf)
+- Сравнение с депозитом + PDF
+- Уведомления: Telegram + Email (POST /api/book-showing)
+- Whitelist Corp3 + шахматка 282 лота
+
+### Phase 3.2.2 (v0.6.1 → v0.8.0) — AI + Инструменты
+- **AI Чат:** SSE streaming через OpenAI gpt-4o-mini, 16 intents, function calling, кнопки навигации
+- **Секретарь:** Полный CRUD задач с календарём, AI-парсинг текста (8 endpoints)
+- **Фиксация:** Авторизация rclick.ru (телефон/email), формы создания (4 endpoints)
+- **МГП калькулятор:** 15-летний расчёт с таблицей в модалке + PDF
+- **Ипотечный калькулятор:** Совкомбанк аннуитетный с grace period + PDF
+- **Новости:** 4 вкладки (валюты ЦБ, погода Open-Meteo, авиабилеты Aviasales, RSS дайджест)
+- **Показы:** Кнопка "Взять" → INSERT в bookings + фикс дубля сообщений
+
+---
+
+## 🔜 БЭКЛОГ (Phase 3.3+)
+
+### Приоритет 🔴
+
+1. **Function calling в AI чате** — инструменты: расчёт ROI, поиск лота, бронирование из чата
+2. **"Взять" → секретарь** — автоматическое создание задачи при взятии заявки (бот-сайд, webapp не может)
+
+### Приоритет 🟡
+
+3. **История чата** — сохранение сессий (сейчас browser-only)
+4. **Push-уведомления** — для задач секретаря
+5. **Тюнинг rclick_service.py** — формат запросов/ответов может требовать адаптации
+6. **Inline PDF viewer** — PDF в модалке вместо скачивания (под вопросом)
+7. **К3 в открытую продажу** — убрать whitelist когда корпус выходит в продажу
+
+### Приоритет 🟢
+
+8. **Админ-панель** — управление лотами, статусами, whitelist
+9. **Offline-режим** — Service Worker для базовой работы без сети
+
+---
+
+## ⚠️ ДЕПЛОЙ WEBAPP
+
+### Стандартный деплой
+```bash
+cd /opt/webapp && git pull origin webapp
+cd frontend && npm run build
+systemctl restart webapp.service
+curl -s http://localhost:8003/api/health
 ```
 
-### Нижняя навигация (3 кнопки)
+### После обновления AI (если менялись данные бота)
+```bash
+cp /opt/bot/data/rizalta_finance.json /opt/webapp/backend/data/
+cp /opt/bot/config/instructions.txt /opt/webapp/backend/config/
+systemctl restart webapp.service
 ```
-🏠 Главная  |  💬 Чат с AI  |  🏢 Лоты
+
+### Env (.env должен содержать)
+```
+TELEGRAM_BOT_TOKEN, MANAGER_EMAIL, BOT_EMAIL
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
+MANAGER_CHAT_ID, SHOWS_GROUP_ID
+OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS
+```
+
+### Установка зависимостей (в venv!)
+```bash
+/opt/webapp/venv/bin/pip install openai openpyxl
+```
+
+### Откат
+```bash
+cd /opt/webapp
+git reset --hard v0.8.0-stable    # или v0.6.1-pre-phase322
+cd frontend && npm run build
+systemctl restart webapp.service
 ```
 
 ---
 
-## 2. ЗАДАЧИ ПО ФАЙЛАМ
+## 📝 ВАЖНЫЕ ЗАМЕЧАНИЯ
 
-### 2.1 App.jsx — Рефакторинг роутинга
-
-**Было:** 4 экрана (home, catalog, lot, chat), 4 кнопки в навбаре  
-**Стало:** 10 экранов, 3 кнопки в навбаре
-
-Экраны:
-- `home` — главное меню
-- `lots` — каталог/шахматка (бывший catalog)
-- `lot` — карточка лота (бывший lot detail)
-- `chat` — AI чат
-- `presentations` — список презентаций
-- `documents` — договоры
-- `media` — видео и медиа
-- `secretary` — AI секретарь
-- `fixation` — фиксация клиента
-- `news` — новости, курсы валют
-- `booking` — запись на показ
-
-Навбар:
-```jsx
-const NAV_ITEMS = [
-  { id: 'home', icon: '🏠', label: 'Главная' },
-  { id: 'chat', icon: '💬', label: 'Чат с AI' },
-  { id: 'lots', icon: '🏢', label: 'Лоты' },
-]
-```
-
-### 2.2 Home.jsx — Меню-навигация
-
-**Было:** Hero + 3 quick actions + статистика  
-**Стало:** Hero (золотой, компактнее) + сетка 2×4 меню + кнопка показа
-
-```jsx
-// Hero: золотой фон, зелёное лого, компактный
-// Сетка меню 2 колонки:
-const MENU_ITEMS = [
-  { id: 'lots', icon: '🏢', label: 'Лоты' },
-  { id: 'presentations', icon: '📸', label: 'Презентации' },
-  { id: 'chat', icon: '💬', label: 'Чат с AI' },
-  { id: 'secretary', icon: '🗓', label: 'Секретарь' },
-  { id: 'documents', icon: '📄', label: 'Договоры' },
-  { id: 'media', icon: '🎬', label: 'Медиа' },
-  { id: 'fixation', icon: '📌', label: 'Фиксация' },
-  { id: 'news', icon: '📰', label: 'Новости' },
-]
-// Полноширинная кнопка: "✅ Записаться на онлайн-показ"
-// Мини-статистика: X свободно | Y бронь | Z продано
-```
-
-### 2.3 Catalog.jsx → Lots.jsx — Добавить фильтры
-
-**Было:** Фильтр только по статусу (все/свободно/бронь/продано)  
-**Стало:** + фильтр по площади + фильтр по цене
-
-UI фильтров (компактная панель над шахматкой):
-```
-[Статус ▼] [Площадь: от __ до __ м²] [Цена: от __ до __ млн]  [✕ Сброс]
-```
-
-Реализация:
-- Два поля ввода min/max для площади (м²)
-- Два поля ввода min/max для цены (млн ₽)
-- Кнопка сброса фильтров
-- Фильтрация на клиенте (данные уже загружены)
-- Показать количество найденных: "Найдено: 45 из 358"
-- Когда фильтр активен — подсвечивать кнопку фильтра золотым
-
-### 2.4 НОВЫЕ СТРАНИЦЫ
-
-#### Presentations.jsx — Презентации
-Список PDF для скачивания. Файлы на сервере, отдаём через backend.
-
-```
-📕 Презентация RIZALTA (RU)        [Скачать]
-📗 Презентация RIZALTA (ENG)       [Скачать]  
-🏨 ZONT Hotel Group                [Скачать]
-🏛 Pergaev Bureau                  [Скачать]
-📊 Аналитика CoreXP                [Скачать]
-```
-
-Endpoint: `GET /api/files/presentations/{filename}`
-
-#### Documents.jsx — Договоры
-```
-📋 Договор ДДУ                     [Скачать]
-📋 Договор с отельным оператором   [Скачать]
-📚 Скачать оба                     [Скачать]
-```
-
-Endpoint: `GET /api/files/documents/{filename}`
-
-#### Media.jsx — Медиа
-Два раздела: Презентации (ссылка на presentations) и Видео.
-
-```
-🎬 Видеоматериалы RIZALTA
-
-▶️ Нереально                       [Смотреть]
-▶️ Вести Курорт                    [Смотреть]
-▶️ Большой Алтай                   [Смотреть]
-▶️ Правило 30×30                   [Смотреть]
-▶️ Вести тур поток                 [Смотреть]
-▶️ Михалкова — Алтай               [Смотреть]
-```
-
-Видео: inline `<video>` плеер при клике, или ссылка на скачивание.
-Endpoint: `GET /api/files/videos/{filename}`
-
-#### News.jsx — Новости
-- Курсы валют ЦБ РФ (API: cbr-xml-daily.ru)
-- Возможно: погода в Белокурихе
-
-Endpoint: `GET /api/news/currency`
-
-#### Secretary.jsx — Секретарь (заглушка Phase 3)
-Пока: заглушка с описанием функционала + ссылка на бот.
-```
-🗓 AI-Секретарь
-
-Персональный ежедневник с голосовым вводом.
-Полный функционал доступен в Telegram-боте.
-
-[Открыть бот →]
-```
-
-Phase 3: полноценный секретарь с DeepSeek.
-
-#### Fixation.jsx — Фиксация (заглушка Phase 3)
-Пока: заглушка + ссылка на rclick.ru или бот.
-```
-📌 Фиксация клиента
-
-Авторизация и фиксация клиентов через ri.rclick.ru.
-Полный функционал доступен в Telegram-боте.
-
-[Открыть бот →]
-```
-
-Phase 3: интеграция с rclick API.
-
-#### Booking.jsx — Запись на показ
-Форма:
-```
-✅ Запись на онлайн-показ RIZALTA
-
-Имя: [____________]
-Телефон: [____________]
-Комментарий: [____________]  (необязательно)
-
-[Отправить заявку]
-```
-
-Phase 2: форма + отправка на backend  
-Phase 3: backend реально отправляет в Telegram + email
-
----
-
-## 3. BACKEND ДОРАБОТКИ
-
-### 3.1 Файловый сервер (Phase 2)
-Отдаём файлы из директорий бота (read-only).
-
-```python
-# Новые endpoints в app.py
-
-@app.get("/api/files/presentations/{filename}")
-# Отдаёт PDF из /opt/bot-dev/presentations/
-
-@app.get("/api/files/documents/{filename}")  
-# Отдаёт PDF из /opt/bot/docs/
-
-@app.get("/api/files/videos/{filename}")
-# Отдаёт видео из /opt/bot-dev/videos/
-```
-
-Whitelist файлов (не отдавать произвольные файлы!):
-```python
-ALLOWED_PRESENTATIONS = {
-    "presentation_ru": "presentation_ru.pdf",
-    "presentation_eng": "presentation_eng.pdf", 
-    "analytics_corexp": "analytics_corexp.pdf",
-    "pergaev_bureau": "pergaev_bureau.pdf",
-    "zont_hotel": "zont_hotel.pdf",
-}
-
-ALLOWED_DOCUMENTS = {
-    "ddu": "ddu.pdf",
-    "arenda": "arenda.pdf",
-}
-
-ALLOWED_VIDEOS = {
-    "nerealno": "nerealno.mp4",
-    "vesti_kurort": "vesti_kurort.mp4",
-    "bolshoy_altai": "bolshoy_altai.mp4",
-    "pravilo_30x30": "pravilo_30x30.mp4",
-    "vesti_turpotok": "vesti_turpotok_fixed.mp4",
-    "mihalkova": "mihalkova_altai.mp4",
-}
-```
-
-### 3.2 Курсы валют (Phase 2)
-```python
-@app.get("/api/news/currency")
-# Проксируем cbr-xml-daily.ru, возвращаем USD, EUR, CNY
-```
-
-### 3.3 AI Chat (Phase 3)
-```python
-@app.post("/api/chat")
-# DeepSeek V3.2 через OpenRouter, SSE streaming
-```
-
----
-
-## 4. ПРИОРИТЕТЫ РЕАЛИЗАЦИИ
-
-### Пакет A — Frontend рефакторинг (1Code сейчас)
-1. App.jsx — новый роутинг (10 экранов) + навбар 3 кнопки
-2. Home.jsx — меню-сетка
-3. Catalog.jsx → переименовать мысленно в Lots, добавить фильтры
-4. Presentations.jsx — новая страница
-5. Documents.jsx — новая страница
-6. Media.jsx — новая страница
-7. Booking.jsx — вынести из LotDetail в отдельную страницу
-8. News.jsx — заглушка (UI готов, ждёт backend)
-9. Secretary.jsx — заглушка
-10. Fixation.jsx — заглушка
-
-### Пакет B — Backend файловый сервер (1Code или сервер)
-1. Endpoints для презентаций, договоров, видео
-2. Endpoint курсов валют
-
-### Пакет C — AI Chat (Phase 3, отдельно)
-1. DeepSeek integration
-2. Function calling
-3. Streaming
-4. Secretary полноценный
-5. Fixation через rclick API
-
----
-
-## 5. ВАЖНЫЕ ЗАМЕЧАНИЯ
-
-- Файлы презентаций и видео БОЛЬШИЕ (до 50MB). Видео лучше стримить, не грузить целиком.
-- Whitelist файлов обязателен — нельзя отдавать произвольные пути.
-- На сервере /opt/bot-dev/presentations/ и /opt/bot-dev/videos/ — читаем, не пишем.
-- LotDetail.jsx — оставить как есть (KП, расчёты, рассрочка внутри карточки лота).
-- "Записаться на показ" — и в меню Home, и в LotDetail (дублируется, это ок).
+- WebApp ЧИТАЕТ `/opt/bot/properties.db` (данные лотов)
+- WebApp ПИШЕТ INSERT в `properties.db` таблицу bookings (кнопка "Взять")
+- `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git
+- Видео файлы большие (до 50MB) — стримятся, не грузятся целиком
+- Whitelist файлов обязателен — нельзя отдавать произвольные пути
+- Разработка webapp параллельна с ботом — docs интегрируем, не затираем!

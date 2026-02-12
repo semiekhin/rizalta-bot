@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.7.0** (Phase 3.2.2 complete)
+**v0.8.0** (Phase 3.2.2 complete + bugfixes)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -15,7 +15,8 @@ ssh -p 2222 root@72.56.64.91
 ## КРИТИЧЕСКИ ВАЖНО — НЕ ТРОГАТЬ
 - `/opt/bot` (порт 8000) — PROD бот, НИКОГДА не редактировать
 - `/opt/bot-dev` (порт 8002) — DEV бот, НИКОГДА не редактировать
-- `/opt/bot/properties.db` — читаем, но НЕ пишем
+- `/opt/bot/properties.db` — читаем + INSERT в таблицу bookings (только для кнопки "Взять")
+- Два процесса (бот + webapp) пишут в bookings — при текущей нагрузке безопасно
 
 ## Рабочая директория
 `/opt/webapp` (порт 8003)
@@ -25,34 +26,41 @@ ssh -p 2222 root@72.56.64.91
 /opt/webapp/
 ├── backend/
 │   ├── .env                          # Secrets (NOT in git)
-│   ├── .env.example                  # Template (+OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS)
-│   ├── app.py                        # FastAPI, порт 8003, lifespan, ~580+ lines
+│   ├── .env.example                  # Template
+│   ├── app.py                        # FastAPI, порт 8003, lifespan, 39 endpoints
 │   ├── webapp.db                     # Whitelist tokens (NOT in git)
 │   ├── secretary.db                  # Secretary tasks (NOT in git)
 │   ├── config/
-│   │   └── instructions.txt          # AI system prompt
+│   │   └── instructions.txt          # AI system prompt (копия из бота)
 │   ├── data/
-│   │   └── README.md                 # Note to copy rizalta_finance.json
+│   │   ├── README.md                 # Note to copy rizalta_finance.json
+│   │   ├── installment_config.json   # Конфиг рассрочки
+│   │   ├── mortgage_config.json      # Конфиг ипотеки Совкомбанк
+│   │   └── rizalta_finance.json      # Финансовые данные (NOT in git, копия из бота)
 │   └── services/
-│       ├── calculator.py             # ROI расчёт
-│       ├── installment_calculator.py # Варианты рассрочки
-│       ├── deposit_calculator.py     # Депозит сценарии (base/opt/pess)
-│       ├── investment_compare.py     # RIZALTA vs Депозит расчёт
-│       ├── compare_pdf_generator.py  # PDF сравнения (wkhtmltopdf)
-│       ├── kp_pdf_generator.py       # PDF КП (wkhtmltopdf)
-│       ├── calc_xlsx_generator.py    # Excel ROI
-│       ├── notifications.py          # Telegram + Email уведомления
-│       ├── ai_chat.py               # AI chat with OpenAI streaming
+│       ├── ai_chat.py               # OpenAI streaming SSE + intent actions
 │       ├── data_loader.py           # Loads finance data + instructions
-│       ├── intent_router.py         # Intent classification (quick patterns + GPT)
+│       ├── intent_router.py         # Quick patterns + GPT classification (16 intents)
 │       ├── secretary_db.py          # SQLite CRUD for tasks (secretary.db)
-│       ├── secretary_ai.py          # GPT task parsing
+│       ├── secretary_ai.py          # GPT task parsing from text
 │       ├── rclick_service.py        # rclick.ru auth + fixation
-│       ├── calc_universal.py
-│       └── calculations.py
+│       ├── mgp_calculator.py        # МГП расчёт + PDF (wkhtmltopdf)
+│       ├── mortgage_calculator.py   # Ипотека Sovcombank + PDF
+│       ├── news_service.py          # Погода, авиабилеты, RSS дайджест
+│       ├── notifications.py         # Telegram + Email + кнопка "Взять"
+│       ├── calculator.py            # ROI расчёт
+│       ├── installment_calculator.py # Варианты рассрочки
+│       ├── deposit_calculator.py    # Депозит сценарии (base/opt/pess)
+│       ├── investment_compare.py    # RIZALTA vs Депозит расчёт
+│       ├── compare_pdf_generator.py # PDF сравнения (wkhtmltopdf)
+│       ├── kp_pdf_generator.py      # PDF КП (wkhtmltopdf)
+│       ├── calc_xlsx_generator.py   # Excel ROI
+│       ├── investment_calc.py       # Investment calculations
+│       ├── calc_universal.py        # Universal calculator
+│       └── calculations.py          # Base calculations
 ├── frontend/                         # Preact + Tailwind CSS 4 + Vite 7
 │   ├── src/
-│   │   ├── App.jsx                   # Роутер (11 screens) + навигация + auth
+│   │   ├── App.jsx                   # Роутер (12 screens) + навигация + auth
 │   │   ├── main.jsx                  # Entry point
 │   │   ├── utils/
 │   │   │   └── auth.js               # Token capture, verify, authFetch
@@ -60,15 +68,15 @@ ssh -p 2222 root@72.56.64.91
 │   │       ├── Home.jsx              # Меню 2x4 + условная кнопка К3
 │   │       ├── Catalog.jsx           # Шахматка К1+К2 (358 лотов)
 │   │       ├── Corp3.jsx             # Шахматка К3 (282 лота, whitelist)
-│   │       ├── LotDetail.jsx         # Карточка лота + 5 модалок
+│   │       ├── LotDetail.jsx         # Карточка лота + модалки (ROI, МГП, ипотека)
 │   │       ├── Chat.jsx              # AI чат (SSE streaming + action buttons)
+│   │       ├── Secretary.jsx         # Календарь + управление задачами + AI парсинг
+│   │       ├── Fixation.jsx          # rclick авторизация + формы фиксации
+│   │       ├── News.jsx              # 4 вкладки: валюты, погода, авиабилеты, RSS
+│   │       ├── Booking.jsx           # Запись на показ (с валидацией)
 │   │       ├── Presentations.jsx     # PDF презентации
 │   │       ├── Documents.jsx         # Договоры
-│   │       ├── Media.jsx             # Видео
-│   │       ├── Booking.jsx           # Запись на показ (с валидацией)
-│   │       ├── News.jsx              # Курсы валют ЦБ
-│   │       ├── Secretary.jsx         # Календарь + управление задачами + AI парсинг
-│   │       └── Fixation.jsx          # rclick авторизация + формы фиксации
+│   │       └── Media.jsx             # Видео
 │   ├── public/
 │   │   ├── fonts/                    # Montserrat Regular, Medium, SemiBold (.ttf)
 │   │   └── images/
@@ -81,9 +89,9 @@ ssh -p 2222 root@72.56.64.91
 ## Стек
 - **Frontend**: Preact (via @preact/preset-vite with react alias), Tailwind CSS 4, Vite 7
 - **Backend**: Python 3.12, FastAPI 0.109, uvicorn, python-dotenv
-- **БД**: SQLite `/opt/bot/properties.db` (PROD, read-only) + `/opt/webapp/backend/webapp.db` (whitelist tokens) + `/opt/webapp/backend/secretary.db` (tasks)
-- **PDF**: wkhtmltopdf (KP + compare)
-- **AI**: OpenAI API (streaming SSE) — chat, intent routing, task parsing
+- **БД**: SQLite `/opt/bot/properties.db` (read + INSERT bookings) + `/opt/webapp/backend/webapp.db` (whitelist tokens) + `/opt/webapp/backend/secretary.db` (tasks)
+- **PDF**: wkhtmltopdf (KP, compare, МГП, ипотека)
+- **AI**: OpenAI API gpt-4o-mini (streaming SSE) — chat, intent routing, task parsing
 - **Уведомления**: Telegram Bot API (httpx) + SMTP email
 - **Nginx**: proxy /api/ → 127.0.0.1:8003, static из frontend/dist
 
@@ -106,16 +114,25 @@ ssh -p 2222 root@72.56.64.91
 ```
 ### Шрифт: Montserrat (Regular 400, Medium 500, SemiBold 600)
 
-## API (все endpoints v0.7.0)
+## API (все 39 endpoints, v0.8.0)
 ```
 # Общие
-GET  /api/health                      # version: "0.7.0"
+GET  /api/health                      # version: "0.8.0"
 GET  /api/lots                        # прокси к PROD боту :8000
 
 # Калькуляторы
 POST /api/calculate-roi               # {area, price}
 POST /api/installment                 # {price}
 POST /api/compare-deposit             # {amount, years, scenario}
+
+# МГП калькулятор
+GET  /api/mgp/calculate               # Расчёт МГП (15 лет, 2 модели)
+GET  /api/mgp/pdf                     # PDF скачивание МГП
+
+# Ипотечный калькулятор (Совкомбанк)
+GET  /api/mortgage/options             # Доступные тарифы
+POST /api/mortgage/calculate           # {price, dp_percent, tariff, term}
+GET  /api/mortgage/pdf                 # PDF скачивание ипотеки
 
 # Генерация документов
 POST /api/generate-kp                 # {code, include_18m, full_payment}
@@ -137,11 +154,14 @@ GET  /api/access/check                # Header: X-Access-Token → {level}
 GET  /api/corp3/lots                  # Whitelist only, 282 лота
 GET  /api/corp3/layout/{code}         # Whitelist only, JPG планировки
 
-# Курсы валют
+# Новости (4 вкладки)
 GET  /api/news/currency               # USD/EUR/CNY через cbr-xml-daily.ru
+GET  /api/news/weather                # Погода Белокуриха (Open-Meteo)
+GET  /api/news/flights                # Авиабилеты (Aviasales)
+GET  /api/news/digest                 # RSS: Ведомости, Коммерсантъ, РБК (10-15 новостей)
 
 # AI Чат (Phase 3.2.2)
-POST /api/chat                        # SSE stream или action JSON, rate limited
+POST /api/chat                        # SSE stream + action JSON, rate limited
 
 # Секретарь (Phase 3.2.2)
 GET  /api/secretary/tasks             # Задачи по дате
@@ -154,10 +174,29 @@ DELETE /api/secretary/tasks/{id}      # Удалить задачу
 POST /api/secretary/parse             # AI парсинг текста в задачу
 
 # Фиксация (Phase 3.2.2)
-POST /api/fixation/auth               # rclick.ru логин
+POST /api/fixation/auth               # rclick.ru логин (телефон или email)
 GET  /api/fixation/status             # Проверка авторизации
 POST /api/fixation/create             # Создать фиксацию
 POST /api/fixation/logout             # Выход
+
+# Catch-all (SPA)
+GET  /{full_path:path}                # → index.html
+```
+
+## Env переменные (backend/.env)
+```
+TELEGRAM_BOT_TOKEN    # Токен бота (для уведомлений)
+MANAGER_EMAIL         # Email менеджеров
+BOT_EMAIL             # Email отправителя
+SMTP_HOST             # SMTP сервер
+SMTP_PORT             # SMTP порт
+SMTP_USER             # SMTP логин
+SMTP_PASSWORD         # SMTP пароль
+MANAGER_CHAT_ID       # ID чата менеджера в Telegram
+OPENAI_API_KEY        # Ключ OpenAI (тот же что у бота)
+OPENAI_MODEL          # gpt-4o-mini
+OPENAI_MAX_TOKENS     # 2000
+SHOWS_GROUP_ID        # ID Telegram группы показов
 ```
 
 ## Whitelist система (Phase 3.1)
@@ -170,6 +209,50 @@ POST /api/fixation/logout             # Выход
 - Corp3.jsx загружает данные через authFetch, показывает 403 если нет доступа
 - Corp3 данные: `/opt/bot-dev/data/corp3_units.json` (area, price, layout_path)
 - Corp3 планировки: `/opt/bot-dev/data/corp3_layouts/`
+- Токен К3: MkKGpwCAsq6IF3RtRH7bvg
+
+## AI Чат (Phase 3.2.2)
+- `ai_chat.py` — OpenAI streaming через SSE (gpt-4o-mini)
+- `data_loader.py` — загрузка rizalta_finance.json + instructions.txt
+- `intent_router.py` — 16 intents: quick patterns + GPT fallback
+- Intent логика: навигационные (шахматка, презентации, медиа) → JSON сразу; обогащённые (ROI, рассрочка, портфель) → AI стримит полный ответ + кнопки в конце как отдельный SSE event
+- `config/instructions.txt` — системный промпт (копировать из бота при обновлении!)
+- `data/rizalta_finance.json` — финансовые данные (копировать из бота, NOT in git)
+- Rate limiting на `/api/chat`
+
+## Секретарь (Phase 3.2.2)
+- `secretary_db.py` — SQLite CRUD для задач (secretary.db)
+- `secretary_ai.py` — GPT парсинг текста в структурированную задачу
+- `Secretary.jsx` — лента календаря + управление задачами + AI парсинг
+- 8 API endpoints для полного CRUD + AI парсинг
+
+## Фиксация (Phase 3.2.2)
+- `rclick_service.py` — авторизация и фиксация на rclick.ru
+- Реальные endpoints из бота: `/auth/login/` (phone + password), `/notice/newbooking/`
+- `Fixation.jsx` — авторизация rclick (телефон или email) + формы фиксации
+- 4 API endpoints: auth, status, create, logout
+
+## МГП калькулятор (Phase 3.2.2)
+- `mgp_calculator.py` — 15-летний расчёт, 2 модели (номерной фонд / коммерческое)
+- LotDetail.jsx: модалка с таблицей + кнопка скачивания PDF
+- 2 endpoints: calculate + pdf
+
+## Ипотечный калькулятор (Phase 3.2.2)
+- `mortgage_calculator.py` — Совкомбанк аннуитетный расчёт с grace period
+- `data/mortgage_config.json` — конфигурация тарифов
+- LotDetail.jsx: интерактивная модалка (DP/тариф/срок) + PDF скачивание
+- 3 endpoints: options, calculate, pdf
+
+## Новости (Phase 3.2.2)
+- `news_service.py` — 4 источника данных
+- Валюты: cbr-xml-daily.ru (USD/EUR/CNY)
+- Погода: Open-Meteo API (Белокуриха)
+- Авиабилеты: Aviasales API
+- RSS дайджест: Ведомости, Коммерсантъ, РБК (10-15 новостей)
+
+## Уведомления о показах
+- Кнопка "Взять" в Telegram группе → INSERT в bookings таблицу properties.db
+- SHOWS_GROUP_ID исключён из обычной рассылки (фикс дубля сообщений)
 
 ## БД (таблица units в properties.db)
 ```sql
@@ -192,34 +275,10 @@ CREATE TABLE units (
 ```
 358 лотов К1+К2. Corp3 — 282 лота в JSON.
 
-## Уведомления (Phase 3.2.1)
-- `backend/services/notifications.py` — send_telegram_message, send_email, notify_showing_request
-- Telegram: httpx → Bot API, поддержка нескольких chat_id через запятую
-- Email: smtplib → SMTP с HTML форматированием
-- Конфиг в `backend/.env` (TELEGRAM_BOT_TOKEN, MANAGER_CHAT_ID, SMTP_*)
-- book-showing всегда возвращает ok=true (даже если уведомление не дошло)
-
-## AI Чат (Phase 3.2.2)
-- `backend/services/ai_chat.py` — OpenAI streaming через SSE
-- `backend/services/data_loader.py` — загрузка rizalta_finance.json + instructions.txt
-- `backend/services/intent_router.py` — классификация интентов (быстрые паттерны + GPT fallback)
-- `backend/config/instructions.txt` — системный промпт для AI
-- `backend/data/rizalta_finance.json` — финансовые данные (копировать вручную, см. README.md)
-- Frontend: `Chat.jsx` — полноценный SSE streaming + кнопки действий
-- Конфиг в `backend/.env` (OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS)
-- Rate limiting на `/api/chat`
-
-## Секретарь (Phase 3.2.2)
-- `backend/services/secretary_db.py` — SQLite CRUD для задач (secretary.db)
-- `backend/services/secretary_ai.py` — GPT парсинг текста в структурированную задачу
-- `backend/secretary.db` — БД задач (NOT in git, см. .gitignore)
-- Frontend: `Secretary.jsx` — лента календаря + управление задачами + AI парсинг
-- 8 API endpoints для полного CRUD + AI парсинг
-
-## Фиксация (Phase 3.2.2)
-- `backend/services/rclick_service.py` — авторизация и фиксация на rclick.ru
-- Frontend: `Fixation.jsx` — авторизация rclick + формы фиксации
-- 4 API endpoints: auth, status, create, logout
+## Git теги
+- `v0.5.0-stable` — Phase 3.1 (whitelist)
+- `v0.6.1-pre-phase322` — точка отката до Phase 3.2.2
+- `v0.8.0-stable` — текущая стабильная версия
 
 ## Команды
 ```bash
@@ -235,8 +294,9 @@ cd /opt/webapp/frontend && npm run build
 curl -s http://127.0.0.1:8003/api/health
 curl -s http://127.0.0.1:8003/api/lots | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['ok'], len(d.get('lots',[])))"
 curl -s "http://127.0.0.1:8003/api/download-compare-pdf?amount=5000000" -o /tmp/test.pdf && file /tmp/test.pdf
-curl -s http://127.0.0.1:8003/api/secretary/tasks?date=2026-02-11
+curl -s http://127.0.0.1:8003/api/secretary/tasks?date=2026-02-12
 curl -s http://127.0.0.1:8003/api/fixation/status
+curl -X POST http://127.0.0.1:8003/api/chat -H "Content-Type: application/json" -d '{"message":"Привет","history":[]}' --no-buffer
 ```
 
 ## Nginx
@@ -255,3 +315,5 @@ server {
 2. Когда К3 выходит в продажу — убрать проверку токена
 3. История чата (сохранение сессий)
 4. Push-уведомления для задач секретаря
+5. "Взять" → автосоздание задачи в секретаре (бот-сайд)
+6. Тюнинг rclick_service.py (формат запросов/ответов)

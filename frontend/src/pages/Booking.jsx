@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 
 export default function Booking({ onBack }) {
   const [form, setForm] = useState({ name: '', phone: '', comment: '' })
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const submittingRef = useRef(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -15,6 +16,8 @@ export default function Booking({ onBack }) {
       return
     }
 
+    if (submittingRef.current) return
+    submittingRef.current = true
     setSending(true)
     setError('')
     try {
@@ -34,6 +37,7 @@ export default function Booking({ onBack }) {
       setError('Ошибка соединения. Попробуйте ещё раз.')
     }
     setSending(false)
+    if (!sent) submittingRef.current = false
   }
 
   return (
