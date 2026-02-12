@@ -9,6 +9,8 @@
 - Замена презентации RIZALTA (43 MB)
 - Web App кнопка в DEV меню (whitelist → URL с токеном)
 - Ипотека: код в PROD, кнопка скрыта (готово к включению)
+- **12.02:** Скрытие 3 лотов К3 (В203, В610, В621). Итого: 153 sold / 129 available
+- **12.02:** Критический фикс: 7 файлов PROD имели хардкод /opt/bot-dev/ → исправлено
 - Версия: 2.6.0
 
 ### 09.02.2026: Фикс handle_kp_building_all + ARCHITECTURE/CALLBACKS
@@ -60,6 +62,11 @@
 ### Деплой ипотечного калькулятора
 - **Файлы:** mortgage_config.json, mortgage_calculator.py, mortgage.py + правки kp.py, app.py
 - **Статус:** Код и конфиг в PROD, кнопка скрыта. Для включения: добавить строку в /opt/bot/handlers/kp.py
+
+### МГП + Ипотека в WebApp
+- **Описание:** Скопировать калькуляторы из бота в webapp backend, добавить endpoints и кнопки в LotDetail
+- **Референс:** /opt/bot-dev/services/mgp_calculator.py, mortgage_calculator.py, data/mortgage_config.json
+- **Статус:** Не начато
 
 ### Деплой Web App кнопки в PROD
 - **Статус:** Готово в DEV, не задеплоено

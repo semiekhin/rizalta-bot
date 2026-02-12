@@ -2,7 +2,7 @@
 
 # RIZALTA AI System v2.6.0
 
-📅 **Последняя сессия:** 11.02.2026
+📅 **Последняя сессия:** 12.02.2026
 
 AI-консультант для риэлторов. Инвестиционная недвижимость RIZALTA Resort Belokurikha (Алтай).
 
@@ -28,7 +28,7 @@ AI-консультант для риэлторов. Инвестиционна�
 ## Корпуса
 - **Корпус 1 «Family»:** 255 лотов (properties.db)
 - **Корпус 2 «Business»:** 103 лота (properties.db) — **СКРЫТ** (hidden_buildings.json, ценовая пауза)
-- **Корпус 3 «Digital»:** 132 available / 150 sold (corp3_units.json, whitelist)
+- **Корпус 3 «Digital»:** 129 available / 153 sold (corp3_units.json, whitelist)
 
 ## Управление видимостью корпусов
 - **Конфиг:** `data/hidden_buildings.json` → `{"hidden": [2]}`

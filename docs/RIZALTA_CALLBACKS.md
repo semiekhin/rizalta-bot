@@ -1,4 +1,4 @@
-# Callback Data Index — RIZALTA Bot v2.5.10
+# Callback Data Index — RIZALTA Bot v2.6.0
 
 > Полный индекс всех callback_data паттернов.
 > Формат: `callback_data` → обработчик → файл
@@ -232,3 +232,10 @@ compare_period_3_14452000_235   → years=3, amount=14452000, area10=235 (=23.5 
 
 # Обратная совместимость: если area10 отсутствует → дефолт 26.8 м²
 ```
+
+
+### МГП (handlers/mgp.py)
+| callback_data | Обработчик | Описание |
+|---|---|---|
+| `mgp_calc_{code}_{building}_{area10}` | handle_mgp_calc | Текстовая таблица МГП |
+| `mgp_pdf_{code}_{building}_{area10}` | handle_mgp_pdf | Скачать PDF с МГП |

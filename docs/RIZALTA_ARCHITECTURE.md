@@ -1,4 +1,4 @@
-# Архитектура RIZALTA Bot v2.5.10
+# Архитектура RIZALTA Bot v2.6.0
 
 > Этот файл — карта проекта для LLM-ассистента.
 > Читай его ВМЕСТО изучения всего кода. Изучай код только по необходимости.
@@ -103,8 +103,10 @@
 ### 🏦 Ипотека (только DEV)
 | Файл | Ключевые функции | Описание |
 |------|-----------------|----------|
-| `handlers/mortgage.py` | `handle_mortgage_menu`, `handle_mortgage_pdf` | UI ипотечного калькулятора |
-| `services/mortgage_calculator.py` | `calc_mortgage` | Расчёт аннуитета |
+| `handlers/mortgage.py
+- **handlers/mgp.py** — расчёт МГП (номерной + коммерческий), текст + PDF` | `handle_mortgage_menu`, `handle_mortgage_pdf` | UI ипотечного калькулятора |
+| `services/mortgage_calculator.py
+- **services/mgp_calculator.py** — calc_mgp(), format_mgp_text(), generate_mgp_pdf()` | `calc_mortgage` | Расчёт аннуитета |
 | `services/mortgage_pdf_generator.py` | `generate_mortgage_pdf` | PDF ипотечного расчёта |
 
 ### 📅 Бронирование
