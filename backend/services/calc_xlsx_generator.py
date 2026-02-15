@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Генератор Excel-файла с расчётом прибыли от апартамента RIZALTA
 Записывает вычисленные значения (не формулы) для совместимости с просмотрщиками
@@ -13,8 +14,8 @@ from openpyxl.styles import Font, Alignment, Border, Side
 import tempfile
 
 BASE_DIR = Path(__file__).parent.parent
-DB_PATH = Path("/opt/bot/properties.db")
-CORP3_DATA_PATH = Path("/opt/bot-dev/data/corp3_units.json")
+DB_PATH = Path(os.getenv("PROPERTIES_DB", "/opt/bot/properties.db"))
+CORP3_DATA_PATH = Path(os.getenv("CORP3_DATA_PATH", "/opt/bot-dev/data/corp3_units.json"))
 
 
 def get_lot_from_db(code: str, building: int = None) -> Optional[Dict]:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Инвестиционный калькулятор RIZALTA
 Расчёт по формулам из таблицы застройщика
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Dict, Optional, List
 
 BASE_DIR = Path(__file__).parent.parent
-DB_PATH = Path("/opt/bot/properties.db")
+DB_PATH = Path(os.getenv("PROPERTIES_DB", "/opt/bot/properties.db"))
 
 EXPENSES_PCT = 0.50
 

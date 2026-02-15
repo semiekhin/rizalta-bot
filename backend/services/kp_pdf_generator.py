@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 BASE_DIR = Path(__file__).parent.parent
-DB_PATH = Path("/opt/bot/properties.db")
+DB_PATH = Path(os.getenv("PROPERTIES_DB", "/opt/bot/properties.db"))
 RESOURCES_DIR = BASE_DIR / "resources"
 SERVICE_FEE = 150_000
 

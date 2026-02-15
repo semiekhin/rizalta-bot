@@ -35,9 +35,9 @@ from services.mortgage_calculator import calc_mortgage, get_mortgage_options, ge
 from services.payment_pdf_generator import generate_payment_pdf
 
 # === Whitelist DB ===
-WEBAPP_DB = "/opt/webapp-dev/backend/webapp.db"
-CORP3_DATA_PATH = "/opt/bot-dev/data/corp3_units.json"
-CORP3_LAYOUTS_DIR = "/opt/bot-dev/data/corp3_layouts"
+WEBAPP_DB = os.getenv("WEBAPP_DB", "./webapp.db")
+CORP3_DATA_PATH = os.getenv("CORP3_DATA_PATH", "/opt/bot-dev/data/corp3_units.json")
+CORP3_LAYOUTS_DIR = os.getenv("CORP3_LAYOUTS_DIR", "/opt/bot-dev/data/corp3_layouts")
 
 
 def init_webapp_db():
@@ -105,7 +105,7 @@ app.add_middleware(
 )
 
 PROD_API = "http://127.0.0.1:8000"  # Локально к PROD боту
-DIST_PATH = "/opt/webapp-dev/frontend/dist"
+DIST_PATH = os.getenv("DIST_PATH", "../frontend/dist")
 
 # Latin → Cyrillic normalization for lot codes (desktop browsers may send Latin lookalikes)
 _LAT_TO_CYR = str.maketrans({
@@ -220,7 +220,7 @@ async def search_lot(code: str):
     found = []
 
     # 1. Search in properties.db (K1+K2) — may have same code in different buildings
-    db_path = "/opt/bot/properties.db"
+    db_path = os.getenv("PROPERTIES_DB", "/opt/bot/properties.db")
     if os.path.exists(db_path):
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -683,9 +683,9 @@ async def get_corp3_layout(code: str, level: str = Depends(get_access_level)):
 
 # === File serving (whitelist) ===
 
-PRESENTATIONS_DIR = "/opt/bot-dev/presentations"
-DOCUMENTS_DIR = "/opt/bot/docs"
-VIDEOS_DIR = "/opt/bot-dev/videos"
+PRESENTATIONS_DIR = os.getenv("PRESENTATIONS_DIR", "/opt/bot-dev/presentations")
+DOCUMENTS_DIR = os.getenv("DOCUMENTS_DIR", "/opt/bot/docs")
+VIDEOS_DIR = os.getenv("VIDEOS_DIR", "/opt/bot-dev/videos")
 
 ALLOWED_PRESENTATIONS = {
     "presentation_ru": "presentation_ru.pdf",
