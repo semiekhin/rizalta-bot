@@ -29,12 +29,19 @@ ssh -p 2222 root@72.56.64.91
 | Systemd | `webapp-dev.service` | `webapp.service` |
 
 ### Workflow для 1Code
-1. 1Code пишет код → push в GitHub (ветка `webapp`)
-2. На сервере: `cd /opt/webapp-dev \&\& git pull \&\& cd frontend \&\& npm run build \&\& systemctl restart webapp-dev`
-3. Проверка: https://dev-webapp.rizaltaservice.ru
-4. Деплой в prod — только после одобрения
 
-**НИКОГДА не деплоить напрямую в /opt/webapp — только через dev!**
+⚠️ **ОБЯЗАТЕЛЬНО перед началом работы:**
+```bash
+git checkout webapp && git pull origin webapp
+```
+
+1. 1Code делает `git pull` → получает актуальный код
+2. 1Code пишет код → commit → push в GitHub (ветка `webapp`)
+3. Webhook автоматически: git pull + build + restart DEV (2-3 сек)
+4. Проверка: https://dev-webapp.rizaltaservice.ru
+5. Деплой в prod: `bash /opt/webapp-dev/deploy-to-prod.sh` (только после одобрения)
+
+**НИКОГДА не деплоить
 
 ## Рабочая директория
 `/opt/webapp` (порт 8003)
