@@ -106,6 +106,16 @@ app.add_middleware(
 PROD_API = "http://127.0.0.1:8000"  # Локально к PROD боту
 DIST_PATH = "/opt/webapp/frontend/dist"
 
+# Latin → Cyrillic normalization for lot codes (desktop browsers may send Latin lookalikes)
+_LAT_TO_CYR = str.maketrans({
+    'A': 'А', 'B': 'В', 'C': 'С', 'E': 'Е', 'H': 'Н',
+    'K': 'К', 'M': 'М', 'O': 'О', 'P': 'Р', 'S': 'С', 'T': 'Т',
+})
+
+def normalize_lot_code(code: str) -> str:
+    """Normalize lot code: uppercase, Latin lookalikes → Cyrillic."""
+    return code.strip().upper().translate(_LAT_TO_CYR)
+
 
 # === Модели ===
 
@@ -300,6 +310,7 @@ async def api_generate_kp(req: KPRequest):
 @app.get("/api/download-kp/{code}")
 async def api_download_kp(code: str, type: str = "100"):
     """GET endpoint для скачивания PDF КП (для мобильных)."""
+    code = normalize_lot_code(code)
     try:
         pdf_path = generate_kp_pdf(
             code=code,
@@ -319,6 +330,7 @@ async def api_download_kp(code: str, type: str = "100"):
 @app.get("/api/download-xlsx/{code}")
 async def api_download_xlsx(code: str):
     """GET endpoint для скачивания Excel (для мобильных)."""
+    code = normalize_lot_code(code)
     try:
         xlsx_path = generate_roi_xlsx(unit_code=code, output_dir="/tmp")
         if xlsx_path and os.path.exists(xlsx_path):
@@ -581,6 +593,7 @@ async def get_corp3_layout(code: str, level: str = Depends(get_access_level)):
     """Serves Corp3 lot layout image (whitelist only)."""
     if level != "white":
         raise HTTPException(status_code=403, detail="Access denied")
+    code = normalize_lot_code(code)
 
     with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -770,6 +783,7 @@ async def api_mgp_calculate(area: float):
 @app.get("/api/mgp/pdf")
 async def api_mgp_pdf(code: str, area: float, building: int = None):
     """Generate and download MGP PDF."""
+    code = normalize_lot_code(code)
     try:
         pdf_path = generate_mgp_pdf(code, area, building)
         if pdf_path and os.path.exists(pdf_path):
