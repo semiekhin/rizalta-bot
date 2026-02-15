@@ -377,6 +377,12 @@ export default function LotDetail({ lot, onBack, onChat }) {
                       </div>
                     </div>
                   </div>
+                  <button
+                    onClick={() => window.open(`/api/payment-pdf?price=${lot.price}&code=${encodeURIComponent(lot.code)}`, '_blank')}
+                    className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors"
+                  >
+                    📄 Скачать PDF
+                  </button>
                 </div>
               ) : (
                 <p className="text-rz-error">Ошибка загрузки</p>
