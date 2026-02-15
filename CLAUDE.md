@@ -17,6 +17,24 @@ ssh -p 2222 root@72.56.64.91
 - `/opt/bot-dev` (порт 8002) — DEV бот, НИКОГДА не редактировать
 - `/opt/bot/properties.db` — читаем + INSERT в таблицу bookings (только для кнопки "Взять")
 - Два процесса (бот + webapp) пишут в bookings — при текущей нагрузке безопасно
+- `/opt/webapp` — PROD webapp, НИКОГДА не редактировать напрямую (только деплой из dev)
+
+## Среды разработки
+
+| | DEV | PROD |
+|---|---|---|
+| URL | https://dev-webapp.rizaltaservice.ru | https://webapp.rizaltaservice.ru |
+| Путь | `/opt/webapp-dev` | `/opt/webapp` |
+| Порт | 8004 | 8003 |
+| Systemd | `webapp-dev.service` | `webapp.service` |
+
+### Workflow для 1Code
+1. 1Code пишет код → push в GitHub (ветка `webapp`)
+2. На сервере: `cd /opt/webapp-dev \&\& git pull \&\& cd frontend \&\& npm run build \&\& systemctl restart webapp-dev`
+3. Проверка: https://dev-webapp.rizaltaservice.ru
+4. Деплой в prod — только после одобрения
+
+**НИКОГДА не деплоить напрямую в /opt/webapp — только через dev!**
 
 ## Рабочая директория
 `/opt/webapp` (порт 8003)
