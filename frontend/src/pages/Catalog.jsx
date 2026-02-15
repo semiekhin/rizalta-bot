@@ -19,19 +19,25 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
   const [searchCode, setSearchCode] = useState('')
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState('')
+  const [foundLots, setFoundLots] = useState(null)
 
   const handleSearch = async () => {
     const code = searchCode.trim()
     if (!code) return
     setSearchLoading(true)
     setSearchError('')
+    setFoundLots(null)
     try {
       const res = await fetch(`/api/lots/search?code=${encodeURIComponent(code)}`)
       const data = await res.json()
       if (data.ok) {
-        setShowSearch(false)
-        setSearchCode('')
-        onSelectLot(data.lot)
+        if (data.multiple) {
+          setFoundLots(data.lots)
+        } else {
+          setShowSearch(false)
+          setSearchCode('')
+          onSelectLot(data.lot)
+        }
       } else {
         setSearchError(data.error || 'Лот не найден')
       }
@@ -39,6 +45,13 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
       setSearchError('Ошибка соединения')
     }
     setSearchLoading(false)
+  }
+
+  const selectFoundLot = (lot) => {
+    setShowSearch(false)
+    setSearchCode('')
+    setFoundLots(null)
+    onSelectLot(lot)
   }
 
   const hasAdvancedFilters = areaMin || areaMax || priceMin || priceMax
@@ -114,7 +127,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
           <div className="bg-rz-green-light w-full max-w-sm mx-4 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-rz-green-mid flex justify-between items-center">
               <h2 className="font-bold">🔍 Поиск лота</h2>
-              <button onClick={() => { setShowSearch(false); setSearchError('') }} className="text-rz-cream-dark text-xl">✕</button>
+              <button onClick={() => { setShowSearch(false); setSearchError(''); setFoundLots(null) }} className="text-rz-cream-dark text-xl">✕</button>
             </div>
             <div className="p-4 space-y-3">
               <form onSubmit={(e) => { e.preventDefault(); handleSearch() }} className="flex gap-2">
@@ -136,6 +149,24 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
               </form>
               {searchError && (
                 <p className="text-rz-error text-sm text-center">{searchError}</p>
+              )}
+              {foundLots && (
+                <div className="space-y-2">
+                  <p className="text-sm text-center text-rz-cream-dark">Найдено в нескольких корпусах:</p>
+                  {foundLots.map(lot => (
+                    <button
+                      key={`${lot.building}-${lot.code}`}
+                      onClick={() => selectFoundLot(lot)}
+                      className="w-full bg-rz-green-mid rounded-xl p-3 flex justify-between items-center hover:bg-rz-green-dark transition-colors"
+                    >
+                      <div className="text-left">
+                        <p className="font-medium text-rz-cream">К{lot.building} ({lot.buildingName})</p>
+                        <p className="text-xs text-rz-cream-dark">{lot.area} м² • {lot.floor} этаж</p>
+                      </div>
+                      <p className="text-rz-gold font-medium">{formatPrice(lot.price)}</p>
+                    </button>
+                  ))}
+                </div>
               )}
               <p className="text-rz-cream-muted text-xs text-center">Поиск по всем корпусам (К1, К2, К3)</p>
             </div>

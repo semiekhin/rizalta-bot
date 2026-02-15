@@ -217,26 +217,26 @@ async def health():
 async def search_lot(code: str):
     """Search lot by code across all buildings (K1+K2 from DB, K3 from JSON)."""
     code = normalize_lot_code(code)
+    found = []
 
-    # 1. Search in properties.db (K1+K2)
+    # 1. Search in properties.db (K1+K2) — may have same code in different buildings
     db_path = "/opt/bot/properties.db"
     if os.path.exists(db_path):
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute(
             "SELECT code, building, floor, rooms, area_m2, price_rub, price_per_m2_rub, status, layout_url "
-            "FROM units WHERE code = ? LIMIT 1", (code,)
+            "FROM units WHERE code = ?", (code,)
         )
-        row = cursor.fetchone()
-        conn.close()
-        if row:
+        for row in cursor.fetchall():
             bname = "Family" if row[1] == 1 else "Business"
-            return {"ok": True, "lot": {
+            found.append({
                 "code": row[0], "building": row[1], "buildingName": bname,
                 "floor": row[2], "rooms": row[3], "area": row[4],
                 "price": row[5], "priceM2": row[6], "status": row[7] or "available",
                 "layout_url": row[8],
-            }}
+            })
+        conn.close()
 
     # 2. Search in Corp3 JSON
     if os.path.exists(CORP3_DATA_PATH):
@@ -246,16 +246,20 @@ async def search_lot(code: str):
             if u.get("code", "").upper() == code:
                 area = u.get("area_m2") or u.get("area", 0)
                 price = u.get("price_rub") or u.get("price", 0)
-                return {"ok": True, "lot": {
+                found.append({
                     "code": u.get("code"), "building": 3, "buildingName": "Корпус 3",
                     "floor": u.get("floor", 0), "rooms": u.get("rooms", 0),
                     "area": area, "price": price,
                     "priceM2": int(price / area) if area else 0,
                     "status": u.get("status", "available"),
                     "layout_url": None, "source": "corp3",
-                }}
+                })
 
-    return {"ok": False, "error": "Лот не найден"}
+    if not found:
+        return {"ok": False, "error": "Лот не найден"}
+    if len(found) == 1:
+        return {"ok": True, "lot": found[0]}
+    return {"ok": True, "multiple": True, "lots": found}
 
 
 @app.post("/api/chat")
