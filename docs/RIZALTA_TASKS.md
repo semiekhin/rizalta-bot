@@ -156,3 +156,11 @@
 - МГП калькулятор + Ипотечный калькулятор + PDF генерация
 - Новости: 4 вкладки (валюты, погода, авиабилеты, RSS)
 - Версия webapp: v0.8.0
+
+### ✅ 15.02.2026: WebApp v0.8.0 → v0.8.4 (фиксы + поиск)
+- **Фикс Excel для К3:** encodeURIComponent + normalize_lot_code + поиск в corp3_units.json
+- **PDF "Варианты оплаты":** новый endpoint + payment_pdf_generator.py + кнопка в модалке
+- **Поиск по коду лота:** GET /api/lots/search по всем корпусам, выбор при дублях
+- **Фикс планировки К3 через поиск:** whitelist токен в layout_url
+- Теги: v0.8.2-xlsx-fix, v0.8.3-payment-pdf, v0.8.4-search-complete
+- Версия webapp: v0.8.4

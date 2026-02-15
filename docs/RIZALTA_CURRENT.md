@@ -123,3 +123,39 @@ sed -i '/🏦 Ипотека/d' /opt/bot/handlers/kp.py
 grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 # Должно быть пусто!
 ```
+
+## ✅ Что сделано (15.02.2026) — WebApp
+
+### WebApp v0.8.0 → v0.8.4
+
+**Фикс Excel для К3:**
+- Кириллица в URL: encodeURIComponent на фронте + normalize_lot_code (Latin→Cyrillic) на бэке
+- Поиск лотов К3: calc_xlsx_generator.py ищет в corp3_units.json когда building=3
+- Теги: v0.8.2-xlsx-fix
+
+**PDF "Варианты оплаты":**
+- Новый endpoint GET /api/payment-pdf?price=&code=
+- Новый файл: services/payment_pdf_generator.py (wkhtmltopdf)
+- Кнопка "Скачать PDF" в модалке вариантов оплаты
+- Теги: v0.8.3-payment-pdf
+
+**Поиск лота по коду:**
+- Новый endpoint GET /api/lots/search?code=
+- Поиск по всем корпусам: К1+К2 (properties.db) + К3 (corp3_units.json)
+- Выбор корпуса при дублях (А200 есть в К1 и К2 — показывает оба)
+- Нормализация: латиница→кириллица (B→В, A→А)
+- Кнопка 🔍 в Catalog.jsx
+- Теги: v0.8.4-search-complete
+
+**Фикс планировки К3 через поиск:**
+- layout_url для К3 передаёт whitelist токен
+- Проверка на дублирование ?token= (если уже есть — не добавлять)
+
+**Коммиты:**
+- 6b1a2ee — Excel fix Corp3
+- 6c060e0 — Payment PDF
+- 4580802 — Lot search
+- a9621a2 — Duplicate handling
+- 00ecebe — Corp3 layout URL
+- bd3ee65 — Whitelist token
+- 0ac5914 — Token dedup fix
