@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.8.4** (Phase 3.2.2 complete + search & PDF fixes)
+**v0.8.5** (Phase 3.2.2 complete + search & PDF fixes)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -284,3 +284,28 @@ curl -s "http://127.0.0.1:8003/api/download-xlsx/В800?building=3" -o /tmp/test.
 
 ### Шаблон завершения
 https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/SESSION_END_TEMPLATE.md
+
+## DevOps Pipeline (v0.8.5)
+
+### Auto-deploy DEV
+- `webhook_receiver.py` на порту 9001 (systemd: `webhook-webapp.service`)
+- GitHub webhook → push в `webapp` → git pull + build + restart (2-3 сек)
+- nginx: `/webhook` → 127.0.0.1:9001
+
+### Deploy PROD
+```bash
+bash /opt/webapp-dev/deploy-to-prod.sh
+```
+Скрипт: проверка DEV health → git pull → build → restart → health check → автооткат при ошибке
+
+### Env переменные путей (все среды)
+```
+WEBAPP_DB=./webapp.db
+DIST_PATH=../frontend/dist
+PROPERTIES_DB=/opt/bot/properties.db
+CORP3_DATA_PATH=/opt/bot-dev/data/corp3_units.json
+CORP3_LAYOUTS_DIR=/opt/bot-dev/data/corp3_layouts
+PRESENTATIONS_DIR=/opt/bot-dev/presentations
+DOCUMENTS_DIR=/opt/bot/docs
+VIDEOS_DIR=/opt/bot-dev/videos
+```

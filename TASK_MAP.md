@@ -107,3 +107,18 @@ systemctl restart webapp.service
 - WebApp ПИШЕТ INSERT в `properties.db` таблицу bookings (кнопка "Взять")
 - `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git
 - Разработка webapp параллельна с ботом — docs интегрируем, не затираем!
+
+---
+
+## Сессия 16.02.2026 (v0.8.4 → v0.8.5)
+
+### ✅ Выполнено
+- **DEV-окружение:** /opt/webapp-dev, порт 8004, systemd, nginx, SSL, оранжевый favicon
+- **Пути в .env:** WEBAPP_DB, DIST_PATH, PROPERTIES_DB и др. → os.getenv() в app.py + 3 сервисах
+- **GitHub webhook:** webhook_receiver.py (порт 9001) + systemd + nginx → auto-deploy DEV за 2-3 сек
+- **deploy-to-prod.sh:** деплой одной командой с автооткатом
+
+### 🔴 Ближайшие задачи (Phase 3.3)
+1. **Единый источник данных** — автосинхронизация бот↔webapp (finance.json, instructions.txt)
+2. **session-end.sh** — автоматизация обновления docs при завершении сессии
+3. **Цель:** актуальная единая информация в любую секунду (бот + webapp)
