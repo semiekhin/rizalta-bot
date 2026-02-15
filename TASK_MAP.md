@@ -1,6 +1,6 @@
 # RIZALTA WebApp — Карта задач для 1Code
 
-## ТЕКУЩИЙ СТАТУС: v0.8.0 (Phase 3.2.2 завершена)
+## ТЕКУЩИЙ СТАТУС: v0.8.4 (15.02.2026)
 
 **КРИТИЧНО:** Код в /opt/bot и /opt/bot-dev НЕ ТРОГАЕМ. Только читаем файлы.
 
@@ -31,6 +31,12 @@
 - **Новости:** 4 вкладки (валюты ЦБ, погода Open-Meteo, авиабилеты Aviasales, RSS дайджест)
 - **Показы:** Кнопка "Взять" → INSERT в bookings + фикс дубля сообщений
 
+### Сессия 15.02.2026 (v0.8.0 → v0.8.4)
+- **Фикс Excel для К3:** encodeURIComponent на фронте + normalize_lot_code на бэке + поиск в corp3_units.json по building=3
+- **PDF "Варианты оплаты":** Новый endpoint /api/payment-pdf + payment_pdf_generator.py + кнопка в модалке
+- **Поиск по коду лота:** GET /api/lots/search ищет в К1+К2 (properties.db) + К3 (JSON), выбор корпуса при дублях (А200 есть в К1 и К2)
+- **Фикс планировки К3 через поиск:** layout_url с токеном whitelist, без дублирования ?token=
+
 ---
 
 ## 🔜 БЭКЛОГ (Phase 3.3+)
@@ -45,13 +51,25 @@
 3. **История чата** — сохранение сессий (сейчас browser-only)
 4. **Push-уведомления** — для задач секретаря
 5. **Тюнинг rclick_service.py** — формат запросов/ответов может требовать адаптации
-6. **Inline PDF viewer** — PDF в модалке вместо скачивания (под вопросом)
-7. **К3 в открытую продажу** — убрать whitelist когда корпус выходит в продажу
+6. **К3 в открытую продажу** — убрать whitelist когда корпус выходит в продажу
 
 ### Приоритет 🟢
 
-8. **Админ-панель** — управление лотами, статусами, whitelist
-9. **Offline-режим** — Service Worker для базовой работы без сети
+7. **Админ-панель** — управление лотами, статусами, whitelist
+8. **Offline-режим** — Service Worker для базовой работы без сети
+
+---
+
+## 🏷️ GIT ТЕГИ
+
+| Тег | Описание |
+|-----|----------|
+| v0.5.0-stable | Phase 3.1 (whitelist) |
+| v0.6.1-pre-phase322 | Точка отката до Phase 3.2.2 |
+| v0.8.0-stable | Phase 3.2.2 завершена |
+| v0.8.2-xlsx-fix | Фикс Excel для К3 |
+| v0.8.3-payment-pdf | PDF вариантов оплаты |
+| v0.8.4-search-complete | Поиск по коду лота |
 
 ---
 
@@ -60,7 +78,7 @@
 ### Стандартный деплой
 ```bash
 cd /opt/webapp && git pull origin webapp
-cd frontend && npm run build
+npm run build --prefix frontend
 systemctl restart webapp.service
 curl -s http://localhost:8003/api/health
 ```
@@ -72,24 +90,11 @@ cp /opt/bot/config/instructions.txt /opt/webapp/backend/config/
 systemctl restart webapp.service
 ```
 
-### Env (.env должен содержать)
-```
-TELEGRAM_BOT_TOKEN, MANAGER_EMAIL, BOT_EMAIL
-SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
-MANAGER_CHAT_ID, SHOWS_GROUP_ID
-OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS
-```
-
-### Установка зависимостей (в venv!)
-```bash
-/opt/webapp/venv/bin/pip install openai openpyxl
-```
-
 ### Откат
 ```bash
 cd /opt/webapp
-git reset --hard v0.8.0-stable    # или v0.6.1-pre-phase322
-cd frontend && npm run build
+git reset --hard v0.8.4-search-complete  # или другой тег
+npm run build --prefix frontend
 systemctl restart webapp.service
 ```
 
@@ -97,9 +102,8 @@ systemctl restart webapp.service
 
 ## 📝 ВАЖНЫЕ ЗАМЕЧАНИЯ
 
-- WebApp ЧИТАЕТ `/opt/bot/properties.db` (данные лотов)
+- WebApp ЧИТАЕТ `/opt/bot/properties.db` (К1+К2, 358 лотов)
+- WebApp ЧИТАЕТ `/opt/bot-dev/data/corp3_units.json` (К3, 282 лота)
 - WebApp ПИШЕТ INSERT в `properties.db` таблицу bookings (кнопка "Взять")
 - `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git
-- Видео файлы большие (до 50MB) — стримятся, не грузятся целиком
-- Whitelist файлов обязателен — нельзя отдавать произвольные пути
 - Разработка webapp параллельна с ботом — docs интегрируем, не затираем!
