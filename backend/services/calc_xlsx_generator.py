@@ -4,6 +4,7 @@
 Записывает вычисленные значения (не формулы) для совместимости с просмотрщиками
 """
 
+import json
 import sqlite3
 from pathlib import Path
 from typing import Optional, Dict
@@ -13,6 +14,7 @@ import tempfile
 
 BASE_DIR = Path(__file__).parent.parent
 DB_PATH = Path("/opt/bot/properties.db")
+CORP3_DATA_PATH = Path("/opt/bot-dev/data/corp3_units.json")
 
 
 def get_lot_from_db(code: str, building: int = None) -> Optional[Dict]:
@@ -46,6 +48,27 @@ def get_lot_by_area(area: float) -> Optional[Dict]:
     conn.close()
     if row:
         return {"code": row[0], "area": row[1], "price": row[2], "price_m2": int(row[2] / row[1])}
+    return None
+
+
+def get_lot_from_corp3_json(code: str) -> Optional[Dict]:
+    """Получить лот К3 из JSON файла"""
+    if not CORP3_DATA_PATH.exists():
+        return None
+    with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    code_upper = code.strip().upper()
+    for lot in data.get("units", []):
+        if lot.get("code", "").upper() == code_upper:
+            area = lot.get("area_m2") or lot.get("area", 0)
+            price = lot.get("price_rub") or lot.get("price", 0)
+            if area > 0 and price > 0:
+                return {
+                    "code": lot.get("code"),
+                    "area": area,
+                    "price": price,
+                    "price_m2": int(price / area),
+                }
     return None
 
 
@@ -463,7 +486,10 @@ def generate_roi_xlsx(unit_code: str = None, area: float = None, output_dir: str
     """
     lot = None
     if unit_code:
-        lot = get_lot_from_db(unit_code, building)
+        if building == 3:
+            lot = get_lot_from_corp3_json(unit_code)
+        else:
+            lot = get_lot_from_db(unit_code, building)
     elif area:
         lot = get_lot_by_area(area)
     

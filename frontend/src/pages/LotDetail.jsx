@@ -110,7 +110,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
   // === Excel Download ===
   const handleExcelDownload = () => {
-    const url = `/api/download-xlsx/${encodeURIComponent(lot.code)}`
+    const url = `/api/download-xlsx/${encodeURIComponent(lot.code)}?building=${lot.building}`
     window.open(url, '_blank')
   }
 

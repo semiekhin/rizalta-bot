@@ -328,11 +328,11 @@ async def api_download_kp(code: str, type: str = "100"):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 @app.get("/api/download-xlsx/{code}")
-async def api_download_xlsx(code: str):
+async def api_download_xlsx(code: str, building: int = None):
     """GET endpoint для скачивания Excel (для мобильных)."""
     code = normalize_lot_code(code)
     try:
-        xlsx_path = generate_roi_xlsx(unit_code=code, output_dir="/tmp")
+        xlsx_path = generate_roi_xlsx(unit_code=code, output_dir="/tmp", building=building)
         if xlsx_path and os.path.exists(xlsx_path):
             return FileResponse(
                 xlsx_path,
