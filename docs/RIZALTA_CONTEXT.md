@@ -12,18 +12,18 @@ AI-консультант для риэлторов. Инвестиционна�
 - **DEV API:** `/opt/bot-dev` (uvicorn :8002, сервис `rizalta-dev-api`)
 - **PROD:** `/opt/bot` (@RealtMeAI_bot, webhook :8000)
 - **Mini App:** `/opt/miniapp` → https://rizalta-miniapp.vercel.app
-- **WebApp:** `/opt/webapp` → https://webapp.rizaltaservice.ru (v0.6.1)
+- **WebApp:** `/opt/webapp` → https://webapp.rizaltaservice.ru (v0.8.0)
 
 ## Репозитории
 - **PROD:** github.com/semiekhin/rizalta-bot
 - **DEV:** github.com/semiekhin/rizalta-bot-dev
 - **Mini App:** github.com/semiekhin/rizalta-miniapp
-- **WebApp:** github.com/semiekhin/rizalta-webapp
+- **WebApp:** github.com/semiekhin/rizalta-bot (ветка webapp)
 
 ## Стек
 - Python/FastAPI, SQLite (WAL mode), Telegram Bot API, OpenAI GPT-4o-mini
 - Mini App: React/Vite/Tailwind → Vercel
-- WebApp: React/Vite/Tailwind → systemd + nginx
+- WebApp: Preact/Vite/Tailwind → systemd + nginx
 
 ## Корпуса
 - **Корпус 1 «Family»:** 255 лотов (properties.db)
