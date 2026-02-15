@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.8.5** (Phase 3.2.2 complete + search & PDF fixes)
+**v0.8.5** (Phase 3.2.2 complete + search & PDF fixes + DevOps pipeline)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -27,21 +27,28 @@ ssh -p 2222 root@72.56.64.91
 | Путь | `/opt/webapp-dev` | `/opt/webapp` |
 | Порт | 8004 | 8003 |
 | Systemd | `webapp-dev.service` | `webapp.service` |
+| Favicon | 🟠 оранжевая "D" | стандартный Vite |
+
+## DevOps Pipeline (v0.8.5)
+
+### Auto-deploy DEV
+- `webhook_receiver.py` на порту 9001 (systemd: `webhook-webapp.service`)
+- GitHub webhook → push в `webapp` → git pull + build + restart (2-3 сек)
+- nginx: `/webhook` → 127.0.0.1:9001
+
+### Deploy PROD
+```bash
+bash /opt/webapp-dev/deploy-to-prod.sh
+```
+Скрипт: проверка DEV health → git pull → build → restart → health check → автооткат при ошибке
 
 ### Workflow для 1Code
+1. 1Code пишет код → push в GitHub (ветка `webapp`)
+2. GitHub webhook автоматически обновляет DEV (git pull + build + restart, 2-3 сек)
+3. Проверка: https://dev-webapp.rizaltaservice.ru
+4. Деплой в prod — только после одобрения: `bash /opt/webapp-dev/deploy-to-prod.sh`
 
-⚠️ **ОБЯЗАТЕЛЬНО перед началом работы:**
-```bash
-git checkout webapp && git pull origin webapp
-```
-
-1. 1Code делает `git pull` → получает актуальный код
-2. 1Code пишет код → commit → push в GitHub (ветка `webapp`)
-3. Webhook автоматически: git pull + build + restart DEV (2-3 сек)
-4. Проверка: https://dev-webapp.rizaltaservice.ru
-5. Деплой в prod: `bash /opt/webapp-dev/deploy-to-prod.sh` (только после одобрения)
-
-**НИКОГДА не деплоить
+**НИКОГДА не деплоить напрямую в /opt/webapp — только через dev!**
 
 ## Рабочая директория
 `/opt/webapp` (порт 8003)
@@ -50,7 +57,7 @@ git checkout webapp && git pull origin webapp
 ```
 /opt/webapp/
 ├── backend/
-│   ├── .env                          # Secrets (NOT in git)
+│   ├── .env                          # Secrets + пути (NOT in git)
 │   ├── .env.example                  # Template
 │   ├── app.py                        # FastAPI, порт 8003, lifespan, 42 endpoints
 │   ├── webapp.db                     # Whitelist tokens (NOT in git)
@@ -79,7 +86,7 @@ git checkout webapp && git pull origin webapp
 │       ├── investment_compare.py    # RIZALTA vs Депозит расчёт
 │       ├── compare_pdf_generator.py # PDF сравнения (wkhtmltopdf)
 │       ├── kp_pdf_generator.py      # PDF КП (wkhtmltopdf)
-│       ├── payment_pdf_generator.py # PDF вариантов оплаты (NEW v0.8.4)
+│       ├── payment_pdf_generator.py # PDF вариантов оплаты (v0.8.4)
 │       ├── calc_xlsx_generator.py   # Excel ROI (+ Corp3 JSON support)
 │       ├── investment_calc.py       # Investment calculations
 │       ├── calc_universal.py        # Universal calculator
@@ -92,7 +99,7 @@ git checkout webapp && git pull origin webapp
 │   │   │   └── auth.js               # Token capture, verify, authFetch, getToken
 │   │   └── pages/
 │   │       ├── Home.jsx              # Меню 2x4 + условная кнопка К3
-│   │       ├── Catalog.jsx           # Шахматка К1+К2 + поиск по коду (NEW v0.8.4)
+│   │       ├── Catalog.jsx           # Шахматка К1+К2 + поиск по коду (v0.8.4)
 │   │       ├── Corp3.jsx             # Шахматка К3 (282 лота, whitelist)
 │   │       ├── LotDetail.jsx         # Карточка лота + модалки (ROI, МГП, ипотека, PDF оплаты)
 │   │       ├── Chat.jsx              # AI чат (SSE streaming + action buttons)
@@ -109,6 +116,8 @@ git checkout webapp && git pull origin webapp
 │   │       ├── logo.png
 │   │       └── logo-green.svg        # Зелёное лого для золотого hero
 │   └── vite.config.js                # Preact aliases, Tailwind plugin
+├── webhook_receiver.py               # GitHub webhook auto-deploy (порт 9001)
+├── deploy-to-prod.sh                 # Деплой dev → prod с автооткатом
 └── venv/
 ```
 
@@ -140,12 +149,12 @@ git checkout webapp && git pull origin webapp
 ```
 ### Шрифт: Montserrat (Regular 400, Medium 500, SemiBold 600)
 
-## API (42 endpoints, v0.8.4)
+## API (42 endpoints, v0.8.5)
 ```
 # Общие
-GET  /api/health                      # version: "0.8.4"
+GET  /api/health                      # version: "0.8.5"
 GET  /api/lots                        # прокси к PROD боту :8000
-GET  /api/lots/search                 # Поиск по коду (К1+К2+К3) — NEW v0.8.4
+GET  /api/lots/search                 # Поиск по коду (К1+К2+К3)
 
 # Калькуляторы
 POST /api/calculate-roi               # {area, price}
@@ -165,9 +174,9 @@ GET  /api/mortgage/pdf                 # PDF скачивание ипотеки
 POST /api/generate-kp                 # {code, include_18m, full_payment}
 POST /api/generate-xlsx               # {code}
 GET  /api/download-kp/{code}          # ?type=100|12m|full
-GET  /api/download-xlsx/{code}        # ?building= для К3 — NEW v0.8.4
+GET  /api/download-xlsx/{code}        # ?building= для К3
 GET  /api/download-compare-pdf        # ?amount=X&years=11&area=26.8
-GET  /api/payment-pdf                 # ?price=&code= — NEW v0.8.4
+GET  /api/payment-pdf                 # ?price=&code=
 
 # Заявки (реальные уведомления TG + Email)
 POST /api/book-showing                # {name, phone, lot_code, comment}
@@ -219,6 +228,7 @@ GET  /{full_path:path}                # → index.html
 
 ## Env переменные (backend/.env)
 ```
+# Secrets
 TELEGRAM_BOT_TOKEN    # Токен бота (для уведомлений)
 MANAGER_EMAIL         # Email менеджеров
 BOT_EMAIL             # Email отправителя
@@ -231,6 +241,16 @@ OPENAI_API_KEY        # Ключ OpenAI (тот же что у бота)
 OPENAI_MODEL          # gpt-4o-mini
 OPENAI_MAX_TOKENS     # 2000
 SHOWS_GROUP_ID        # ID Telegram группы показов
+
+# Пути (v0.8.5 — позволяют одному app.py работать и на dev, и на prod)
+WEBAPP_DB=./webapp.db
+DIST_PATH=../frontend/dist
+PROPERTIES_DB=/opt/bot/properties.db
+CORP3_DATA_PATH=/opt/bot-dev/data/corp3_units.json
+CORP3_LAYOUTS_DIR=/opt/bot-dev/data/corp3_layouts
+PRESENTATIONS_DIR=/opt/bot-dev/presentations
+DOCUMENTS_DIR=/opt/bot/docs
+VIDEOS_DIR=/opt/bot-dev/videos
 ```
 
 ## Whitelist система (Phase 3.1)
@@ -251,6 +271,8 @@ SHOWS_GROUP_ID        # ID Telegram группы показов
 - `v0.8.2-xlsx-fix` — фикс Excel для К3
 - `v0.8.3-payment-pdf` — PDF вариантов оплаты
 - `v0.8.4-search-complete` — поиск по коду лота
+- `v0.8.5-env-paths` — пути в .env
+- `v0.8.5-devops-pipeline` — webhook + deploy скрипт
 
 ## Команды
 ```bash
@@ -259,31 +281,55 @@ sudo systemctl restart webapp.service
 sudo systemctl status webapp.service
 sudo journalctl -u webapp.service -n 50 --no-pager
 
+# DEV
+sudo systemctl restart webapp-dev.service
+sudo journalctl -u webapp-dev.service -n 50 --no-pager
+
+# Webhook
+sudo systemctl status webhook-webapp.service
+sudo journalctl -u webhook-webapp.service -n 20 --no-pager
+
 # Frontend build
 cd /opt/webapp/frontend && npm run build
 
-# Полный деплой
-cd /opt/webapp && git pull && npm run build --prefix frontend && systemctl restart webapp
+# Деплой в PROD (из dev)
+bash /opt/webapp-dev/deploy-to-prod.sh
 
 # Тесты
 curl -s http://127.0.0.1:8003/api/health
+curl -s http://127.0.0.1:8004/api/health
 curl -s "http://127.0.0.1:8003/api/lots/search?code=А200"
 curl -s "http://127.0.0.1:8003/api/download-xlsx/В800?building=3" -o /tmp/test.xlsx
 ```
 
 ## TODO (Phase 3.3+)
-1. Function calling в AI чате (инструменты: расчёт, поиск лота, бронирование)
-2. Когда К3 выходит в продажу — убрать проверку токена
-3. История чата (сохранение сессий)
-4. Push-уведомления для задач секретаря
-5. "Взять" → автосоздание задачи в секретаре (бот-сайд)
+1. **Автосинхронизация данных бот↔webapp** — rizalta_finance.json, instructions.txt (cron/inotify)
+2. **session-end.sh** — один скрипт для обновления docs + коммит 3 репо
+3. Function calling в AI чате (инструменты: расчёт, поиск лота, бронирование)
+4. Миграция на российский LLM (DeepSeek/YandexGPT)
+5. Когда К3 выходит в продажу — убрать проверку токена
+6. История чата (сохранение сессий)
+7. Push-уведомления для задач секретаря
+8. "Взять" → автосоздание задачи в секретаре (бот-сайд)
 
 ## ⚠️ ПРАВИЛА РАЗРАБОТКИ
+
+### Два параллельных чата
+- **Этот репо (webapp)** — webapp разработка
+- **bot-dev** — основной бот
+- Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, не затирать!
+
+### Workflow
+- **Claude chat** = архитектор (ТЗ, анализ, спецификации)
+- **1Code** = реализация (код, push в GitHub)
+- 1Code запускается: `cd ~/1code && bun run dev` (Mac)
+- После push → webhook автоматически обновляет DEV
+- PROD деплой: `bash /opt/webapp-dev/deploy-to-prod.sh`
 
 ### Завершение сессии — ОБЯЗАТЕЛЬНЫЙ ЧЕКЛИСТ
 1. Обновить docs: CLAUDE.md, TASK_MAP.md, RIZALTA_CURRENT.md, RIZALTA_TASKS.md, RIZALTA_CONTEXT.md
 2. Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, не затирать (параллельный бот-чат)
-3. Коммит + push webapp: `cd /opt/webapp && git add -A && git commit && git push origin webapp`
+3. Коммит + push webapp: `cd /opt/webapp-dev && git add -A && git commit && git push origin webapp`
 4. Коммит + push bot-dev: `cd /opt/bot-dev && git add docs/ && git commit && git push`
 5. Копировать в PROD: `cp /opt/bot-dev/docs/RIZALTA_*.md /opt/bot/docs/`
 6. Коммит + push PROD: `cd /opt/bot && git add docs/ && git commit && git push`
@@ -291,28 +337,3 @@ curl -s "http://127.0.0.1:8003/api/download-xlsx/В800?building=3" -o /tmp/test.
 
 ### Шаблон завершения
 https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/SESSION_END_TEMPLATE.md
-
-## DevOps Pipeline (v0.8.5)
-
-### Auto-deploy DEV
-- `webhook_receiver.py` на порту 9001 (systemd: `webhook-webapp.service`)
-- GitHub webhook → push в `webapp` → git pull + build + restart (2-3 сек)
-- nginx: `/webhook` → 127.0.0.1:9001
-
-### Deploy PROD
-```bash
-bash /opt/webapp-dev/deploy-to-prod.sh
-```
-Скрипт: проверка DEV health → git pull → build → restart → health check → автооткат при ошибке
-
-### Env переменные путей (все среды)
-```
-WEBAPP_DB=./webapp.db
-DIST_PATH=../frontend/dist
-PROPERTIES_DB=/opt/bot/properties.db
-CORP3_DATA_PATH=/opt/bot-dev/data/corp3_units.json
-CORP3_LAYOUTS_DIR=/opt/bot-dev/data/corp3_layouts
-PRESENTATIONS_DIR=/opt/bot-dev/presentations
-DOCUMENTS_DIR=/opt/bot/docs
-VIDEOS_DIR=/opt/bot-dev/videos
-```
