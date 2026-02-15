@@ -63,10 +63,10 @@
 - **Файлы:** mortgage_config.json, mortgage_calculator.py, mortgage.py + правки kp.py, app.py
 - **Статус:** Код и конфиг в PROD, кнопка скрыта. Для включения: добавить строку в /opt/bot/handlers/kp.py
 
-### МГП + Ипотека в WebApp
-- **Описание:** Скопировать калькуляторы из бота в webapp backend, добавить endpoints и кнопки в LotDetail
-- **Референс:** /opt/bot-dev/services/mgp_calculator.py, mortgage_calculator.py, data/mortgage_config.json
-- **Статус:** Не начато
+
+
+
+
 
 ### Деплой Web App кнопки в PROD
 - **Статус:** Готово в DEV, не задеплоено
@@ -122,7 +122,7 @@
 - **AI чат:** DeepSeek V3.2 через OpenRouter, function calling, SSE streaming
 - **Секретарь/Фиксация:** полноценные страницы (сейчас заглушки)
 - **Отправка заявок:** ✅ ВЫПОЛНЕНО в Phase 3.2.1 (TG группа + email)
-- **Статус:** частично выполнено (заявки готовы, AI чат и секретарь — следующий этап)
+- **Статус:** ✅ ВЫПОЛНЕНО (v0.8.0)
 
 ### 10.02.2026: WebApp Phase 3.1 — Белый список + Корпус 3 + systemd
 - Белый список: webapp.db, access_tokens, общий токен (?token=XXX → localStorage)
@@ -149,9 +149,10 @@
 - .gitignore: webapp.db, __pycache__/
 - Версия webapp: v0.6.1
 
-### Следующее: WebApp Phase 3.2.2
-- AI чат: DeepSeek V3.2 через OpenRouter, function calling, SSE streaming
-- System prompt из /opt/bot/config/instructions.txt + rizalta_knowledge_base.txt
-- Секретарь/Фиксация: полноценные страницы (сейчас заглушки)
-- Inline PDF viewer (модалки вместо скачивания) — под вопросом
-- Обновить CLAUDE.md и TASK_MAP.md до v0.6.x
+### ✅ 11.02.2026: WebApp Phase 3.2.2 (v0.6.1 → v0.8.0)
+- AI чат: OpenAI gpt-4o-mini, SSE streaming, 16 intents, action кнопки
+- Секретарь: полный CRUD + AI-парсинг задач (8 endpoints)
+- Фиксация: авторизация rclick.ru + формы (4 endpoints)
+- МГП калькулятор + Ипотечный калькулятор + PDF генерация
+- Новости: 4 вкладки (валюты, погода, авиабилеты, RSS)
+- Версия webapp: v0.8.0
