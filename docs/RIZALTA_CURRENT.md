@@ -2,7 +2,7 @@
 
 📅 **Последняя сессия:** 12.02.2026
 🏷️ **Версия:** 2.6.0
-🏷️ **Версия webapp:** 0.8.4
+🏷️ **Версия webapp:** 0.8.5
 
 ## ✅ Что сделано (11.02.2026)
 
@@ -210,3 +210,9 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 3. 🟡 Function calling в AI чате
 4. 🟡 Cloudflare DNS миграция
 5. 🟢 Миграция на российский LLM
+
+### WebApp: актуализация docs (16.02.2026, вечер)
+- CLAUDE.md актуализирован до v0.8.5 (DevOps pipeline, env пути, webhook workflow, бэклог)
+- TASK_MAP.md актуализирован (сессия 16.02 в ВЫПОЛНЕНО, деплой через webhook, бэклог расширен)
+- Восстановлен git pull в workflow 1Code
+- Версия webapp: 0.8.5

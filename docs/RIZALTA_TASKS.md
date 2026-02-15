@@ -207,3 +207,19 @@
 5. Cloudflare DNS миграция
 6. Миграция на российский LLM (DeepSeek/YandexGPT)
 7. История чата (сохранение сессий)
+
+## 🔜 WebApp бэклог (Phase 3.3+)
+
+### 🔴 Ближайшие
+1. **Автосинхронизация данных бот↔webapp** — rizalta_finance.json, instructions.txt (cron/inotify)
+2. **session-end.sh** — один скрипт: docs + коммит 3 репо + push
+3. **Function calling в AI чате** — инструменты: расчёт ROI, поиск лота, бронирование
+
+### 🟡 Средний приоритет
+4. Миграция на российский LLM (DeepSeek/YandexGPT)
+5. Cloudflare DNS миграция
+6. История чата (сохранение сессий)
+
+### 🟢 Nice-to-have
+7. Push-уведомления для секретаря
+8. Админ-панель
