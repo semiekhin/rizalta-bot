@@ -14,6 +14,33 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
 
+  // Search
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchCode, setSearchCode] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
+
+  const handleSearch = async () => {
+    const code = searchCode.trim()
+    if (!code) return
+    setSearchLoading(true)
+    setSearchError('')
+    try {
+      const res = await fetch(`/api/lots/search?code=${encodeURIComponent(code)}`)
+      const data = await res.json()
+      if (data.ok) {
+        setShowSearch(false)
+        setSearchCode('')
+        onSelectLot(data.lot)
+      } else {
+        setSearchError(data.error || 'Лот не найден')
+      }
+    } catch {
+      setSearchError('Ошибка соединения')
+    }
+    setSearchLoading(false)
+  }
+
   const hasAdvancedFilters = areaMin || areaMax || priceMin || priceMax
 
   const resetFilters = () => {
@@ -67,11 +94,54 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
           <h1 className="font-bold text-lg text-rz-green-dark">RIZALTA</h1>
           <p className="text-xs text-rz-green-dark/70">Каталог апартаментов</p>
         </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-rz-green-dark">{stats.available}</p>
-          <p className="text-xs text-rz-green-dark/70">свободно</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowSearch(true)}
+            className="w-9 h-9 bg-rz-green-dark/20 rounded-lg flex items-center justify-center hover:bg-rz-green-dark/30 transition-colors"
+          >
+            <span className="text-rz-green-dark text-lg">🔍</span>
+          </button>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-rz-green-dark">{stats.available}</p>
+            <p className="text-xs text-rz-green-dark/70">свободно</p>
+          </div>
         </div>
       </div>
+
+      {/* Search Modal */}
+      {showSearch && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-start justify-center pt-20">
+          <div className="bg-rz-green-light w-full max-w-sm mx-4 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-rz-green-mid flex justify-between items-center">
+              <h2 className="font-bold">🔍 Поиск лота</h2>
+              <button onClick={() => { setShowSearch(false); setSearchError('') }} className="text-rz-cream-dark text-xl">✕</button>
+            </div>
+            <div className="p-4 space-y-3">
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch() }} className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchCode}
+                  onChange={(e) => { setSearchCode(e.target.value); setSearchError('') }}
+                  placeholder="Код лота (А101, В615...)"
+                  className="flex-1 bg-rz-green-mid rounded-xl px-4 py-2.5 text-sm text-rz-cream outline-none focus:ring-2 focus:ring-rz-gold placeholder:text-rz-cream-muted"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={searchLoading || !searchCode.trim()}
+                  className="bg-rz-gold text-rz-green-dark font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 hover:bg-rz-gold-light transition-colors"
+                >
+                  {searchLoading ? '...' : 'Найти'}
+                </button>
+              </form>
+              {searchError && (
+                <p className="text-rz-error text-sm text-center">{searchError}</p>
+              )}
+              <p className="text-rz-cream-muted text-xs text-center">Поиск по всем корпусам (К1, К2, К3)</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Building tabs */}
       <div className="flex border-b border-rz-green-mid sticky top-14 z-30 bg-rz-green">
