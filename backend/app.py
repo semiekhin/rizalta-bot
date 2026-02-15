@@ -35,7 +35,7 @@ from services.mortgage_calculator import calc_mortgage, get_mortgage_options, ge
 from services.payment_pdf_generator import generate_payment_pdf
 
 # === Whitelist DB ===
-WEBAPP_DB = "/opt/webapp/backend/webapp.db"
+WEBAPP_DB = "/opt/webapp-dev/backend/webapp.db"
 CORP3_DATA_PATH = "/opt/bot-dev/data/corp3_units.json"
 CORP3_LAYOUTS_DIR = "/opt/bot-dev/data/corp3_layouts"
 
@@ -105,7 +105,7 @@ app.add_middleware(
 )
 
 PROD_API = "http://127.0.0.1:8000"  # Локально к PROD боту
-DIST_PATH = "/opt/webapp/frontend/dist"
+DIST_PATH = "/opt/webapp-dev/frontend/dist"
 
 # Latin → Cyrillic normalization for lot codes (desktop browsers may send Latin lookalikes)
 _LAT_TO_CYR = str.maketrans({
