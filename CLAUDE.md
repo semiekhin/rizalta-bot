@@ -317,3 +317,17 @@ server {
 4. Push-уведомления для задач секретаря
 5. "Взять" → автосоздание задачи в секретаре (бот-сайд)
 6. Тюнинг rclick_service.py (формат запросов/ответов)
+
+## ⚠️ ПРАВИЛА РАЗРАБОТКИ
+
+### Завершение сессии — ОБЯЗАТЕЛЬНЫЙ ЧЕКЛИСТ
+1. Обновить docs: CLAUDE.md, TASK_MAP.md, RIZALTA_CURRENT.md, RIZALTA_TASKS.md, RIZALTA_CONTEXT.md
+2. Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, не затирать (параллельный бот-чат)
+3. Коммит + push webapp: `cd /opt/webapp && git add -A && git commit && git push origin webapp`
+4. Коммит + push bot-dev: `cd /opt/bot-dev && git add docs/ && git commit && git push`
+5. Копировать в PROD: `cp /opt/bot-dev/docs/RIZALTA_*.md /opt/bot/docs/`
+6. Коммит + push PROD: `cd /opt/bot && git add docs/ && git commit && git push`
+7. Выдать полный промпт для нового чата (по шаблону SESSION_END_TEMPLATE.md)
+
+### Шаблон завершения
+https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/SESSION_END_TEMPLATE.md
