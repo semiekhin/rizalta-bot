@@ -184,3 +184,26 @@
 - webapp.rizaltaservice.ru резолвится через Cloudflare NS
 - Если Cloudflare заблокируют в РФ — DNS перестанет работать
 - Варианты: перенос NS на reg.ru (ломает Named Tunnels бота) или отдельный домен для webapp
+
+---
+
+## 📅 WebApp задачи (обновлено 16.02.2026)
+
+### ✅ Выполнено (сессия 16.02.2026)
+- DEV-окружение: /opt/webapp-dev, порт 8004, systemd, nginx, SSL
+- Хардкоженные пути → .env (WEBAPP_DB, DIST_PATH, PROPERTIES_DB и др.)
+- GitHub webhook auto-deploy на DEV (webhook_receiver.py, порт 9001)
+- deploy-to-prod.sh с автооткатом
+
+### 🔴 Ближайшие задачи
+1. **Единый источник данных** — автосинхронизация бот↔webapp
+   - rizalta_finance.json, instructions.txt
+   - cron/inotify watcher при изменении → копия + restart
+2. **session-end.sh** — один скрипт для обновления всех docs + коммит 3 репо
+3. **Цель:** актуальная единая информация в любую секунду
+
+### 🟡 Бэклог WebApp
+4. Function calling в AI чате
+5. Cloudflare DNS миграция
+6. Миграция на российский LLM (DeepSeek/YandexGPT)
+7. История чата (сохранение сессий)

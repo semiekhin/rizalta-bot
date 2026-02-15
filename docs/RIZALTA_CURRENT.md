@@ -172,3 +172,41 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 - Workflow: 1Code (Mac) → push GitHub → git pull на dev → проверка → deploy в prod
 - Анализ Cloudflare DNS зависимости — добавлено в техдолг
 - GitHub webhook + deploy-to-prod.sh — отложены на следующую сессию
+
+---
+
+## 📅 Сессия WebApp: 16.02.2026
+🏷️ **WebApp версия:** v0.8.5
+
+### ✅ Что сделано
+
+#### DEV-окружение
+- `/opt/webapp-dev` — полный клон prod
+- `webapp-dev.service` на порту 8004
+- nginx + SSL для dev-webapp.rizaltaservice.ru
+- Favicon оранжевая "D" для визуального отличия
+
+#### Пути в .env (v0.8.5)
+- Все хардкоженные пути вынесены в переменные окружения
+- `app.py` + 3 сервиса: `os.getenv()` с дефолтами
+- `git pull` на PROD теперь безопасен
+- `.env.example` обновлён
+
+#### Auto-deploy pipeline
+- **GitHub webhook** → `webhook_receiver.py` на порту 9001
+- Push в `webapp` → автоматический git pull + build + restart DEV (2-3 сек)
+- `deploy-to-prod.sh` — деплой одной командой с автооткатом
+- Systemd сервис `webhook-webapp.service`
+
+### 🔄 Текущее состояние WebApp
+- **DEV:** https://dev-webapp.rizaltaservice.ru ✅
+- **PROD:** https://webapp.rizaltaservice.ru ✅
+- **Webhook:** active (порт 9001) ✅
+- **Pipeline:** 1Code push → DEV auto → `deploy-to-prod.sh` → PROD
+
+### 🔜 Следующие задачи WebApp
+1. 🔴 Автосинхронизация данных бот↔webapp (finance.json, instructions.txt)
+2. 🔴 session-end.sh — автоматизация обновления docs
+3. 🟡 Function calling в AI чате
+4. 🟡 Cloudflare DNS миграция
+5. 🟢 Миграция на российский LLM

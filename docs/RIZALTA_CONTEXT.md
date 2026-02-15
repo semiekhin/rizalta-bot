@@ -81,3 +81,14 @@ AI-консультант для риэлторов. Инвестиционна�
 3. **menu.py:** убрать Web App кнопку если не нужна в PROD
 4. **kp.py:** убрать строку ипотеки `sed -i '/🏦 Ипотека/d' /opt/bot/handlers/kp.py`
 5. **Новые handlers:** проверить что services + data файлы тоже скопированы
+
+---
+
+## WebApp (добавлено 16.02.2026)
+- **PROD:** https://webapp.rizaltaservice.ru (`/opt/webapp`, порт 8003)
+- **DEV:** https://dev-webapp.rizaltaservice.ru (`/opt/webapp-dev`, порт 8004)
+- **Репо:** github.com/semiekhin/rizalta-bot (ветка `webapp`)
+- **Стек:** Preact + Tailwind CSS 4 + Vite 7, FastAPI, OpenAI gpt-4o-mini
+- **Версия:** v0.8.5
+- **Auto-deploy:** webhook (порт 9001) → push автообновляет DEV
+- **Деплой PROD:** `bash /opt/webapp-dev/deploy-to-prod.sh`
