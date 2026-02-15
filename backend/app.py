@@ -93,7 +93,7 @@ async def lifespan(app_instance):
     yield
 
 
-app = FastAPI(title="RIZALTA Web App API", version="0.8.0", lifespan=lifespan)
+app = FastAPI(title="RIZALTA Web App API", version="0.8.5", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -210,7 +210,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.8.0"}
+    return {"status": "healthy", "version": "0.8.5"}
 
 
 @app.get("/api/lots/search")
