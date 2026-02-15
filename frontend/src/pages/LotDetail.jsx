@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks'
+import { getToken } from '../utils/auth'
 
 const formatPrice = (p) => new Intl.NumberFormat('ru-RU').format(p)
 
@@ -204,7 +205,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
       {/* Image */}
       <div className="bg-rz-green-mid h-52 flex items-center justify-center">
         {lot.layout_url ? (
-          <img src={lot.layout_url} alt={`Планировка ${lot.code}`} className="h-full w-full object-contain bg-white"/>
+          <img src={lot.building === 3 ? `${lot.layout_url}?token=${getToken()}` : lot.layout_url} alt={`Планировка ${lot.code}`} className="h-full w-full object-contain bg-white"/>
         ) : (
           <div className="text-center text-rz-cream-dark">
             <p className="text-5xl mb-2">🏠</p>
