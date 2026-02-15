@@ -164,3 +164,23 @@
 - **Фикс планировки К3 через поиск:** whitelist токен в layout_url
 - Теги: v0.8.2-xlsx-fix, v0.8.3-payment-pdf, v0.8.4-search-complete
 - Версия webapp: v0.8.4
+
+### ✅ 16.02.2026: WebApp DEV/PROD разделение
+- /opt/webapp-dev на порту 8004 + webapp-dev.service + nginx + SSL
+- dev-webapp.rizaltaservice.ru — полный клон prod с оранжевым favicon
+- CLAUDE.md обновлён с dev-инфо для 1Code
+- Версия webapp: v0.8.4 (без изменений кода, инфраструктурная сессия)
+
+### 🟡 WebApp: GitHub webhook автодеплой на DEV
+- Описание: 1Code push → GitHub webhook → сервер автоматически git pull + build + restart
+- Порт 9001, проверка подписи, systemd сервис
+- Статус: файлы подготовлены, не установлены
+
+### 🟡 WebApp: deploy-to-prod.sh
+- Описание: скрипт деплоя из /opt/webapp-dev в /opt/webapp
+- Статус: не создан
+
+### 🟡 Cloudflare DNS зависимость
+- webapp.rizaltaservice.ru резолвится через Cloudflare NS
+- Если Cloudflare заблокируют в РФ — DNS перестанет работать
+- Варианты: перенос NS на reg.ru (ломает Named Tunnels бота) или отдельный домен для webapp

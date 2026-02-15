@@ -2,7 +2,7 @@
 
 📅 **Последняя сессия:** 12.02.2026
 🏷️ **Версия:** 2.6.0
-🏷️ **Версия webapp:** 0.8.0
+🏷️ **Версия webapp:** 0.8.4
 
 ## ✅ Что сделано (11.02.2026)
 
@@ -79,7 +79,7 @@
 - **Корпус 3 «Digital»:** 129 available / 153 sold (corp3_units.json, whitelist)
 - **Mini App Vercel:** работает ✅
 - **Watchdog:** работает ✅
-- **WebApp:** работает ✅ v0.8.0 (webapp.rizaltaservice.ru)
+- **WebApp:** работает ✅ v0.8.4 (webapp.rizaltaservice.ru)
 
 ## 🔜 Следующие задачи
 
@@ -159,3 +159,16 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 - 00ecebe — Corp3 layout URL
 - bd3ee65 — Whitelist token
 - 0ac5914 — Token dedup fix
+
+## ✅ Что сделано (16.02.2026) — WebApp
+
+### WebApp: DEV/PROD разделение среды
+- Создан `/opt/webapp-dev` (клон с GitHub, ветка webapp)
+- systemd: `webapp-dev.service` на порту 8004
+- nginx + SSL: https://dev-webapp.rizaltaservice.ru
+- Фикс захардкоженных путей: WEBAPP_DB и DIST_PATH → /opt/webapp-dev/
+- Favicon DEV: оранжевая "D" (визуальное различие)
+- CLAUDE.md обновлён: секция "Среды разработки" + workflow для 1Code
+- Workflow: 1Code (Mac) → push GitHub → git pull на dev → проверка → deploy в prod
+- Анализ Cloudflare DNS зависимости — добавлено в техдолг
+- GitHub webhook + deploy-to-prod.sh — отложены на следующую сессию
