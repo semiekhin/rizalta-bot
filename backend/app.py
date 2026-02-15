@@ -252,7 +252,8 @@ async def search_lot(code: str):
                     "area": area, "price": price,
                     "priceM2": int(price / area) if area else 0,
                     "status": u.get("status", "available"),
-                    "layout_url": None, "source": "corp3",
+                    "layout_url": f"/api/corp3/layout/{u.get('code')}" if u.get("layout_path") else None,
+                    "source": "corp3",
                 })
 
     if not found:
