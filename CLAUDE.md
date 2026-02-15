@@ -55,6 +55,11 @@ git checkout webapp && git pull origin webapp
 4. Проверка: https://dev-webapp.rizaltaservice.ru
 5. Деплой в prod: `bash /opt/webapp-dev/deploy-to-prod.sh` (только после одобрения)
 
+⚠️ **ПОСЛЕ ЗАВЕРШЕНИЯ:**
+```bash
+git add -A && git commit -m "описание" && git push origin webapp
+```
+
 **НИКОГДА не деплоить напрямую в /opt/webapp — только через dev!**
 
 ## Рабочая директория
