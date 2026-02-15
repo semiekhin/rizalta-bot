@@ -43,10 +43,17 @@ bash /opt/webapp-dev/deploy-to-prod.sh
 Скрипт: проверка DEV health → git pull → build → restart → health check → автооткат при ошибке
 
 ### Workflow для 1Code
-1. 1Code пишет код → push в GitHub (ветка `webapp`)
-2. GitHub webhook автоматически обновляет DEV (git pull + build + restart, 2-3 сек)
-3. Проверка: https://dev-webapp.rizaltaservice.ru
-4. Деплой в prod — только после одобрения: `bash /opt/webapp-dev/deploy-to-prod.sh`
+
+⚠️ **ОБЯЗАТЕЛЬНО перед началом работы:**
+```bash
+git checkout webapp && git pull origin webapp
+```
+
+1. 1Code делает `git pull` → получает актуальный код
+2. 1Code пишет код → commit → push в GitHub (ветка `webapp`)
+3. Webhook автоматически: git pull + build + restart DEV (2-3 сек)
+4. Проверка: https://dev-webapp.rizaltaservice.ru
+5. Деплой в prod: `bash /opt/webapp-dev/deploy-to-prod.sh` (только после одобрения)
 
 **НИКОГДА не деплоить напрямую в /opt/webapp — только через dev!**
 
