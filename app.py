@@ -377,6 +377,14 @@ async def telegram_webhook(request: Request):
         await process_voice_message(chat_id, voice, msg.get("from", {}))
         return {"ok": True}
     
+    # Обработка документа (Excel актуализация К3, только админ)
+    document = msg.get("document")
+    if document and chat_id in [512319063, 8000703751]:
+        file_name = document.get("file_name", "")
+        if file_name.endswith((".xlsx", ".xls")):
+            await handle_corp3_excel_update(chat_id, document)
+            return {"ok": True}
+    
     if not text:
         return {"ok": True}
     
@@ -1429,6 +1437,92 @@ async def handle_intent(chat_id: int, intent_result: Dict[str, Any], user_info: 
 
 
 # ====== ГЛАВНЫЙ РОУТЕР СООБЩЕНИЙ (v2.1) ======
+
+
+
+async def handle_corp3_excel_update(chat_id: int, document: dict):
+    """Обновление статусов К3 из Excel файла."""
+    import json
+    import openpyxl
+    import io
+    from services.telegram import download_file, send_message
+
+    file_id = document.get("file_id")
+    file_name = document.get("file_name", "unknown.xlsx")
+    
+    await send_message(chat_id, f"📥 Получен файл: {file_name}\n⏳ Обрабатываю...")
+    
+    try:
+        # Скачиваем файл
+        save_path = f"/tmp/corp3_update_{chat_id}.xlsx"
+        result = await download_file(file_id, save_path)
+        if not result:
+            await send_message(chat_id, "❌ Не удалось скачать файл")
+            return
+        
+        # Читаем Excel — все коды лотов = sold
+        wb = openpyxl.load_workbook(save_path)
+        ws = wb.active
+        
+        excel_codes = set()
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            code = row[6]  # Колонка G — Номер
+            if code and isinstance(code, str):
+                excel_codes.add(code.strip())
+        
+        if not excel_codes:
+            await send_message(chat_id, "❌ Не найдены коды лотов в колонке G")
+            return
+        
+        # Обновляем оба окружения
+        report_lines = [f"📊 <b>Актуализация К3</b>\n"]
+        report_lines.append(f"📁 Файл: {file_name}")
+        report_lines.append(f"📋 Лотов в Excel: {len(excel_codes)}\n")
+        
+        for env, path in [("PROD", "data/corp3_units.json"), ("DEV", "/opt/bot-dev/data/corp3_units.json")]:
+            try:
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                
+                to_sold = []
+                to_available = []
+                
+                for unit in data['units']:
+                    code = unit['code']
+                    old_status = unit.get('status', 'available')
+                    
+                    if code in excel_codes and old_status != 'sold':
+                        unit['status'] = 'sold'
+                        to_sold.append(code)
+                    elif code not in excel_codes and old_status != 'available':
+                        unit['status'] = 'available'
+                        to_available.append(code)
+                
+                with open(path, 'w') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                
+                sold_total = sum(1 for u in data['units'] if u.get('status') == 'sold')
+                avail_total = sum(1 for u in data['units'] if u.get('status') == 'available')
+                
+                report_lines.append(f"<b>{env}:</b> sold={sold_total}, available={avail_total}")
+            except Exception as e:
+                report_lines.append(f"<b>{env}:</b> ❌ ошибка: {e}")
+        
+        if to_sold:
+            report_lines.append(f"\n🔴 Проданы ({len(to_sold)}): {', '.join(sorted(to_sold))}")
+        if to_available:
+            report_lines.append(f"\n🟢 Освободились ({len(to_available)}): {', '.join(sorted(to_available))}")
+        if not to_sold and not to_available:
+            report_lines.append(f"\n✅ Изменений нет — всё актуально")
+        
+        await send_message(chat_id, "\n".join(report_lines))
+        
+        # Удаляем временный файл
+        import os
+        os.remove(save_path)
+        
+    except Exception as e:
+        await send_message(chat_id, f"❌ Ошибка обработки: {e}")
 
 
 async def handle_whitelist_command(chat_id: int, text: str):
