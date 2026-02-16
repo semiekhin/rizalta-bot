@@ -927,3 +927,49 @@ journalctl -u webapp -f
 
 **Было:** nohup (умирает при перезагрузке)
 **Стало:** systemd (enabled, Restart=always, RestartSec=5)
+
+### ЗАДАЧА: Excel актуализация статусов Корпуса 3
+
+**Описание:** Админ отправляет Excel файл боту в Telegram → бот автоматически обновляет статусы лотов К3
+
+**Файлы:** app.py (handle_corp3_excel_update + webhook роутинг), run_polling.py (роутинг + импорт)
+
+**Логика:**
+- Все коды лотов из Excel (колонка G) = sold
+- Все остальные лоты в corp3_units.json = available
+- Обновляет оба окружения: PROD (data/corp3_units.json) и DEV (/opt/bot-dev/data/corp3_units.json)
+
+**Доступ:** только chat_id в [512319063, 8000703751]
+
+**Проверка:**
+```bash
+# Отправить .xlsx файл боту в Telegram
+# Бот ответит отчётом с изменениями
+```
+
+### ИНЦИДЕНТ: Рассинхронизация whitelist DEV↔PROD
+
+**Симптомы:** Пользователь 868791592 добавлен 28.01.2026 но не видел К3
+
+**Причина:** Баг с хардкодом путей (app.py db_path="/opt/bot-dev/properties.db"). PROD бот писал в DEV базу. При последующих обновлениях DEV базы записи терялись.
+
+**Решение:** 
+1. Фикс путей уже применён ранее (12.02.2026)
+2. Полный аудит: собраны все ID из истории чатов
+3. Синхронизация: 4 недостающих добавлены в DEV
+
+**Диагностика:**
+```bash
+# Сравнить DEV и PROD whitelist
+python3 -c "
+import sqlite3
+dev = sqlite3.connect('/opt/bot-dev/properties.db')
+prod = sqlite3.connect('/opt/bot/properties.db')
+dev_ids = {r[0] for r in dev.execute('SELECT chat_id FROM corp3_whitelist').fetchall()}
+prod_ids = {r[0] for r in prod.execute('SELECT chat_id FROM corp3_whitelist').fetchall()}
+print('Only DEV:', dev_ids - prod_ids)
+print('Only PROD:', prod_ids - dev_ids)
+"
+```
+
+**Профилактика:** Всегда добавлять в оба окружения. Периодически сверять.
