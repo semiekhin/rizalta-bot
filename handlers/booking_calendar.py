@@ -11,7 +11,7 @@ from services.telegram import send_message, send_message_inline
 from services.user_profiles import get_profile, save_profile, convert_time, format_dual_time, validate_time
 
 # Путь к базе данных
-BOT_DB_PATH = "/opt/bot/properties.db"
+BOT_DB_PATH = "/opt/bot-dev/properties.db"
 
 # === НАСТРОЙКИ ===
 
@@ -254,12 +254,17 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
     # Форматируем время обратно (1000 -> 10:00)
     time_formatted = f"{time_str[:2]}:{time_str[2:]}"
     
+    # Достаём контакты из state ДО очистки
+    contact = state.get("contact", "")
+    phone = state.get("realtor_phone", "")
+    
     # Сохраняем в БД со статусом pending
     booking_id = save_booking(
         chat_id=chat_id,
         username=username,
         date_str=date_str,
-        time_str=time_formatted
+        time_str=time_formatted,
+        contact_info=contact
     )
     
     date_display = format_date_display(date_str)
@@ -284,10 +289,20 @@ async def handle_select_time(chat_id: int, time_str: str, username: str = None):
         from config.settings import SHOWS_GROUP_ID
         from services.telegram import send_message_inline_return_id
         
+        client_lines = ""
+        if contact:
+            client_lines += f"👤 {contact}\n"
+        if phone:
+            client_lines += f"📱 {phone}\n"
+        if username:
+            client_lines += f"💬 @{username}\n"
+        elif not contact and not phone:
+            client_lines += f"📱 Клиент: ID {chat_id}\n"
+        
         group_msg = (
             f"🆕 <b>Новая заявка на онлайн-показ</b>\n\n"
-            f"📅 {date_display}, {time_formatted}\n"
-            f"📱 Клиент: @{username if username else chat_id}\n"
+            f"📅 {date_display}, {time_formatted}\n\n"
+            f"{client_lines}"
             f"🆔 Заявка: #{booking_id}"
         )
         group_buttons = [[{"text": "🙋 Взять заявку", "callback_data": f"book_take_{booking_id}"}]]
@@ -306,7 +321,7 @@ def get_booking_by_id(booking_id: int) -> Optional[Dict]:
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, chat_id, username, specialist_id, specialist_name, 
-               booking_date, booking_time, status
+               booking_date, booking_time, status, realtor_name, realtor_phone
         FROM bookings WHERE id = ?
     """, (booking_id,))
     row = cursor.fetchone()
@@ -321,7 +336,9 @@ def get_booking_by_id(booking_id: int) -> Optional[Dict]:
             "specialist_name": row[4],
             "booking_date": row[5],
             "booking_time": row[6],
-            "status": row[7]
+            "status": row[7],
+            "realtor_name": row[8],
+            "realtor_phone": row[9]
         }
     return None
 
@@ -377,11 +394,21 @@ async def handle_take_booking(chat_id: int, booking_id: int, from_user: dict):
     group_message_id = get_booking_group_message_id(booking_id)
     if group_message_id and SHOWS_GROUP_ID:
         try:
+            client_lines = ""
+            if booking.get("realtor_name"):
+                client_lines += f"👤 Клиент: {booking['realtor_name']}\n"
+            if booking.get("realtor_phone"):
+                client_lines += f"📱 Телефон: {booking['realtor_phone']}\n"
+            if booking.get("username"):
+                client_lines += f"💬 Telegram: @{booking['username']}\n"
+            elif not booking.get("realtor_phone"):
+                client_lines += f"📱 Клиент: ID {booking['chat_id']}\n"
+            
             new_text = (
                 f"✅ <b>Заявка #{booking_id} — ВЗЯТА</b>\n\n"
                 f"👤 Взял: {full_name}\n"
-                f"📅 {date_display}, {booking['booking_time']}\n"
-                f"📱 Клиент: @{booking['username'] or booking['chat_id']}"
+                f"📅 {date_display}, {booking['booking_time']}\n\n"
+                f"{client_lines}"
             )
             await edit_message_inline(SHOWS_GROUP_ID, group_message_id, new_text, None)
         except Exception as e:
