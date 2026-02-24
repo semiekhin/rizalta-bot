@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks'
-import { getToken } from '../utils/auth'
+// TODO: reuse for Corp4 whitelist
+// import { getToken } from '../utils/auth'
 
 const formatPrice = (p) => new Intl.NumberFormat('ru-RU').format(p)
 
@@ -205,7 +206,8 @@ export default function LotDetail({ lot, onBack, onChat }) {
       {/* Image */}
       <div className="bg-rz-green-mid h-52 flex items-center justify-center">
         {lot.layout_url ? (
-          <img src={lot.building === 3 && !lot.layout_url.includes('?token=') ? `${lot.layout_url}?token=${getToken()}` : lot.layout_url} alt={`Планировка ${lot.code}`} className="h-full w-full object-contain bg-white"/>
+          {/* TODO: reuse token logic for Corp4 whitelist */}
+          <img src={lot.layout_url} alt={`Планировка ${lot.code}`} className="h-full w-full object-contain bg-white"/>
         ) : (
           <div className="text-center text-rz-cream-dark">
             <p className="text-5xl mb-2">🏠</p>
@@ -252,11 +254,9 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
         {/* Actions */}
         <div className="space-y-2 pt-2">
-          {lot.source !== 'corp3' && (
-            <button onClick={() => setShowKP(true)} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
-              📄 Получить КП
-            </button>
-          )}
+          <button onClick={() => setShowKP(true)} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+            📄 Получить КП
+          </button>
           <button onClick={handleInstallment} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             💳 Варианты оплаты
           </button>

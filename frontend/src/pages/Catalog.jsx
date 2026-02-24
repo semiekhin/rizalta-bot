@@ -176,7 +176,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
 
       {/* Building tabs */}
       <div className="flex border-b border-rz-green-mid sticky top-14 z-30 bg-rz-green">
-        {[1, 2].map(b => (
+        {[1, 2, 3].map(b => (
           <button
             key={b}
             onClick={() => { setBuilding(b); setFloor(null) }}
@@ -187,7 +187,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
             }`}
           >
             Корпус {b}
-            <span className="block text-xs opacity-70">{b === 1 ? 'Family' : 'Business'}</span>
+            <span className="block text-xs opacity-70">{b === 1 ? 'Family' : b === 2 ? 'Business' : 'Digital'}</span>
           </button>
         ))}
       </div>

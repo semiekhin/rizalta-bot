@@ -36,8 +36,9 @@ from services.payment_pdf_generator import generate_payment_pdf
 
 # === Whitelist DB ===
 WEBAPP_DB = os.getenv("WEBAPP_DB", "./webapp.db")
-CORP3_DATA_PATH = os.getenv("CORP3_DATA_PATH", "/opt/bot-dev/data/corp3_units.json")
-CORP3_LAYOUTS_DIR = os.getenv("CORP3_LAYOUTS_DIR", "/opt/bot-dev/data/corp3_layouts")
+# DEACTIVATED: Corp3 now in properties.db. Reuse for Corp4.
+# CORP3_DATA_PATH = os.getenv("CORP3_DATA_PATH", "/opt/bot-dev/data/corp3_units.json")
+# CORP3_LAYOUTS_DIR = os.getenv("CORP3_LAYOUTS_DIR", "/opt/bot-dev/data/corp3_layouts")
 
 
 def init_webapp_db():
@@ -93,7 +94,7 @@ async def lifespan(app_instance):
     yield
 
 
-app = FastAPI(title="RIZALTA Web App API", version="0.8.5", lifespan=lifespan)
+app = FastAPI(title="RIZALTA Web App API", version="0.9.0", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -210,16 +211,15 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.8.5"}
+    return {"status": "healthy", "version": "0.9.0"}
 
 
 @app.get("/api/lots/search")
 async def search_lot(code: str):
-    """Search lot by code across all buildings (K1+K2 from DB, K3 from JSON)."""
+    """Search lot by code across all buildings (K1, K2, K3 — all in properties.db)."""
     code = normalize_lot_code(code)
     found = []
 
-    # 1. Search in properties.db (K1+K2) — may have same code in different buildings
     db_path = os.getenv("PROPERTIES_DB", "/opt/bot/properties.db")
     if os.path.exists(db_path):
         conn = sqlite3.connect(db_path)
@@ -229,7 +229,7 @@ async def search_lot(code: str):
             "FROM units WHERE code = ?", (code,)
         )
         for row in cursor.fetchall():
-            bname = "Family" if row[1] == 1 else "Business"
+            bname = {1: "Family", 2: "Business", 3: "Digital"}.get(row[1], f"Корпус {row[1]}")
             found.append({
                 "code": row[0], "building": row[1], "buildingName": bname,
                 "floor": row[2], "rooms": row[3], "area": row[4],
@@ -237,24 +237,6 @@ async def search_lot(code: str):
                 "layout_url": row[8],
             })
         conn.close()
-
-    # 2. Search in Corp3 JSON
-    if os.path.exists(CORP3_DATA_PATH):
-        with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        for u in data.get("units", []):
-            if u.get("code", "").upper() == code:
-                area = u.get("area_m2") or u.get("area", 0)
-                price = u.get("price_rub") or u.get("price", 0)
-                found.append({
-                    "code": u.get("code"), "building": 3, "buildingName": "Корпус 3",
-                    "floor": u.get("floor", 0), "rooms": u.get("rooms", 0),
-                    "area": area, "price": price,
-                    "priceM2": int(price / area) if area else 0,
-                    "status": u.get("status", "available"),
-                    "layout_url": f"/api/corp3/layout/{u.get('code')}" if u.get("layout_path") else None,
-                    "source": "corp3",
-                })
 
     if not found:
         return {"ok": False, "error": "Лот не найден"}
@@ -636,49 +618,41 @@ async def check_access(level: str = Depends(get_access_level)):
     return {"level": level}
 
 
-@app.get("/api/corp3/lots")
-async def get_corp3_lots(level: str = Depends(get_access_level)):
-    """Returns Corp3 lots (whitelist only)."""
-    if level != "white":
-        raise HTTPException(status_code=403, detail="Access denied")
+# DEACTIVATED: Corp3 now in properties.db. Reuse for Corp4.
+# @app.get("/api/corp3/lots")
+# async def get_corp3_lots(level: str = Depends(get_access_level)):
+#     """Returns Corp3 lots (whitelist only)."""
+#     if level != "white":
+#         raise HTTPException(status_code=403, detail="Access denied")
+#     with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
+#         data = json.load(f)
+#     units = [u for u in data.get("units", [])
+#              if u.get("area", 0) >= 23.5 and u.get("status") == "available"]
+#     return {
+#         "ok": True,
+#         "building_name": data.get("building_name", "Корпус 3"),
+#         "total": len(units),
+#         "lots": units
+#     }
 
-    with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    units = [u for u in data.get("units", [])
-             if u.get("area", 0) >= 23.5 and u.get("status") == "available"]
-
-    return {
-        "ok": True,
-        "building_name": data.get("building_name", "Корпус 3"),
-        "total": len(units),
-        "lots": units
-    }
-
-
-@app.get("/api/corp3/layout/{code}")
-async def get_corp3_layout(code: str, level: str = Depends(get_access_level)):
-    """Serves Corp3 lot layout image (whitelist only)."""
-    if level != "white":
-        raise HTTPException(status_code=403, detail="Access denied")
-    code = normalize_lot_code(code)
-
-    with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    unit = next((u for u in data.get("units", []) if u.get("code") == code), None)
-    if not unit or not unit.get("layout_path"):
-        raise HTTPException(status_code=404, detail="Layout not found")
-
-    layout_path = unit["layout_path"]
-    real_path = os.path.realpath(layout_path)
-    if not real_path.startswith(os.path.realpath(CORP3_LAYOUTS_DIR)):
-        raise HTTPException(status_code=403, detail="Invalid path")
-
-    if not os.path.isfile(real_path):
-        raise HTTPException(status_code=404, detail="File not found")
-
-    return FileResponse(real_path, media_type="image/jpeg")
+# @app.get("/api/corp3/layout/{code}")
+# async def get_corp3_layout(code: str, level: str = Depends(get_access_level)):
+#     """Serves Corp3 lot layout image (whitelist only)."""
+#     if level != "white":
+#         raise HTTPException(status_code=403, detail="Access denied")
+#     code = normalize_lot_code(code)
+#     with open(CORP3_DATA_PATH, 'r', encoding='utf-8') as f:
+#         data = json.load(f)
+#     unit = next((u for u in data.get("units", []) if u.get("code") == code), None)
+#     if not unit or not unit.get("layout_path"):
+#         raise HTTPException(status_code=404, detail="Layout not found")
+#     layout_path = unit["layout_path"]
+#     real_path = os.path.realpath(layout_path)
+#     if not real_path.startswith(os.path.realpath(CORP3_LAYOUTS_DIR)):
+#         raise HTTPException(status_code=403, detail="Invalid path")
+#     if not os.path.isfile(real_path):
+#         raise HTTPException(status_code=404, detail="File not found")
+#     return FileResponse(real_path, media_type="image/jpeg")
 
 
 # === File serving (whitelist) ===
