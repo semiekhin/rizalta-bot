@@ -60,13 +60,13 @@ def download_layout(url: str) -> str:
 def fmt(price: int) -> str:
     return f"{price:,}".replace(",", " ") + " ₽"
 
-def get_building_name(block_section: int) -> str:
+def get_building_name(building: int) -> str:
     names = {
-        0: '1 — "Family"',
-        1: '2 — "Business"',
-        2: '3 — "Digital"',
+        1: '1 — "Family"',
+        2: '2 — "Business"',
+        3: '3 — "Digital"',
     }
-    return names.get(block_section, f'{block_section + 1}')
+    return names.get(building, f'{building}')
 
 def get_lot_type(area: float, rooms: int) -> str:
     if rooms == 2: return "Евро-2"
@@ -102,7 +102,7 @@ def generate_html(lot: Dict[str, Any], include_18m: bool = True, full_payment: b
     
     i12 = calc_12(lot["price"])
     i18 = calc_18(lot["price"]) if include_18m else {}
-    bname = get_building_name(lot.get("block_section", 2))
+    bname = get_building_name(lot.get("building", 1))
     ltype = get_lot_type(lot["area"], lot.get("rooms", 1))
     ppm2 = int(lot["price"] / lot["area"])
 
