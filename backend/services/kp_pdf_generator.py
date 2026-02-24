@@ -61,7 +61,12 @@ def fmt(price: int) -> str:
     return f"{price:,}".replace(",", " ") + " ₽"
 
 def get_building_name(block_section: int) -> str:
-    return '2 — "Business"' if block_section == 1 else '1 — "Family"'
+    names = {
+        0: '1 — "Family"',
+        1: '2 — "Business"',
+        2: '3 — "Digital"',
+    }
+    return names.get(block_section, f'{block_section + 1}')
 
 def get_lot_type(area: float, rooms: int) -> str:
     if rooms == 2: return "Евро-2"
