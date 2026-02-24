@@ -92,3 +92,14 @@ AI-консультант для риэлторов. Инвестиционна�
 - **Версия:** v0.8.5 (docs актуализированы)
 - **Auto-deploy:** webhook (порт 9001) → push автообновляет DEV
 - **Деплой PROD:** `bash /opt/webapp-dev/deploy-to-prod.sh`
+
+---
+
+## 🌐 WebApp
+- **PROD:** https://webapp.rizaltaservice.ru (порт 8003, /opt/webapp)
+- **DEV:** https://dev-webapp.rizaltaservice.ru (порт 8004, /opt/webapp-dev)
+- **Репозиторий:** github.com/semiekhin/rizalta-bot (ветка `webapp`)
+- **Версия:** v0.9.0
+- **Стек:** Preact + Tailwind CSS 4 + Vite 7 / FastAPI + Python 3.12
+- **Docs:** CLAUDE.md, TASK_MAP.md (в корне webapp ветки)
+- **DevOps:** webhook auto-deploy DEV + deploy-to-prod.sh
