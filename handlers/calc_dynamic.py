@@ -290,11 +290,6 @@ async def handle_calc_roi_by_code(chat_id: int, code: str, building: int = None)
     
     print(f"[DEBUG] code={code}, building={building}")
     lot = get_lot_by_code(code, building)
-    if not lot and building == 3:
-        from handlers.corp3 import get_unit_by_code as corp3_get
-        c3 = corp3_get(code)
-        if c3:
-            lot = {'code': c3['code'], 'area': c3['area'], 'price': c3['price'], 'building': 3, 'floor': c3['floor']}
     if not lot:
         await send_message(chat_id, f"❌ Лот {code} не найден.")
         return

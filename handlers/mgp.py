@@ -12,7 +12,7 @@ async def handle_mgp_calc(chat_id: int, code: str, area: float, building: int = 
 
     buttons = [
         [{"text": "📥 Скачать PDF", "callback_data": f"mgp_pdf_{code}_{building or 0}_{int(area * 10)}"}],
-        [{"text": "🔙 Назад", "callback_data": f"kp_lot_{code}" if building != 3 else f"c3_lot_{code}"}],
+        [{"text": "🔙 Назад", "callback_data": f"kp_lot_{code}_{building}"}],
     ]
 
     await send_message_inline(chat_id, text, buttons)
