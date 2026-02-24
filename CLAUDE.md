@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.8.5** (Phase 3.2.2 complete + search & PDF fixes + DevOps pipeline)
+**v0.9.0** (Phase 3.2.2 complete + search & PDF fixes + DevOps pipeline)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -349,3 +349,16 @@ curl -s "http://127.0.0.1:8003/api/download-xlsx/В800?building=3" -o /tmp/test.
 
 ### Шаблон завершения
 https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/SESSION_END_TEMPLATE.md
+
+## Сессия 24.02.2026 (v0.8.5 → v0.9.0)
+
+### Интеграция К3 в штатный каталог
+- **Corp3.jsx удалён** — отдельная страница К3 больше не нужна
+- **Каталог:** 3 вкладки — К1 (Family), К2 (Business), К3 (Digital)
+- **Поиск:** только через properties.db (убран поиск по corp3_units.json)
+- **КП/Excel:** building передаётся явно (фикс дублей кодов между корпусами)
+- **kp_pdf_generator.py:** get_building_name() использует building (не block_section), знает 3 корпуса
+- **Whitelist-код закомментирован** с `// TODO: reuse for Corp4` — не удалён
+- **Деактивировано:** /api/corp3/lots, /api/corp3/layout/{code}, CORP3_DATA_PATH
+- **Оставлено для К4:** /api/access/check, webapp.db, utils/auth.js
+- **Git tag:** `v0.9.0-corp3-unified`

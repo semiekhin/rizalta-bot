@@ -133,3 +133,11 @@ systemctl restart webapp-dev.service
 - Разработка webapp параллельна с ботом — docs интегрируем, не затираем!
 - 1Code запускается на Mac: `cd ~/1code && bun run dev`
 - 1Code работает с клоном репо в `~/.21st/worktrees/`
+
+### Сессия 24.02.2026 (v0.8.5 → v0.9.0)
+- **Интеграция К3 в штатный каталог:** Corp3.jsx удалён, К3 в общем Catalog.jsx с вкладкой "Digital"
+- **Фикс КП для К3:** building передаётся во все генераторы (КП, Excel)
+- **Фикс названия корпуса:** маппинг {1: Family, 2: Business, 3: Digital} в LotDetail.jsx
+- **Фикс get_building_name():** использует building вместо block_section
+- **Whitelist деактивирован** (закомментирован для К4)
+- **Git tag:** `v0.9.0-corp3-unified`
