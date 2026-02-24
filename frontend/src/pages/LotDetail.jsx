@@ -101,7 +101,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
   // === KP Download ===
   const handleKPDownload = (type) => {
     setKpLoading(true)
-    const url = `/api/download-kp/${encodeURIComponent(lot.code)}?type=${type}`
+    const url = `/api/download-kp/${encodeURIComponent(lot.code)}?type=${type}&building=${lot.building}`
 
     window.open(url, '_blank')
     setTimeout(() => {
@@ -206,7 +206,6 @@ export default function LotDetail({ lot, onBack, onChat }) {
       {/* Image */}
       <div className="bg-rz-green-mid h-52 flex items-center justify-center">
         {lot.layout_url ? (
-          {/* TODO: reuse token logic for Corp4 whitelist */}
           <img src={lot.layout_url} alt={`Планировка ${lot.code}`} className="h-full w-full object-contain bg-white"/>
         ) : (
           <div className="text-center text-rz-cream-dark">
@@ -244,7 +243,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
           </div>
           <div className="bg-rz-green-light rounded-xl p-3">
             <p className="text-rz-cream-dark text-xs">Корпус</p>
-            <p className="font-bold text-lg">{lot.building} ({lot.buildingName})</p>
+            <p className="font-bold text-lg">{lot.building} ({{1: 'Family', 2: 'Business', 3: 'Digital'}[lot.building] || lot.buildingName})</p>
           </div>
           <div className="bg-rz-green-light rounded-xl p-3">
             <p className="text-rz-cream-dark text-xs">Цена за м²</p>

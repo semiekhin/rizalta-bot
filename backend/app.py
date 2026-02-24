@@ -136,11 +136,13 @@ class InstallmentRequest(BaseModel):
 
 class KPRequest(BaseModel):
     code: str
+    building: int = None
     include_18m: bool = True
     full_payment: bool = False
 
 class XLSXRequest(BaseModel):
     code: str
+    building: int = None
 
 class DepositRequest(BaseModel):
     amount: int
@@ -325,6 +327,7 @@ async def api_generate_kp(req: KPRequest):
     try:
         pdf_path = generate_kp_pdf(
             code=req.code,
+            building=req.building,
             include_18m=req.include_18m,
             full_payment=req.full_payment,
             output_dir="/tmp"
@@ -341,12 +344,13 @@ async def api_generate_kp(req: KPRequest):
 
 
 @app.get("/api/download-kp/{code}")
-async def api_download_kp(code: str, type: str = "100"):
+async def api_download_kp(code: str, type: str = "100", building: int = None):
     """GET endpoint для скачивания PDF КП (для мобильных)."""
     code = normalize_lot_code(code)
     try:
         pdf_path = generate_kp_pdf(
             code=code,
+            building=building,
             include_18m=(type == "full"),
             full_payment=(type == "100"),
             output_dir="/tmp"
@@ -382,7 +386,8 @@ async def api_generate_xlsx(req: XLSXRequest):
     try:
         xlsx_path = generate_roi_xlsx(
             unit_code=req.code,
-            output_dir="/tmp"
+            output_dir="/tmp",
+            building=req.building
         )
         if xlsx_path and os.path.exists(xlsx_path):
             return FileResponse(
