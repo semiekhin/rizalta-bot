@@ -1,8 +1,37 @@
 # Текущий статус RIZALTA
 
-📅 **Последняя сессия:** 12.02.2026
-🏷️ **Версия:** 2.6.0
+📅 **Последняя сессия:** 24.02.2026
+🏷️ **Версия:** 2.7.0
 🏷️ **Версия webapp:** 0.8.5
+
+## ✅ Что сделано (24.02.2026)
+
+### Интеграция Корпуса 3 «Digital» в штатный режим
+- К3 полностью унифицирован с К1/К2 — единый flow через handlers/kp.py
+- Парсер rclick уже подхватывал К3 (120 лотов) — запущен для DEV и PROD
+- Убраны все костыли: hardcoded кнопки К3 с whitelist, fallback на corp3 JSON, переадресация на corp3 handler
+- КП PDF: исправлено отображение названия корпуса (building вместо block_section)
+- Mini App: перезапущен DEV API — корректное меню лотов К3
+- Добавлен отсутствующий mortgage_pdf_generator.py в PROD
+- Whitelist инфраструктура сохранена для будущего К4
+
+### Изменённые файлы (6 шт)
+- services/units_db.py — добавлено имя "Digital", убран fallback на corp3 JSON
+- handlers/kp.py — убраны 2 hardcoded кнопки К3 с whitelist
+- handlers/calc_dynamic.py — убран corp3 fallback
+- handlers/mgp.py — унифицирован callback для всех корпусов
+- app.py — убрана переадресация К3 лотов на corp3 handler
+- services/kp_pdf_generator.py — get_building_name() по building вместо block_section
+
+## 🔄 Текущее состояние
+
+- **PROD:** работает ✅ v2.7.0
+- **DEV:** работает ✅ v2.7.0
+- **Корпус 1 «Family»:** 256 лотов (properties.db, building=1)
+- **Корпус 2 «Business»:** 104 лота (properties.db, building=2), скрыт
+- **Корпус 3 «Digital»:** 120 лотов (properties.db, building=3) — ✅ ШТАТНЫЙ РЕЖИМ
+- **Mini App Vercel:** работает ✅
+- **WebApp:** webapp.rizaltaservice.ru ✅
 
 ## ✅ Что сделано (11.02.2026)
 
