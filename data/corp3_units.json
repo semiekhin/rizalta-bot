@@ -661,7 +661,7 @@
       "rooms": 1,
       "area": 26.5,
       "price": 16165000,
-      "status": "available",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_604.jpg",
       "block_section": 3
     },
@@ -700,7 +700,7 @@
       "rooms": 1,
       "area": 25.4,
       "price": 15494000,
-      "status": "sold",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_617.jpg",
       "block_section": 3
     },
@@ -726,7 +726,7 @@
       "rooms": 1,
       "area": 25.9,
       "price": 15799000,
-      "status": "available",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_613.jpg",
       "block_section": 3
     },
@@ -752,7 +752,7 @@
       "rooms": 1,
       "area": 31.1,
       "price": 18628900,
-      "status": "sold",
+      "status": "available",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_609.jpg",
       "block_section": 3
     },
@@ -1779,7 +1779,7 @@
       "rooms": 1,
       "area": 36.8,
       "price": 22043200,
-      "status": "available",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/A_603.jpg",
       "block_section": 3
     },
@@ -1857,7 +1857,7 @@
       "rooms": 1,
       "area": 23.5,
       "price": 14452500,
-      "status": "available",
+      "status": "sold",
       "layout_path": "/opt/bot-dev/data/corp3_layouts/6 ЭТАЖ/B_607.jpg",
       "block_section": 3
     },
