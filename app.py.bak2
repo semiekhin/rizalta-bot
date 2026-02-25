@@ -1669,9 +1669,6 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
     if await handle_corp3_text(chat_id, text):
         return
     
-    # === Админ-команда /parse ===
-    ADMIN_IDS = [512319063, 8000703751]
-
     # === Админ-команда /stats ===
     if text == "/stats" and chat_id in ADMIN_IDS:
         import subprocess
@@ -1684,6 +1681,9 @@ async def process_message(chat_id: int, text: str, user_info: Dict[str, Any]):
         except Exception as e:
             await send_message(chat_id, f"❌ Ошибка: {e}")
         return
+
+    # === Админ-команда /parse ===
+    ADMIN_IDS = [512319063, 8000703751]
 
     # === Команда /corp3 (whitelist) ===
     if text == "/corp3":

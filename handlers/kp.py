@@ -227,7 +227,7 @@ async def handle_nav_lot(chat_id: int, code: str, building: int = None, mode: st
 """
 
     lot_id = f"{lot['code']}_{lot['building']}"
-    is_custom = lot['code'] in CUSTOM_INSTALLMENT_UNITS
+    is_custom = lot['code'] in CUSTOM_INSTALLMENT_UNITS and lot.get('building') == 1
     
     inline_buttons = [
         [{"text": "📄 КП 100% оплата", "callback_data": f"kp_gen_{lot_id}_100"}],
@@ -730,7 +730,7 @@ async def handle_kp_lot(chat_id: int, code: str, building: int = None):
 
     # Используем код + корпус для генерации
     lot_id = f"{lot['code']}_{lot['building']}"
-    is_custom = lot['code'] in CUSTOM_INSTALLMENT_UNITS
+    is_custom = lot['code'] in CUSTOM_INSTALLMENT_UNITS  and lot.get('building') == 1
     
     inline_buttons = [
         [{"text": "📄 КП 100% оплата", "callback_data": f"kp_gen_{lot_id}_100"}],

@@ -228,7 +228,7 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 
     if not full_payment:
         # Проверяем, является ли это апартаментом с индивидуальными условиями
-        is_custom = lot["code"] in CUSTOM_INSTALLMENT_UNITS
+        is_custom = lot["code"] in CUSTOM_INSTALLMENT_UNITS  and lot.get("building") == 1
         
         if is_custom:
             # Индивидуальные условия: только 50% ПВ, 2 колонки
