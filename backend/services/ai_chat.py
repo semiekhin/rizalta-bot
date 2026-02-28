@@ -182,12 +182,9 @@ ADVISOR_INSTRUCTION = """
 
 
 def stream_chat_with_tools(message: str, history: list[dict]):
-    """Generator yielding SSE events. GPT-5.2 Responses API with function calling.
+    """Generator yielding SSE events. GPT-5.2 Responses API with agentic loop.
 
-    Flow:
-    1. Send to GPT-5.2 (stream=False, with tools) — get response
-    2. If function_calls → execute → build input → stream=True for final answer
-    3. If no function_calls → send text from non-streaming response
+    Flow: up to MAX_ROUNDS of tool calls, then stream final text answer.
 
     SSE event types:
     - {"type": "token", "content": "..."}
@@ -202,42 +199,41 @@ def stream_chat_with_tools(message: str, history: list[dict]):
 
     system_prompt = build_system_prompt() + ADVISOR_INSTRUCTION
 
-    # Build input for Responses API
     input_messages = []
     if history:
         input_messages.extend(history[-20:])
     input_messages.append({"role": "user", "content": message})
 
+    strategy_data = {"tools_used": [], "results": {}}
+
     try:
         client = get_client()
 
-        # === FIRST call — no streaming, to detect tool_calls ===
-        response = client.responses.create(
-            model=model,
-            instructions=system_prompt,
-            input=input_messages,
-            tools=TOOLS,
-            reasoning={"effort": "high"},
-            max_output_tokens=max_tokens,
-        )
+        # === AGENTIC LOOP — up to 5 rounds of tool calls ===
+        MAX_ROUNDS = 5
+        current_input = list(input_messages)
+        tool_calls = []
 
-        # Collect function_call items
-        tool_calls = [item for item in response.output if item.type == "function_call"]
+        for round_num in range(MAX_ROUNDS):
+            response = client.responses.create(
+                model=model,
+                instructions=system_prompt,
+                input=current_input,
+                tools=TOOLS,
+                reasoning={"effort": "high"},
+                max_output_tokens=max_tokens,
+            )
 
-        if tool_calls:
-            # === Has tool calls — execute ===
-            second_input = list(input_messages)
+            tool_calls = [item for item in response.output if item.type == "function_call"]
 
-            # Collect data for PDF (strategy_data)
-            strategy_data = {"tools_used": [], "results": {}}
+            if not tool_calls:
+                # No tool calls — model is ready to answer
+                break
 
+            # Execute tool calls, append to current_input
             for item in response.output:
-                second_input.append(item)
-
+                current_input.append(item)
                 if item.type == "function_call":
-                    tool_name = item.name
-
-                    # SSE: thinking
                     thinking_labels = {
                         "search_lots": "Ищу подходящие лоты...",
                         "get_lot_details": "Загружаю информацию о лоте...",
@@ -245,30 +241,36 @@ def stream_chat_with_tools(message: str, history: list[dict]):
                         "calculate_installment": "Рассчитываю варианты рассрочки...",
                         "compare_with_deposit": "Сравниваю с депозитом...",
                     }
-                    label = thinking_labels.get(tool_name, f"Выполняю {tool_name}...")
-                    yield f'data: {json.dumps({"type": "thinking", "tool": tool_name, "label": label}, ensure_ascii=False)}\n\n'
+                    label = thinking_labels.get(item.name, f"Выполняю {item.name}...")
+                    yield f'data: {json.dumps({"type": "thinking", "tool": item.name, "label": label}, ensure_ascii=False)}\n\n'
 
-                    # Execute tool
-                    result = execute_tool(tool_name, item.arguments)
+                    result = execute_tool(item.name, item.arguments)
 
-                    # Save for PDF
-                    strategy_data["tools_used"].append(tool_name)
+                    strategy_data["tools_used"].append(item.name)
                     try:
-                        strategy_data["results"][f"{tool_name}_{len(strategy_data['results'])}"] = json.loads(result)
+                        strategy_data["results"][f"{item.name}_{len(strategy_data['results'])}"] = json.loads(result)
                     except Exception:
                         pass
 
-                    second_input.append({
+                    current_input.append({
                         "type": "function_call_output",
                         "call_id": item.call_id,
                         "output": result,
                     })
 
-            # === SECOND call — stream final answer ===
+        # === FINAL streaming response ===
+        if response.output_text and not tool_calls:
+            # Last response already has text (no tool calls) — send it
+            text = response.output_text
+            chunk_size = 4
+            for i in range(0, len(text), chunk_size):
+                yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
+        else:
+            # Stream final answer WITHOUT tools (so model only responds)
             stream = client.responses.create(
                 model=model,
                 instructions=system_prompt,
-                input=second_input,
+                input=current_input,
                 reasoning={"effort": "high"},
                 max_output_tokens=max_tokens,
                 stream=True,
@@ -277,27 +279,20 @@ def stream_chat_with_tools(message: str, history: list[dict]):
             full_response_text = ""
             for event in stream:
                 if hasattr(event, 'type') and event.type == 'response.output_text.delta':
-                    token = event.delta
-                    full_response_text += token
-                    yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
+                    full_response_text += event.delta
+                    yield f'data: {json.dumps({"type": "token", "content": event.delta}, ensure_ascii=False)}\n\n'
 
-            # Send strategy_data for PDF button (if 2+ tools used)
-            if len(strategy_data["tools_used"]) >= 2:
+            if full_response_text:
                 strategy_data["response_text"] = full_response_text
-                strategy_data["user_query"] = message
-                yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
 
-        else:
-            # === No tool calls — send text from non-streaming response ===
-            if response.output_text:
-                text = response.output_text
-                chunk_size = 4
-                for i in range(0, len(text), chunk_size):
-                    chunk = text[i:i+chunk_size]
-                    yield f'data: {json.dumps({"type": "token", "content": chunk}, ensure_ascii=False)}\n\n'
+        # Strategy data for PDF
+        strategy_data["user_query"] = message
+        if len(strategy_data["tools_used"]) >= 2:
+            yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
 
-        # Action buttons
-        actions = _generate_context_actions(tool_calls)
+        # Actions — collect all function_call items from current_input
+        all_tool_items = [item for item in current_input if hasattr(item, 'type') and getattr(item, 'type', '') == 'function_call']
+        actions = _generate_context_actions(all_tool_items)
         if actions:
             yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
 
@@ -308,14 +303,11 @@ def stream_chat_with_tools(message: str, history: list[dict]):
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен, попробуйте позже"}, ensure_ascii=False)}\n\n'
 
 
-def _generate_context_actions(tool_calls: list) -> list[dict]:
+def _generate_context_actions(tool_items: list) -> list[dict]:
     """Generate action buttons based on which tools were used."""
     actions = []
 
-    for item in tool_calls:
-        if not hasattr(item, 'type') or item.type != "function_call":
-            continue
-
+    for item in tool_items:
         name = item.name
         try:
             args = json.loads(item.arguments) if isinstance(item.arguments, str) else {}
