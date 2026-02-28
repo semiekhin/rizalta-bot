@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.9.0** (Phase 3.2.2 complete + search & PDF fixes + DevOps pipeline)
+**v0.9.1** (Claude-оркестратор + SESSION_END_TEMPLATE_WEBAPP)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -10,6 +10,33 @@ Standalone веб-приложение дублирующее функциона
 ## Доступ к серверу
 ```bash
 ssh -p 2222 root@72.56.64.91
+```
+
+## Claude-оркестратор (v0.9.1)
+
+### Эндпоинт `/api/docs/file`
+Claude читает файлы проекта напрямую с сервера через HTTP:
+```
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=CLAUDE.md
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=backend/app.py
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=backend/services/ai_chat.py
+```
+
+Безопасность: path traversal заблокирован, `.env`/`.db` не отдаются, только разрешённые расширения.
+
+### Генерация ссылок
+```bash
+# Все Python-файлы бэкенда
+find /opt/webapp-dev/backend -name "*.py" | sed 's|/opt/webapp-dev/|https://dev-webapp.rizaltaservice.ru/api/docs/file?path=|'
+
+# Все JSX фронтенда
+find /opt/webapp-dev/frontend/src -name "*.jsx" | sed 's|/opt/webapp-dev/|https://dev-webapp.rizaltaservice.ru/api/docs/file?path=|'
+```
+
+### Env
+```
+WEBAPP_ROOT=/opt/webapp-dev   # DEV
+WEBAPP_ROOT=/opt/webapp       # PROD
 ```
 
 ## КРИТИЧЕСКИ ВАЖНО — НЕ ТРОГАТЬ
@@ -44,21 +71,12 @@ bash /opt/webapp-dev/deploy-to-prod.sh
 
 ### Workflow для 1Code
 
-⚠️ **ОБЯЗАТЕЛЬНО перед началом работы:**
-```bash
-git checkout webapp && git pull origin webapp
-```
-
-1. 1Code делает `git pull` → получает актуальный код
-2. 1Code пишет код → commit → push в GitHub (ветка `webapp`)
-3. Webhook автоматически: git pull + build + restart DEV (2-3 сек)
-4. Проверка: https://dev-webapp.rizaltaservice.ru
-5. Деплой в prod: `bash /opt/webapp-dev/deploy-to-prod.sh` (только после одобрения)
-
-⚠️ **ПОСЛЕ ЗАВЕРШЕНИЯ:**
-```bash
-git add -A && git commit -m "описание" && git push origin webapp
-```
+1. 1Code запускается: `cd ~/1code && bun run dev` (Mac)
+2. 1Code автоматически пулит актуальный код перед задачей
+3. 1Code пишет код → автоматически commit + push в GitHub (ветка `webapp`)
+4. Webhook автоматически: git pull + build + restart DEV (2-3 сек)
+5. Claude проверяет результат через `web_fetch` + `/api/docs/file`
+6. Деплой в prod: `bash /opt/webapp-dev/deploy-to-prod.sh` (только после одобрения)
 
 **НИКОГДА не деплоить напрямую в /opt/webapp — только через dev!**
 
@@ -68,10 +86,13 @@ git add -A && git commit -m "описание" && git push origin webapp
 ## Структура
 ```
 /opt/webapp/
+├── CLAUDE.md                         # Контекст для Claude (этот файл)
+├── TASK_MAP.md                       # Карта задач для 1Code
+├── SESSION_END_TEMPLATE_WEBAPP.md    # Шаблон завершения сессии (v0.9.1)
 ├── backend/
 │   ├── .env                          # Secrets + пути (NOT in git)
 │   ├── .env.example                  # Template
-│   ├── app.py                        # FastAPI, порт 8003, lifespan, 42 endpoints
+│   ├── app.py                        # FastAPI, порт 8003, lifespan, 43+ endpoints
 │   ├── webapp.db                     # Whitelist tokens (NOT in git)
 │   ├── secretary.db                  # Secretary tasks (NOT in git)
 │   ├── config/
@@ -105,14 +126,13 @@ git add -A && git commit -m "описание" && git push origin webapp
 │       └── calculations.py          # Base calculations
 ├── frontend/                         # Preact + Tailwind CSS 4 + Vite 7
 │   ├── src/
-│   │   ├── App.jsx                   # Роутер (12 screens) + навигация + auth
+│   │   ├── App.jsx                   # Роутер (11 screens) + навигация + auth
 │   │   ├── main.jsx                  # Entry point
 │   │   ├── utils/
 │   │   │   └── auth.js               # Token capture, verify, authFetch, getToken
 │   │   └── pages/
 │   │       ├── Home.jsx              # Меню 2x4 + условная кнопка К3
-│   │       ├── Catalog.jsx           # Шахматка К1+К2 + поиск по коду (v0.8.4)
-│   │       ├── Corp3.jsx             # Шахматка К3 (282 лота, whitelist)
+│   │       ├── Catalog.jsx           # Шахматка К1+К2+К3, 3 вкладки, поиск по коду
 │   │       ├── LotDetail.jsx         # Карточка лота + модалки (ROI, МГП, ипотека, PDF оплаты)
 │   │       ├── Chat.jsx              # AI чат (SSE streaming + action buttons)
 │   │       ├── Secretary.jsx         # Календарь + управление задачами + AI парсинг
@@ -161,12 +181,13 @@ git add -A && git commit -m "описание" && git push origin webapp
 ```
 ### Шрифт: Montserrat (Regular 400, Medium 500, SemiBold 600)
 
-## API (42 endpoints, v0.8.5)
+## API (43+ endpoints, v0.9.1)
 ```
 # Общие
-GET  /api/health                      # version: "0.8.5"
+GET  /api/health                      # version: "0.9.0"
 GET  /api/lots                        # прокси к PROD боту :8000
 GET  /api/lots/search                 # Поиск по коду (К1+К2+К3)
+GET  /api/docs/file                   # Claude-оркестратор: чтение файлов проекта (v0.9.1)
 
 # Калькуляторы
 POST /api/calculate-roi               # {area, price}
@@ -198,10 +219,10 @@ GET  /api/files/presentations/{key}   # PDF презентации
 GET  /api/files/documents/{key}       # PDF договоры
 GET  /api/files/videos/{key}          # Видео (streaming)
 
-# Whitelist / Corp3
+# Whitelist / Corp3 (деактивированы v0.9.0, оставлены для К4)
 GET  /api/access/check                # Header: X-Access-Token → {level}
-GET  /api/corp3/lots                  # Whitelist only, 282 лота
-GET  /api/corp3/layout/{code}         # Whitelist only, JPG планировки
+GET  /api/corp3/lots                  # ДЕАКТИВИРОВАН (К3 теперь в штатном каталоге)
+GET  /api/corp3/layout/{code}         # ДЕАКТИВИРОВАН
 
 # Новости (4 вкладки)
 GET  /api/news/currency               # USD/EUR/CNY через cbr-xml-daily.ru
@@ -233,10 +254,8 @@ GET  /{full_path:path}                # → index.html
 ```
 
 ## Источники данных лотов
-- **К1+К2**: `/opt/bot/properties.db` таблица `units` (358 лотов)
-- **К3**: `/opt/bot-dev/data/corp3_units.json` (282 лота)
+- **К1+К2+К3**: `/opt/bot/properties.db` таблица `units` (640 лотов, все 3 корпуса)
 - Планировки К3: `/opt/bot-dev/data/corp3_layouts/`
-- Поиск `/api/lots/search` ищет в обоих источниках
 
 ## Env переменные (backend/.env)
 ```
@@ -249,31 +268,25 @@ SMTP_PORT             # SMTP порт
 SMTP_USER             # SMTP логин
 SMTP_PASSWORD         # SMTP пароль
 MANAGER_CHAT_ID       # ID чата менеджера в Telegram
-OPENAI_API_KEY        # Ключ OpenAI (тот же что у бота)
+OPENAI_API_KEY        # Ключ OpenAI
 OPENAI_MODEL          # gpt-4o-mini
 OPENAI_MAX_TOKENS     # 2000
 SHOWS_GROUP_ID        # ID Telegram группы показов
 
-# Пути (v0.8.5 — позволяют одному app.py работать и на dev, и на prod)
+# Пути (v0.8.5)
 WEBAPP_DB=./webapp.db
 DIST_PATH=../frontend/dist
 PROPERTIES_DB=/opt/bot/properties.db
-CORP3_DATA_PATH=/opt/bot-dev/data/corp3_units.json
 CORP3_LAYOUTS_DIR=/opt/bot-dev/data/corp3_layouts
 PRESENTATIONS_DIR=/opt/bot-dev/presentations
 DOCUMENTS_DIR=/opt/bot/docs
 VIDEOS_DIR=/opt/bot-dev/videos
+WEBAPP_ROOT=/opt/webapp-dev          # для /api/docs/file (v0.9.1)
 ```
 
-## Whitelist система (Phase 3.1)
-- Токен передаётся через URL: `?token=XXXXX` → сохраняется в localStorage
-- Backend проверяет через `X-Access-Token` header или `?token=` query param
-- `webapp.db` → таблица `access_tokens` (token, name, level, created_at)
-- `init_webapp_db()` + `seed_token()` вызываются в lifespan при старте
-- Frontend: `utils/auth.js` — captureTokenFromURL, verifyAccess, authFetch, getToken
-- Home.jsx показывает кнопку "Корпус 3" только при `accessLevel === 'white'`
-- Corp3.jsx загружает данные через authFetch, показывает 403 если нет доступа
-- LotDetail.jsx: для К3 планировок добавляет ?token= (если его нет в URL)
+## Whitelist система (Phase 3.1, деактивирована v0.9.0)
+- Код закомментирован с `// TODO: reuse for Corp4`
+- Оставлено для К4: /api/access/check, webapp.db, utils/auth.js
 - Токен К3: MkKGpwCAsq6IF3RtRH7bvg
 
 ## Git теги
@@ -285,6 +298,8 @@ VIDEOS_DIR=/opt/bot-dev/videos
 - `v0.8.4-search-complete` — поиск по коду лота
 - `v0.8.5-env-paths` — пути в .env
 - `v0.8.5-devops-pipeline` — webhook + deploy скрипт
+- `v0.9.0-corp3-unified` — К3 в штатном каталоге
+- `v0.9.1-claude-orchestrator` — эндпоинт /api/docs/file
 
 ## Команды
 ```bash
@@ -310,19 +325,16 @@ bash /opt/webapp-dev/deploy-to-prod.sh
 # Тесты
 curl -s http://127.0.0.1:8003/api/health
 curl -s http://127.0.0.1:8004/api/health
-curl -s "http://127.0.0.1:8003/api/lots/search?code=А200"
-curl -s "http://127.0.0.1:8003/api/download-xlsx/В800?building=3" -o /tmp/test.xlsx
+curl -s "http://127.0.0.1:8004/api/docs/file?path=CLAUDE.md" | head -5
 ```
 
 ## TODO (Phase 3.3+)
-1. **Автосинхронизация данных бот↔webapp** — rizalta_finance.json, instructions.txt (cron/inotify)
-2. **session-end.sh** — один скрипт для обновления docs + коммит 3 репо
-3. Function calling в AI чате (инструменты: расчёт, поиск лота, бронирование)
-4. Миграция на российский LLM (DeepSeek/YandexGPT)
-5. Когда К3 выходит в продажу — убрать проверку токена
-6. История чата (сохранение сессий)
-7. Push-уведомления для задач секретаря
-8. "Взять" → автосоздание задачи в секретаре (бот-сайд)
+1. **Function calling в AI чате** — инструменты: расчёт ROI, поиск лота, бронирование
+2. **Автосинхронизация данных бот↔webapp** — rizalta_finance.json, instructions.txt (через .env пути)
+3. Миграция на российский LLM (DeepSeek/YandexGPT)
+4. История чата (сохранение сессий)
+5. Push-уведомления для задач секретаря
+6. "Взять" → автосоздание задачи в секретаре (бот-сайд)
 
 ## ⚠️ ПРАВИЛА РАЗРАБОТКИ
 
@@ -336,19 +348,25 @@ curl -s "http://127.0.0.1:8003/api/download-xlsx/В800?building=3" -o /tmp/test.
 - **1Code** = реализация (код, push в GitHub)
 - 1Code запускается: `cd ~/1code && bun run dev` (Mac)
 - После push → webhook автоматически обновляет DEV
+- Claude проверяет результат через `web_fetch` + `/api/docs/file`
 - PROD деплой: `bash /opt/webapp-dev/deploy-to-prod.sh`
 
 ### Завершение сессии — ОБЯЗАТЕЛЬНЫЙ ЧЕКЛИСТ
-1. Обновить docs: CLAUDE.md, TASK_MAP.md, RIZALTA_CURRENT.md, RIZALTA_TASKS.md, RIZALTA_CONTEXT.md
-2. Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, не затирать (параллельный бот-чат)
-3. Коммит + push webapp: `cd /opt/webapp-dev && git add -A && git commit && git push origin webapp`
-4. Коммит + push bot-dev: `cd /opt/bot-dev && git add docs/ && git commit && git push`
-5. Копировать в PROD: `cp /opt/bot-dev/docs/RIZALTA_*.md /opt/bot/docs/`
-6. Коммит + push PROD: `cd /opt/bot && git add docs/ && git commit && git push`
-7. Выдать полный промпт для нового чата (по шаблону SESSION_END_TEMPLATE.md)
+Следовать `SESSION_END_TEMPLATE_WEBAPP.md`:
+1. Обновить docs: CLAUDE.md, TASK_MAP.md + общие RIZALTA_*.md (дополнить, НЕ затирать)
+2. Коммит 3 репо: webapp + bot-dev + bot PROD
+3. Выдать компактный промпт со ссылками для нового чата
 
 ### Шаблон завершения
-https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/SESSION_END_TEMPLATE.md
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEBAPP.md
+
+## Сессия 28.02.2026 (v0.9.0 → v0.9.1)
+
+### Claude-оркестратор
+- **Эндпоинт `/api/docs/file`** — чтение файлов проекта через HTTP (коммит `6ecf77f`)
+- **SESSION_END_TEMPLATE_WEBAPP.md** — свой шаблон завершения для webapp-чата
+- **Новый workflow** — ссылки вместо копипасты в промптах, актуальный контекст с сервера
+- **OpenAI API ключ** обновлён (новый аккаунт)
 
 ## Сессия 24.02.2026 (v0.8.5 → v0.9.0)
 
