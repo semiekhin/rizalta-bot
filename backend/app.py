@@ -13,6 +13,7 @@ import os
 import sqlite3
 import secrets
 import json
+from pathlib import Path
 import time
 import logging
 from contextlib import asynccontextmanager
@@ -214,6 +215,30 @@ async def get_lots():
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "version": "0.9.0"}
+
+
+DOCS_BASE_DIR = Path(os.getenv("WEBAPP_ROOT", "/opt/webapp"))
+
+@app.get("/api/docs/file")
+async def docs_file(path: str = ""):
+    """Read project files for Claude orchestration."""
+    if not path:
+        raise HTTPException(status_code=400, detail="?path= required")
+    resolved = (DOCS_BASE_DIR / path).resolve()
+    if not str(resolved).startswith(str(DOCS_BASE_DIR.resolve())):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not resolved.exists() or not resolved.is_file():
+        raise HTTPException(status_code=404, detail=f"{path} not found")
+    ALLOWED_EXT = {'.py', '.md', '.txt', '.json', '.js', '.jsx', '.html', '.css',
+                   '.toml', '.yaml', '.yml', '.cfg', '.ini', '.sh'}
+    if resolved.suffix.lower() not in ALLOWED_EXT:
+        raise HTTPException(status_code=403, detail=f"Extension {resolved.suffix} not allowed")
+    content = resolved.read_text(encoding="utf-8")
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.get("/api/lots/search")
