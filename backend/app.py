@@ -216,7 +216,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.9.0"}
+    return {"status": "healthy", "version": "0.9.2"}
 
 
 DOCS_BASE_DIR = Path(os.getenv("WEBAPP_ROOT", "/opt/webapp"))
