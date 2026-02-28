@@ -103,3 +103,12 @@ AI-консультант для риэлторов. Инвестиционна�
 - **Стек:** Preact + Tailwind CSS 4 + Vite 7 / FastAPI + Python 3.12
 - **Docs:** CLAUDE.md, TASK_MAP.md (в корне webapp ветки)
 - **DevOps:** webhook auto-deploy DEV + deploy-to-prod.sh
+
+---
+
+## 🌐 WebApp
+- **DEV:** https://dev-webapp.rizaltaservice.ru (/opt/webapp-dev, порт 8004)
+- **PROD:** https://webapp.rizaltaservice.ru (/opt/webapp, порт 8003)
+- **Репо:** github.com/semiekhin/rizalta-miniapp (ветка webapp)
+- **Версия:** v0.9.2 (GPT-5.2 финансовый советник)
+- **Стек:** Preact + Tailwind CSS 4 + Vite 7, FastAPI, GPT-5.2 Responses API

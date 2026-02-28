@@ -308,3 +308,20 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 - КП и Excel корректно генерируются для К3 (building передаётся явно)
 - Whitelist-код деактивирован, готов для К4
 - Тег: `v0.9.0-corp3-unified`
+
+---
+
+## 🌐 WebApp: v0.9.2 (01.03.2026)
+
+### GPT-5.2 финансовый советник
+- Миграция на OpenAI Responses API (GPT-5.2)
+- Agentic loop: 5 раундов, 17+ tool calls за запрос
+- 5 tools: search_lots, get_lot_details, calculate_roi, calculate_installment, compare_with_deposit
+- ADVISOR_INSTRUCTION: финансовый советник, 3 стратегии на бюджет
+- Strategy PDF generator (POST /api/strategy-pdf)
+- max_output_tokens=16000
+- Git tag: v0.9.2-gpt52-advisor
+
+### Среды
+- DEV: https://dev-webapp.rizaltaservice.ru (v0.9.2)
+- PROD: https://webapp.rizaltaservice.ru (v0.9.0, ожидает деплой)
