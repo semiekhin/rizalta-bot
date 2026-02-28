@@ -7,6 +7,8 @@ import logging
 from typing import Any
 
 from services.calculator import calculate_roi as calc_roi_service
+from services.installment_calculator import calc_full
+from services.investment_compare import compare_investments
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +62,10 @@ TOOLS = [
                         "description": "Максимум результатов (по умолчанию 10, макс 20)."
                     }
                 },
-                "required": []
-            }
+                "required": [],
+                "additionalProperties": False
+            },
+            "strict": True
         }
     },
     {
@@ -86,8 +90,10 @@ TOOLS = [
                         "description": "Корпус (если код дублируется между корпусами)"
                     }
                 },
-                "required": ["code"]
-            }
+                "required": ["code"],
+                "additionalProperties": False
+            },
+            "strict": True
         }
     },
     {
@@ -121,8 +127,62 @@ TOOLS = [
                         "description": "Цена в рублях (если code не указан)"
                     }
                 },
-                "required": []
-            }
+                "required": [],
+                "additionalProperties": False
+            },
+            "strict": True
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_installment",
+            "description": (
+                "Рассчитать варианты рассрочки для апартамента RIZALTA. "
+                "Возвращает программы 12 мес (0%) и 18 мес (с удорожанием), "
+                "с вариантами первоначального взноса 30%, 40%, 50%. "
+                "Показывает ежемесячные платежи, итоговую стоимость, сервисный сбор."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "price": {
+                        "type": "integer",
+                        "description": "Стоимость апартамента в рублях"
+                    }
+                },
+                "required": ["price"],
+                "additionalProperties": False
+            },
+            "strict": True
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_with_deposit",
+            "description": (
+                "Сравнить инвестицию в RIZALTA с банковским депозитом. "
+                "Рассчитывает доходность обоих вариантов на заданный срок. "
+                "Показывает: ROI, чистый доход, налоги на депозит, "
+                "рост стоимости + аренда для RIZALTA, преимущество RIZALTA."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "description": "Сумма инвестиции в рублях"
+                    },
+                    "years": {
+                        "type": "integer",
+                        "description": "Срок инвестиции в годах (по умолчанию 11)"
+                    }
+                },
+                "required": ["amount"],
+                "additionalProperties": False
+            },
+            "strict": True
         }
     }
 ]
@@ -333,12 +393,128 @@ def execute_calculate_roi(args: dict) -> str:
     return json.dumps(summary, ensure_ascii=False)
 
 
+def execute_calculate_installment(args: dict) -> str:
+    """Calculate installment options using existing calc_full()."""
+    price = args["price"]
+    result = calc_full(price)
+
+    i12 = result["i12"]
+    i18 = result["i18"]
+    sf = result["service_fee"]
+
+    summary = {
+        "price": price,
+        "service_fee": sf,
+        "base_price": result["base"],
+        "programs": {
+            "12_months_0_percent": {
+                "description": "Рассрочка 12 мес, 0% удорожание",
+                "options": [
+                    {
+                        "down_payment_pct": 30,
+                        "down_payment_rub": i12["pv_30"],
+                        "monthly_payment": i12["monthly_30"],
+                        "total_cost": price,
+                        "markup": 0
+                    },
+                    {
+                        "down_payment_pct": 40,
+                        "down_payment_rub": i12["pv_40"],
+                        "monthly_fixed": i12["fixed_40"],
+                        "last_payment": i12["last_40"],
+                        "total_cost": price,
+                        "markup": 0
+                    },
+                    {
+                        "down_payment_pct": 50,
+                        "down_payment_rub": i12["pv_50"],
+                        "monthly_fixed": i12["fixed_50"],
+                        "last_payment": i12["last_50"],
+                        "total_cost": price,
+                        "markup": 0
+                    }
+                ]
+            },
+            "18_months_with_markup": {
+                "description": "Рассрочка 18 мес, с удорожанием",
+                "balloon_9th_payment": i18["payment_9"],
+                "options": [
+                    {
+                        "down_payment_pct": 30,
+                        "down_payment_rub": i18["pv_30"],
+                        "monthly_payment": i18["monthly_30"],
+                        "markup_rub": i18["markup_30"],
+                        "final_total_cost": i18["final_price_30"]
+                    },
+                    {
+                        "down_payment_pct": 40,
+                        "down_payment_rub": i18["pv_40"],
+                        "monthly_fixed": i18["fixed_40"],
+                        "last_payment": i18["last_40"],
+                        "markup_rub": i18["markup_40"],
+                        "final_total_cost": i18["final_price_40"]
+                    },
+                    {
+                        "down_payment_pct": 50,
+                        "down_payment_rub": i18["pv_50"],
+                        "monthly_fixed": i18["fixed_50"],
+                        "last_payment": i18["last_50"],
+                        "markup_rub": i18["markup_50"],
+                        "final_total_cost": i18["final_price_50"]
+                    }
+                ]
+            }
+        }
+    }
+
+    return json.dumps(summary, ensure_ascii=False)
+
+
+def execute_compare_with_deposit(args: dict) -> str:
+    """Compare RIZALTA vs bank deposit using existing compare_investments()."""
+    amount = args["amount"]
+    years = args.get("years", 11)
+
+    result = compare_investments(amount, years)
+
+    dep_base = result.deposit["base"]
+    riz = result.rizalta
+
+    summary = {
+        "amount": amount,
+        "years": years,
+        "deposit_base_scenario": {
+            "description": "Банковский депозит (прогноз ЦБ: ключевая 14% → 7%)",
+            "final_balance": round(dep_base.final_balance),
+            "net_interest": round(dep_base.total_net_interest),
+            "tax_paid": round(dep_base.total_tax),
+            "roi_pct": dep_base.total_roi_pct,
+        },
+        "rizalta": {
+            "description": "RIZALTA Resort Belokurikha",
+            "final_value": round(riz.final_value),
+            "growth_profit": round(riz.total_growth_profit),
+            "rental_income": round(riz.total_rental_profit),
+            "total_profit": round(riz.total_profit),
+            "roi_pct": riz.total_roi_pct,
+        },
+        "advantage": {
+            "rizalta_better_by_rub": round(result.advantage_vs_base),
+            "rizalta_better_by_pct": result.advantage_pct_vs_base,
+        }
+    }
+
+    return json.dumps(summary, ensure_ascii=False)
+
+
 # --- Dispatcher ---
 
 TOOL_EXECUTORS = {
     "search_lots": execute_search_lots,
     "get_lot_details": execute_get_lot_details,
     "calculate_roi": execute_calculate_roi,
+    "calculate_installment": execute_calculate_installment,
+    "compare_with_deposit": execute_compare_with_deposit,
 }
 
 

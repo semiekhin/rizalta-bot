@@ -178,6 +178,18 @@ export default function Chat({ lots, onNavigate }) {
                 }
                 return updated
               })
+            } else if (event.type === 'strategy_data') {
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                if (last && last.role === 'assistant') {
+                  updated[updated.length - 1] = {
+                    ...last,
+                    strategyData: event.data,
+                  }
+                }
+                return updated
+              })
             } else if (event.type === 'error') {
               setError(event.content)
             }
@@ -212,6 +224,26 @@ export default function Chat({ lots, onNavigate }) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage(input)
+    }
+  }
+
+  const downloadStrategyPdf = async (data) => {
+    try {
+      const resp = await fetch('/api/strategy-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      if (!resp.ok) throw new Error('PDF generation failed')
+      const blob = await resp.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `RIZALTA_Strategy_${Date.now()}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('PDF download error:', e)
     }
   }
 
@@ -275,6 +307,18 @@ export default function Chat({ lots, onNavigate }) {
                     {action.label}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Strategy PDF download button */}
+            {msg.strategyData && (
+              <div className="pl-10 mt-2">
+                <button
+                  onClick={() => downloadStrategyPdf(msg.strategyData)}
+                  className="px-4 py-2 bg-rz-gold text-rz-green-dark rounded-lg font-medium hover:bg-rz-gold-light transition-colors text-sm"
+                >
+                  Скачать отчёт для инвестора (PDF)
+                </button>
               </div>
             )}
           </div>

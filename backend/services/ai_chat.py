@@ -124,164 +124,202 @@ def build_system_prompt() -> str:
     return instructions + context
 
 
-TOOL_INSTRUCTION = """
+ADVISOR_INSTRUCTION = """
 
-Ты имеешь доступ к инструментам (tools) для работы с базой данных RIZALTA:
+Ты — AI финансовый советник RIZALTA Resort Belokurikha.
+Твоя задача — помочь риэлтору подобрать оптимальную инвестиционную стратегию для клиента.
+
+## ДОСТУПНЫЕ ИНСТРУМЕНТЫ
+
 - search_lots: поиск лотов по фильтрам (корпус, площадь, цена, статус)
 - get_lot_details: полная информация о конкретном лоте
-- calculate_roi: расчёт инвестиционной доходности
+- calculate_roi: расчёт ROI за 11 лет (2025-2035)
+- calculate_installment: варианты рассрочки (12 мес 0%, 18 мес с удорожанием)
+- compare_with_deposit: сравнение RIZALTA vs банковский депозит
 
-ПРАВИЛА ИСПОЛЬЗОВАНИЯ TOOLS:
-1. Если пользователь спрашивает о конкретном лоте — вызови get_lot_details
-2. Если спрашивает "что есть" / "какие лоты" / фильтрует — вызови search_lots
-3. Если спрашивает о доходности — вызови calculate_roi
-4. Если просто разговаривает или задаёт общий вопрос — отвечай без tools
-5. Используй данные из tools для ТОЧНОГО ответа. НЕ выдумывай цифры.
-6. Форматируй цены с пробелами: 5 000 000 ₽
+## СТРАТЕГИЧЕСКИЙ ПОДХОД
+
+При запросе "портфель на X млн" или "бюджет X" — ОБЯЗАТЕЛЬНО:
+
+1. **Найди подходящие лоты** (search_lots с фильтрами)
+2. **Рассмотри минимум 2 стратегии:**
+   - Стратегия A: Один лот за 100% → остаток на депозит
+   - Стратегия B: Два лота в рассрочку (ПВ 30%) → cash flow анализ
+   - Стратегия C (если бюджет позволяет): Три лота с минимальным ПВ
+3. **Для каждой стратегии рассчитай:**
+   - ROI каждого лота (calculate_roi)
+   - Условия рассрочки (calculate_installment)
+   - Сравнение с депозитом (compare_with_deposit)
+   - Cash flow: ежемесячные расходы до 2028 vs арендный доход с 2028
+   - Точку безубыточности
+4. **Дай рекомендацию** с обоснованием
+
+## CASH FLOW АНАЛИЗ
+
+- До Q4 2027: только расходы (рассрочка) — дом строится
+- С 2028: начинается аренда (загрузка 40% первый год, 60-70% далее)
+- Расходы на эксплуатацию: 50% от валового дохода
+- Рассрочка 12 мес: платежи заканчиваются через год
+- Рассрочка 18 мес: платежи до середины 2027
+
+## ФОРМАТ ОТВЕТА
+
+Отвечай структурированно:
+- Используй заголовки: **Стратегия 1**, **Стратегия 2**
+- Указывай конкретные цифры с форматированием: 14 300 000 ₽
+- В конце — чёткая рекомендация
+- НЕ используй эмодзи в финансовых отчётах
+- При расчёте ROI для нескольких лотов — показывай совокупный ROI портфеля
+
+## ПРАВИЛА
+
+1. ВСЕГДА используй tools для получения данных — НЕ выдумывай цифры
+2. Цены и площади — только из БД через tools
+3. Если код лота дублируется — уточни корпус
+4. Форматируй цены с пробелами: 14 300 000 ₽
+5. При бюджете инвестора — рассмотри комбинации, не только одиночные лоты
 """
 
 
 def stream_chat_with_tools(message: str, history: list[dict]):
-    """Generator yielding SSE events. Supports OpenAI function calling.
+    """Generator yielding SSE events. GPT-5.2 Responses API with function calling.
+
+    Flow:
+    1. Send to GPT-5.2 (stream=False, with tools) — get response
+    2. If function_calls → execute → build input → stream=True for final answer
+    3. If no function_calls → send text from non-streaming response
 
     SSE event types:
-    - {"type": "token", "content": "..."}      — text chunk
-    - {"type": "thinking", "tool": "..."}       — tool is being called
-    - {"type": "actions", "actions": [...]}     — action buttons
-    - {"type": "done"}                          — stream complete
-    - {"type": "error", "content": "..."}       — error
+    - {"type": "token", "content": "..."}
+    - {"type": "thinking", "tool": "...", "label": "..."}
+    - {"type": "actions", "actions": [...]}
+    - {"type": "strategy_data", "data": {...}}   — data for PDF
+    - {"type": "done"}
+    - {"type": "error", "content": "..."}
     """
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
+    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+    max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
 
-    system_prompt = build_system_prompt() + TOOL_INSTRUCTION
+    system_prompt = build_system_prompt() + ADVISOR_INSTRUCTION
 
-    messages = [{"role": "system", "content": system_prompt}]
-
+    # Build input for Responses API
+    input_messages = []
     if history:
-        messages.extend(history[-20:])
-
-    messages.append({"role": "user", "content": message})
+        input_messages.extend(history[-20:])
+    input_messages.append({"role": "user", "content": message})
 
     try:
         client = get_client()
 
-        # === FIRST call — with tools ===
-        response = client.chat.completions.create(
+        # === FIRST call — no streaming, to detect tool_calls ===
+        response = client.responses.create(
             model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=0.7,
+            instructions=system_prompt,
+            input=input_messages,
             tools=TOOLS,
-            tool_choice="auto",
-            stream=True,
+            reasoning={"effort": "high"},
+            max_output_tokens=max_tokens,
         )
 
-        collected_tool_calls = {}  # index → {id, name, arguments}
-        has_tool_calls = False
+        # Collect function_call items
+        tool_calls = [item for item in response.output if item.type == "function_call"]
 
-        for chunk in response:
-            delta = chunk.choices[0].delta if chunk.choices else None
-            if not delta:
-                continue
+        if tool_calls:
+            # === Has tool calls — execute ===
+            second_input = list(input_messages)
 
-            # Text content — stream immediately
-            if delta.content:
-                yield f'data: {json.dumps({"type": "token", "content": delta.content}, ensure_ascii=False)}\n\n'
+            # Collect data for PDF (strategy_data)
+            strategy_data = {"tools_used": [], "results": {}}
 
-            # Tool calls — accumulate
-            if delta.tool_calls:
-                has_tool_calls = True
-                for tc in delta.tool_calls:
-                    idx = tc.index
-                    if idx not in collected_tool_calls:
-                        collected_tool_calls[idx] = {
-                            "id": tc.id or "",
-                            "name": tc.function.name or "",
-                            "arguments": ""
-                        }
-                    if tc.id:
-                        collected_tool_calls[idx]["id"] = tc.id
-                    if tc.function.name:
-                        collected_tool_calls[idx]["name"] = tc.function.name
-                    if tc.function.arguments:
-                        collected_tool_calls[idx]["arguments"] += tc.function.arguments
+            for item in response.output:
+                second_input.append(item)
 
-        # === If tool calls — execute and make SECOND call ===
-        if has_tool_calls and collected_tool_calls:
+                if item.type == "function_call":
+                    tool_name = item.name
 
-            tool_calls_for_message = []
-            for idx in sorted(collected_tool_calls.keys()):
-                tc = collected_tool_calls[idx]
-                tool_calls_for_message.append({
-                    "id": tc["id"],
-                    "type": "function",
-                    "function": {
-                        "name": tc["name"],
-                        "arguments": tc["arguments"]
+                    # SSE: thinking
+                    thinking_labels = {
+                        "search_lots": "Ищу подходящие лоты...",
+                        "get_lot_details": "Загружаю информацию о лоте...",
+                        "calculate_roi": "Считаю доходность...",
+                        "calculate_installment": "Рассчитываю варианты рассрочки...",
+                        "compare_with_deposit": "Сравниваю с депозитом...",
                     }
-                })
+                    label = thinking_labels.get(tool_name, f"Выполняю {tool_name}...")
+                    yield f'data: {json.dumps({"type": "thinking", "tool": tool_name, "label": label}, ensure_ascii=False)}\n\n'
 
-            messages.append({
-                "role": "assistant",
-                "tool_calls": tool_calls_for_message,
-            })
+                    # Execute tool
+                    result = execute_tool(tool_name, item.arguments)
 
-            # Execute each tool call
-            for tc in tool_calls_for_message:
-                tool_name = tc["function"]["name"]
+                    # Save for PDF
+                    strategy_data["tools_used"].append(tool_name)
+                    try:
+                        strategy_data["results"][f"{tool_name}_{len(strategy_data['results'])}"] = json.loads(result)
+                    except Exception:
+                        pass
 
-                thinking_labels = {
-                    "search_lots": "Ищу лоты...",
-                    "get_lot_details": "Загружаю информацию о лоте...",
-                    "calculate_roi": "Считаю доходность...",
-                }
-                label = thinking_labels.get(tool_name, f"Выполняю {tool_name}...")
-                yield f'data: {json.dumps({"type": "thinking", "tool": tool_name, "label": label}, ensure_ascii=False)}\n\n'
-
-                result = execute_tool(tool_name, tc["function"]["arguments"])
-
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc["id"],
-                    "content": result,
-                })
+                    second_input.append({
+                        "type": "function_call_output",
+                        "call_id": item.call_id,
+                        "output": result,
+                    })
 
             # === SECOND call — stream final answer ===
-            response2 = client.chat.completions.create(
+            stream = client.responses.create(
                 model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=0.7,
+                instructions=system_prompt,
+                input=second_input,
+                reasoning={"effort": "high"},
+                max_output_tokens=max_tokens,
                 stream=True,
             )
 
-            for chunk in response2:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    token = chunk.choices[0].delta.content
+            full_response_text = ""
+            for event in stream:
+                if hasattr(event, 'type') and event.type == 'response.output_text.delta':
+                    token = event.delta
+                    full_response_text += token
                     yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
 
-        # === Generate action buttons based on context ===
-        actions = _generate_context_actions(collected_tool_calls if has_tool_calls else {})
+            # Send strategy_data for PDF button (if 2+ tools used)
+            if len(strategy_data["tools_used"]) >= 2:
+                strategy_data["response_text"] = full_response_text
+                strategy_data["user_query"] = message
+                yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
+
+        else:
+            # === No tool calls — send text from non-streaming response ===
+            if response.output_text:
+                text = response.output_text
+                chunk_size = 4
+                for i in range(0, len(text), chunk_size):
+                    chunk = text[i:i+chunk_size]
+                    yield f'data: {json.dumps({"type": "token", "content": chunk}, ensure_ascii=False)}\n\n'
+
+        # Action buttons
+        actions = _generate_context_actions(tool_calls)
         if actions:
             yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
 
         yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
 
     except Exception as e:
-        logger.error(f"[AI CHAT] Error: {e}")
+        logger.error(f"[AI CHAT] GPT-5.2 error: {e}")
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен, попробуйте позже"}, ensure_ascii=False)}\n\n'
 
 
-def _generate_context_actions(tool_calls: dict) -> list[dict]:
+def _generate_context_actions(tool_calls: list) -> list[dict]:
     """Generate action buttons based on which tools were used."""
     actions = []
 
-    for idx, tc in tool_calls.items():
-        name = tc.get("name", "")
+    for item in tool_calls:
+        if not hasattr(item, 'type') or item.type != "function_call":
+            continue
+
+        name = item.name
         try:
-            args = json.loads(tc.get("arguments", "{}"))
-        except json.JSONDecodeError:
+            args = json.loads(item.arguments) if isinstance(item.arguments, str) else {}
+        except Exception:
             args = {}
 
         if name == "get_lot_details" and args.get("code"):
@@ -292,14 +330,12 @@ def _generate_context_actions(tool_calls: dict) -> list[dict]:
                 "type": "navigate",
                 "to": f"/lots/{code}?from=chat{building_param}"
             })
-
         elif name == "search_lots":
             actions.append({
                 "label": "Открыть каталог",
                 "type": "navigate",
                 "to": "/lots"
             })
-
         elif name == "calculate_roi" and args.get("code"):
             code = args["code"]
             actions.append({
@@ -312,9 +348,8 @@ def _generate_context_actions(tool_calls: dict) -> list[dict]:
     seen = set()
     unique = []
     for a in actions:
-        key = a["to"]
-        if key not in seen:
-            seen.add(key)
+        if a["to"] not in seen:
+            seen.add(a["to"])
             unique.append(a)
 
     return unique[:3]

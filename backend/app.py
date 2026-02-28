@@ -35,6 +35,7 @@ from services.news_service import get_weather, get_flights, get_news_digest
 from services.mgp_calculator import calc_mgp, generate_mgp_pdf, fmt as mgp_fmt
 from services.mortgage_calculator import calc_mortgage, get_mortgage_options, generate_mortgage_pdf
 from services.payment_pdf_generator import generate_payment_pdf
+from services.strategy_pdf_generator import generate_strategy_pdf
 
 # === Whitelist DB ===
 WEBAPP_DB = os.getenv("WEBAPP_DB", "./webapp.db")
@@ -478,6 +479,23 @@ async def api_payment_pdf(price: int, code: str = ""):
                 pdf_path,
                 media_type="application/pdf",
                 filename=f"Payment_{code or price}.pdf"
+            )
+        return {"ok": False, "error": "Ошибка генерации PDF"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/strategy-pdf")
+async def api_strategy_pdf(request: Request):
+    """Generate investment strategy PDF from AI chat data."""
+    body = await request.json()
+    try:
+        pdf_path = generate_strategy_pdf(body)
+        if pdf_path and os.path.exists(pdf_path):
+            return FileResponse(
+                pdf_path,
+                media_type="application/pdf",
+                filename=f"RIZALTA_Strategy_{int(time.time())}.pdf"
             )
         return {"ok": False, "error": "Ошибка генерации PDF"}
     except Exception as e:
