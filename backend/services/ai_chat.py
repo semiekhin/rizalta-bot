@@ -266,6 +266,12 @@ def stream_chat_with_tools(message: str, history: list[dict]):
             for i in range(0, len(text), chunk_size):
                 yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
         else:
+            # Hint to model: stop calling tools, write text response
+            current_input.append({
+                "role": "user",
+                "content": "Все данные собраны. Сформируй финальный инвестиционный отчёт на основе полученных данных. Отвечай текстом, не вызывай инструменты."
+            })
+
             # Stream final answer WITHOUT tools (so model only responds)
             stream = client.responses.create(
                 model=model,
