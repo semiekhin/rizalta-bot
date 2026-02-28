@@ -17,173 +17,163 @@ logger = logging.getLogger(__name__)
 TOOLS = [
     {
         "type": "function",
-        "function": {
-            "name": "search_lots",
-            "description": (
-                "Поиск апартаментов в RIZALTA Resort Belokurikha. "
-                "Ищет по коду лота, корпусу, диапазону площади или цены. "
-                "Возвращает список подходящих лотов со статусом, ценой, площадью."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "description": "Код лота (например А209, В712). Необязательный."
-                    },
-                    "building": {
-                        "type": "integer",
-                        "enum": [1, 2, 3],
-                        "description": "Номер корпуса: 1=Family, 2=Business, 3=Digital. Необязательный."
-                    },
-                    "min_area": {
-                        "type": "number",
-                        "description": "Минимальная площадь в м². Необязательный."
-                    },
-                    "max_area": {
-                        "type": "number",
-                        "description": "Максимальная площадь в м². Необязательный."
-                    },
-                    "min_price": {
-                        "type": "integer",
-                        "description": "Минимальная цена в рублях. Необязательный."
-                    },
-                    "max_price": {
-                        "type": "integer",
-                        "description": "Максимальная цена в рублях. Необязательный."
-                    },
-                    "status": {
-                        "type": "string",
-                        "enum": ["available", "booked", "sold"],
-                        "description": "Фильтр по статусу. По умолчанию available."
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Максимум результатов (по умолчанию 10, макс 20)."
-                    }
+        "name": "search_lots",
+        "description": (
+            "Поиск апартаментов в RIZALTA Resort Belokurikha. "
+            "Ищет по коду лота, корпусу, диапазону площади или цены. "
+            "Возвращает список подходящих лотов со статусом, ценой, площадью."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Код лота (например А209, В712). Необязательный."
                 },
-                "required": [],
-                "additionalProperties": False
+                "building": {
+                    "type": "integer",
+                    "enum": [1, 2, 3],
+                    "description": "Номер корпуса: 1=Family, 2=Business, 3=Digital. Необязательный."
+                },
+                "min_area": {
+                    "type": "number",
+                    "description": "Минимальная площадь в м². Необязательный."
+                },
+                "max_area": {
+                    "type": "number",
+                    "description": "Максимальная площадь в м². Необязательный."
+                },
+                "min_price": {
+                    "type": "integer",
+                    "description": "Минимальная цена в рублях. Необязательный."
+                },
+                "max_price": {
+                    "type": "integer",
+                    "description": "Максимальная цена в рублях. Необязательный."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["available", "booked", "sold"],
+                    "description": "Фильтр по статусу. По умолчанию available."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Максимум результатов (по умолчанию 10, макс 20)."
+                }
             },
-            "strict": True
-        }
+            "required": [],
+            "additionalProperties": False
+        },
+        "strict": True
     },
     {
         "type": "function",
-        "function": {
-            "name": "get_lot_details",
-            "description": (
-                "Получить полную информацию об апартаменте по коду. "
-                "Возвращает: площадь, цена, цена за м², этаж, корпус, статус, "
-                "количество комнат, URL планировки."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "description": "Код лота (например А209, В712)"
-                    },
-                    "building": {
-                        "type": "integer",
-                        "enum": [1, 2, 3],
-                        "description": "Корпус (если код дублируется между корпусами)"
-                    }
+        "name": "get_lot_details",
+        "description": (
+            "Получить полную информацию об апартаменте по коду. "
+            "Возвращает: площадь, цена, цена за м², этаж, корпус, статус, "
+            "количество комнат, URL планировки."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Код лота (например А209, В712)"
                 },
-                "required": ["code"],
-                "additionalProperties": False
+                "building": {
+                    "type": "integer",
+                    "enum": [1, 2, 3],
+                    "description": "Корпус (если код дублируется между корпусами)"
+                }
             },
-            "strict": True
-        }
+            "required": ["code"],
+            "additionalProperties": False
+        },
+        "strict": True
     },
     {
         "type": "function",
-        "function": {
-            "name": "calculate_roi",
-            "description": (
-                "Рассчитать инвестиционную доходность (ROI) апартамента RIZALTA. "
-                "Можно передать код лота (тогда данные берутся из БД) или area+price напрямую. "
-                "Возвращает: ROI %, среднюю годовую доходность, доход от аренды, "
-                "рост стоимости, итоговую стоимость за 11 лет (2025-2035)."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "description": "Код лота. Если указан — area и price берутся из БД."
-                    },
-                    "building": {
-                        "type": "integer",
-                        "enum": [1, 2, 3],
-                        "description": "Корпус (если код дублируется)"
-                    },
-                    "area": {
-                        "type": "number",
-                        "description": "Площадь в м² (если code не указан)"
-                    },
-                    "price": {
-                        "type": "integer",
-                        "description": "Цена в рублях (если code не указан)"
-                    }
+        "name": "calculate_roi",
+        "description": (
+            "Рассчитать инвестиционную доходность (ROI) апартамента RIZALTA. "
+            "Можно передать код лота (тогда данные берутся из БД) или area+price напрямую. "
+            "Возвращает: ROI %, среднюю годовую доходность, доход от аренды, "
+            "рост стоимости, итоговую стоимость за 11 лет (2025-2035)."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Код лота. Если указан — area и price берутся из БД."
                 },
-                "required": [],
-                "additionalProperties": False
+                "building": {
+                    "type": "integer",
+                    "enum": [1, 2, 3],
+                    "description": "Корпус (если код дублируется)"
+                },
+                "area": {
+                    "type": "number",
+                    "description": "Площадь в м² (если code не указан)"
+                },
+                "price": {
+                    "type": "integer",
+                    "description": "Цена в рублях (если code не указан)"
+                }
             },
-            "strict": True
-        }
+            "required": [],
+            "additionalProperties": False
+        },
+        "strict": True
     },
     {
         "type": "function",
-        "function": {
-            "name": "calculate_installment",
-            "description": (
-                "Рассчитать варианты рассрочки для апартамента RIZALTA. "
-                "Возвращает программы 12 мес (0%) и 18 мес (с удорожанием), "
-                "с вариантами первоначального взноса 30%, 40%, 50%. "
-                "Показывает ежемесячные платежи, итоговую стоимость, сервисный сбор."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "price": {
-                        "type": "integer",
-                        "description": "Стоимость апартамента в рублях"
-                    }
-                },
-                "required": ["price"],
-                "additionalProperties": False
+        "name": "calculate_installment",
+        "description": (
+            "Рассчитать варианты рассрочки для апартамента RIZALTA. "
+            "Возвращает программы 12 мес (0%) и 18 мес (с удорожанием), "
+            "с вариантами первоначального взноса 30%, 40%, 50%. "
+            "Показывает ежемесячные платежи, итоговую стоимость, сервисный сбор."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "type": "integer",
+                    "description": "Стоимость апартамента в рублях"
+                }
             },
-            "strict": True
-        }
+            "required": ["price"],
+            "additionalProperties": False
+        },
+        "strict": True
     },
     {
         "type": "function",
-        "function": {
-            "name": "compare_with_deposit",
-            "description": (
-                "Сравнить инвестицию в RIZALTA с банковским депозитом. "
-                "Рассчитывает доходность обоих вариантов на заданный срок. "
-                "Показывает: ROI, чистый доход, налоги на депозит, "
-                "рост стоимости + аренда для RIZALTA, преимущество RIZALTA."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "amount": {
-                        "type": "integer",
-                        "description": "Сумма инвестиции в рублях"
-                    },
-                    "years": {
-                        "type": "integer",
-                        "description": "Срок инвестиции в годах (по умолчанию 11)"
-                    }
+        "name": "compare_with_deposit",
+        "description": (
+            "Сравнить инвестицию в RIZALTA с банковским депозитом. "
+            "Рассчитывает доходность обоих вариантов на заданный срок. "
+            "Показывает: ROI, чистый доход, налоги на депозит, "
+            "рост стоимости + аренда для RIZALTA, преимущество RIZALTA."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer",
+                    "description": "Сумма инвестиции в рублях"
                 },
-                "required": ["amount"],
-                "additionalProperties": False
+                "years": {
+                    "type": "integer",
+                    "description": "Срок инвестиции в годах (по умолчанию 11)"
+                }
             },
-            "strict": True
-        }
+            "required": ["amount"],
+            "additionalProperties": False
+        },
+        "strict": True
     }
 ]
 
