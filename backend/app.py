@@ -26,7 +26,8 @@ from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
 from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
-from services.ai_chat import stream_chat_response, analyze_user_intent
+from services.ai_chat import stream_chat_with_tools
+from services.intent_router import quick_classify_navigation
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
@@ -274,30 +275,23 @@ async def search_lot(code: str):
 
 @app.post("/api/chat")
 async def api_chat(req: ChatRequest, request: Request):
-    """AI chat — returns action JSON for navigation intents, or SSE stream (with optional action buttons) for everything else."""
+    """AI chat with function calling."""
     check_chat_rate(request)
 
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Empty message")
 
-    # Check if message has an actionable intent
-    actions_to_append = None
+    # 1. Quick navigation (regex, no OpenAI)
     try:
-        result = analyze_user_intent(req.message)
-        if result:
-            if result["type"] == "action":
-                # Navigation intent → return JSON immediately
-                return result
-            elif result["type"] == "enriched":
-                # Informational intent → stream AI + append action buttons
-                actions_to_append = result["actions"]
+        nav = quick_classify_navigation(req.message)
+        if nav:
+            return nav
     except Exception as e:
-        import logging
-        logging.error(f"[CHAT] Intent analysis error: {e}")
+        logging.error(f"[CHAT] Navigation classify error: {e}")
 
-    # SSE streaming chat (with optional action buttons at the end)
+    # 2. Everything else → OpenAI with tools
     return StreamingResponse(
-        stream_chat_response(req.message, req.history, actions=actions_to_append),
+        stream_chat_with_tools(req.message, req.history),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

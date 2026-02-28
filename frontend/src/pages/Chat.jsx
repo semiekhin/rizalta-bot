@@ -148,6 +148,19 @@ export default function Chat({ lots, onNavigate }) {
                   updated[updated.length - 1] = {
                     ...last,
                     content: last.content + event.content,
+                    thinking: null,
+                  }
+                }
+                return updated
+              })
+            } else if (event.type === 'thinking') {
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                if (last && last.role === 'assistant') {
+                  updated[updated.length - 1] = {
+                    ...last,
+                    thinking: event.label,
                   }
                 }
                 return updated
@@ -237,6 +250,12 @@ export default function Chat({ lots, onNavigate }) {
                   : 'bg-rz-green-light rounded-tl-none'
               }`}>
                 <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+                {msg.thinking && (
+                  <div className="flex items-center gap-2 text-rz-cream-muted text-sm mt-1">
+                    <span className="animate-pulse">●</span>
+                    <span>{msg.thinking}</span>
+                  </div>
+                )}
               </div>
             </div>
 

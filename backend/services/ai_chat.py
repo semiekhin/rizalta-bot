@@ -1,4 +1,4 @@
-"""AI Chat service — OpenAI streaming for RIZALTA webapp."""
+"""AI Chat service — OpenAI streaming with function calling for RIZALTA webapp."""
 
 import os
 import json
@@ -6,81 +6,9 @@ import logging
 from openai import OpenAI
 
 from services.data_loader import load_finance, load_instructions
-from services.intent_router import classify_intent
+from services.tool_definitions import TOOLS, execute_tool
 
 logger = logging.getLogger(__name__)
-
-# Navigation intents — return JSON action immediately (open a screen)
-NAVIGATION_INTENTS = {
-    "open_shahmatka", "send_presentation", "show_media", "send_documents",
-    "open_fixation", "show_news", "show_schedule", "create_task",
-}
-
-# Intent → action buttons mapping (used for both navigation and enriched intents)
-INTENT_ACTIONS = {
-    "calculate_roi": lambda p: [
-        {"label": "Посмотреть ROI", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=roi"} if p.get("unit_code") else
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "show_installment": lambda p: [
-        {"label": "Рассрочка", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=deposit"} if p.get("unit_code") else
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "compare_deposit": lambda p: [
-        {"label": "Сравнить с депозитом", "type": "navigate", "to": f"/catalog/{p['unit_code']}?modal=deposit"} if p.get("unit_code") else
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "book_showing": lambda _: [
-        {"label": "Записаться на показ", "type": "navigate", "to": "/booking"},
-    ],
-    "show_layouts": lambda p: [
-        {"label": "Посмотреть планировку", "type": "navigate", "to": f"/catalog/{p['unit_code']}"} if p.get("unit_code") else
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "get_commercial_proposal": lambda p: [
-        {"label": "Скачать КП", "type": "navigate", "to": f"/catalog/{p['unit_code']}"} if p.get("unit_code") else
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "send_presentation": lambda _: [
-        {"label": "Открыть презентации", "type": "navigate", "to": "/presentations"},
-    ],
-    "open_fixation": lambda _: [
-        {"label": "Открыть фиксацию", "type": "navigate", "to": "/fixation"},
-    ],
-    "open_shahmatka": lambda _: [
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "send_documents": lambda _: [
-        {"label": "Открыть документы", "type": "navigate", "to": "/documents"},
-    ],
-    "show_media": lambda _: [
-        {"label": "Открыть видео", "type": "navigate", "to": "/media"},
-    ],
-    "show_news": lambda _: [
-        {"label": "Курсы валют", "type": "navigate", "to": "/news"},
-    ],
-    "build_portfolio": lambda _: [
-        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
-    ],
-    "create_task": lambda _: [
-        {"label": "Открыть секретарь", "type": "navigate", "to": "/secretary"},
-    ],
-    "show_schedule": lambda _: [
-        {"label": "Открыть секретарь", "type": "navigate", "to": "/secretary"},
-    ],
-}
-
-# Navigation intent messages (short, for JSON-only responses)
-NAVIGATION_MESSAGES = {
-    "open_shahmatka": "Каталог апартаментов RIZALTA:",
-    "send_presentation": "Презентации проекта RIZALTA:",
-    "show_media": "Видеоматериалы о проекте:",
-    "send_documents": "Документы проекта RIZALTA:",
-    "open_fixation": "Для фиксации клиента перейдите в раздел Фиксация:",
-    "show_news": "Актуальные курсы валют:",
-    "show_schedule": "Ваше расписание и задачи:",
-    "create_task": "Задача создана. Откройте секретарь для просмотра:",
-}
 
 # OpenAI client (initialized lazily)
 _client = None
@@ -98,12 +26,7 @@ def get_client() -> OpenAI:
 
 
 def build_finance_system_context(finance: dict) -> str:
-    """Build financial context from rizalta_finance.json for the system prompt.
-
-    Real JSON structure: project(str), completion_year(int), defaults(dict),
-    units(list), installment_programs(list), mortgage_programs(list),
-    investment_scenarios(list), extra_notes(dict), installment_notes(dict).
-    """
+    """Build financial context from rizalta_finance.json for the system prompt."""
     if not finance:
         return ""
 
@@ -123,7 +46,6 @@ def build_finance_system_context(finance: dict) -> str:
     lines.append(f"Срок сдачи: Q4 {completion} года")
     lines.append("")
 
-    # === Units ===
     lines.append("=== АПАРТАМЕНТЫ ===")
     for u in units:
         code = u.get("unit_code", "")
@@ -154,7 +76,6 @@ def build_finance_system_context(finance: dict) -> str:
             lines.append(f"  Прогноз 2029: {price_2029:,.0f} ₽ (+{growth_2029:.0f}%)")
         lines.append("")
 
-    # === Installment programs ===
     if installments:
         lines.append("=== ПРОГРАММЫ РАССРОЧКИ ===")
         for p in installments:
@@ -175,7 +96,6 @@ def build_finance_system_context(finance: dict) -> str:
                 lines.append(f"  Скидка за 100% оплату: {fp}")
         lines.append("")
 
-    # === Mortgage ===
     if mortgages:
         lines.append("=== ИПОТЕКА ===")
         for m in mortgages:
@@ -186,7 +106,6 @@ def build_finance_system_context(finance: dict) -> str:
             lines.append(f"  Срок: {m.get('term_months', 0)} мес")
         lines.append("")
 
-    # === Extra notes ===
     if extra_notes:
         lines.append("=== ДОПОЛНИТЕЛЬНО ===")
         for key, val in extra_notes.items():
@@ -205,82 +124,197 @@ def build_system_prompt() -> str:
     return instructions + context
 
 
-def stream_chat_response(message: str, history: list[dict], actions: list[dict] | None = None):
-    """Generator that yields SSE events from OpenAI streaming response.
+TOOL_INSTRUCTION = """
 
-    Yields strings in SSE format: 'data: {"type": "token", "content": "..."}\n\n'
-    If actions are provided, yields them as a final "actions" event after streaming.
+Ты имеешь доступ к инструментам (tools) для работы с базой данных RIZALTA:
+- search_lots: поиск лотов по фильтрам (корпус, площадь, цена, статус)
+- get_lot_details: полная информация о конкретном лоте
+- calculate_roi: расчёт инвестиционной доходности
+
+ПРАВИЛА ИСПОЛЬЗОВАНИЯ TOOLS:
+1. Если пользователь спрашивает о конкретном лоте — вызови get_lot_details
+2. Если спрашивает "что есть" / "какие лоты" / фильтрует — вызови search_lots
+3. Если спрашивает о доходности — вызови calculate_roi
+4. Если просто разговаривает или задаёт общий вопрос — отвечай без tools
+5. Используй данные из tools для ТОЧНОГО ответа. НЕ выдумывай цифры.
+6. Форматируй цены с пробелами: 5 000 000 ₽
+"""
+
+
+def stream_chat_with_tools(message: str, history: list[dict]):
+    """Generator yielding SSE events. Supports OpenAI function calling.
+
+    SSE event types:
+    - {"type": "token", "content": "..."}      — text chunk
+    - {"type": "thinking", "tool": "..."}       — tool is being called
+    - {"type": "actions", "actions": [...]}     — action buttons
+    - {"type": "done"}                          — stream complete
+    - {"type": "error", "content": "..."}       — error
     """
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
 
-    # Build messages array
-    system_prompt = build_system_prompt()
+    system_prompt = build_system_prompt() + TOOL_INSTRUCTION
+
     messages = [{"role": "system", "content": system_prompt}]
 
-    # Add history (limit to last 20 messages)
     if history:
         messages.extend(history[-20:])
 
-    # Add current user message
     messages.append({"role": "user", "content": message})
 
     try:
         client = get_client()
-        stream = client.chat.completions.create(
+
+        # === FIRST call — with tools ===
+        response = client.chat.completions.create(
             model=model,
             messages=messages,
             max_tokens=max_tokens,
             temperature=0.7,
+            tools=TOOLS,
+            tool_choice="auto",
             stream=True,
         )
 
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                token = chunk.choices[0].delta.content
-                yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
+        collected_tool_calls = {}  # index → {id, name, arguments}
+        has_tool_calls = False
 
-        # Append action buttons after streaming completes
+        for chunk in response:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if not delta:
+                continue
+
+            # Text content — stream immediately
+            if delta.content:
+                yield f'data: {json.dumps({"type": "token", "content": delta.content}, ensure_ascii=False)}\n\n'
+
+            # Tool calls — accumulate
+            if delta.tool_calls:
+                has_tool_calls = True
+                for tc in delta.tool_calls:
+                    idx = tc.index
+                    if idx not in collected_tool_calls:
+                        collected_tool_calls[idx] = {
+                            "id": tc.id or "",
+                            "name": tc.function.name or "",
+                            "arguments": ""
+                        }
+                    if tc.id:
+                        collected_tool_calls[idx]["id"] = tc.id
+                    if tc.function.name:
+                        collected_tool_calls[idx]["name"] = tc.function.name
+                    if tc.function.arguments:
+                        collected_tool_calls[idx]["arguments"] += tc.function.arguments
+
+        # === If tool calls — execute and make SECOND call ===
+        if has_tool_calls and collected_tool_calls:
+
+            tool_calls_for_message = []
+            for idx in sorted(collected_tool_calls.keys()):
+                tc = collected_tool_calls[idx]
+                tool_calls_for_message.append({
+                    "id": tc["id"],
+                    "type": "function",
+                    "function": {
+                        "name": tc["name"],
+                        "arguments": tc["arguments"]
+                    }
+                })
+
+            messages.append({
+                "role": "assistant",
+                "tool_calls": tool_calls_for_message,
+            })
+
+            # Execute each tool call
+            for tc in tool_calls_for_message:
+                tool_name = tc["function"]["name"]
+
+                thinking_labels = {
+                    "search_lots": "Ищу лоты...",
+                    "get_lot_details": "Загружаю информацию о лоте...",
+                    "calculate_roi": "Считаю доходность...",
+                }
+                label = thinking_labels.get(tool_name, f"Выполняю {tool_name}...")
+                yield f'data: {json.dumps({"type": "thinking", "tool": tool_name, "label": label}, ensure_ascii=False)}\n\n'
+
+                result = execute_tool(tool_name, tc["function"]["arguments"])
+
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": result,
+                })
+
+            # === SECOND call — stream final answer ===
+            response2 = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.7,
+                stream=True,
+            )
+
+            for chunk in response2:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    token = chunk.choices[0].delta.content
+                    yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
+
+        # === Generate action buttons based on context ===
+        actions = _generate_context_actions(collected_tool_calls if has_tool_calls else {})
         if actions:
             yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
 
         yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
 
     except Exception as e:
-        logger.error(f"[AI CHAT] OpenAI error: {e}")
+        logger.error(f"[AI CHAT] Error: {e}")
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен, попробуйте позже"}, ensure_ascii=False)}\n\n'
 
 
-def analyze_user_intent(message: str) -> dict | None:
-    """Analyze message intent and classify it.
+def _generate_context_actions(tool_calls: dict) -> list[dict]:
+    """Generate action buttons based on which tools were used."""
+    actions = []
 
-    Returns:
-    - For navigation intents: dict with type="action" (JSON response)
-    - For enriched intents: dict with type="enriched" + actions list (stream AI + buttons)
-    - None: pure chat, no intent detected
-    """
-    intent, params = classify_intent(message)
+    for idx, tc in tool_calls.items():
+        name = tc.get("name", "")
+        try:
+            args = json.loads(tc.get("arguments", "{}"))
+        except json.JSONDecodeError:
+            args = {}
 
-    if intent == "chat" or intent not in INTENT_ACTIONS:
-        return None
+        if name == "get_lot_details" and args.get("code"):
+            code = args["code"]
+            building_param = f"&building={args['building']}" if args.get("building") else ""
+            actions.append({
+                "label": f"Открыть {code}",
+                "type": "navigate",
+                "to": f"/lots/{code}?from=chat{building_param}"
+            })
 
-    actions = INTENT_ACTIONS[intent](params)
+        elif name == "search_lots":
+            actions.append({
+                "label": "Открыть каталог",
+                "type": "navigate",
+                "to": "/lots"
+            })
 
-    # Navigation intents → return JSON immediately
-    if intent in NAVIGATION_INTENTS:
-        msg_text = NAVIGATION_MESSAGES.get(intent, "")
-        return {
-            "type": "action",
-            "intent": intent,
-            "params": params,
-            "message": msg_text,
-            "actions": actions,
-        }
+        elif name == "calculate_roi" and args.get("code"):
+            code = args["code"]
+            actions.append({
+                "label": f"Подробный расчёт {code}",
+                "type": "navigate",
+                "to": f"/lots/{code}?modal=roi"
+            })
 
-    # Enriched intents → stream AI response + append action buttons
-    return {
-        "type": "enriched",
-        "intent": intent,
-        "params": params,
-        "actions": actions,
-    }
+    # Deduplicate
+    seen = set()
+    unique = []
+    for a in actions:
+        key = a["to"]
+        if key not in seen:
+            seen.add(key)
+            unique.append(a)
+
+    return unique[:3]
