@@ -64,7 +64,7 @@
 
 ### Приоритет 🔴
 
-1. **Function calling в AI чате** — инструменты: расчёт ROI, поиск лота, бронирование из чата
+1. ~~Function calling в AI чате~~ → ВЫПОЛНЕНО v0.9.2
 2. **Автосинхронизация данных бот↔webapp** — rizalta_finance.json, instructions.txt (через .env пути, без копий)
 
 ### Приоритет 🟡
@@ -122,3 +122,13 @@ systemctl restart webapp.service
 - `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git (TODO: автосинхронизация)
 - Разработка webapp параллельна с ботом — docs интегрируем, не затираем!
 - Claude читает код через `/api/docs/file` — не нужен копипаст
+
+### Сессия 01.03.2026 (v0.9.1 → v0.9.2) — GPT-5.2 финансовый советник
+- **GPT-5.2 Responses API** — полная миграция с Chat Completions
+- **Agentic loop** — мульти-раундовый tool calling (5 раундов, 17+ calls)
+- **5 tools** — search_lots, get_lot_details, calculate_roi, calculate_installment, compare_with_deposit
+- **ADVISOR_INSTRUCTION** — финансовый советник, 3 стратегии на бюджет
+- **Strategy PDF generator** — endpoint POST /api/strategy-pdf
+- **Терминология** — "лот"/"апартамент", капитализация +20%/+10%
+- **max_output_tokens=16000** — для длинных финансовых отчётов
+- **Git tag:** `v0.9.2-gpt52-advisor`

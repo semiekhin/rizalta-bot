@@ -380,3 +380,43 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **Деактивировано:** /api/corp3/lots, /api/corp3/layout/{code}, CORP3_DATA_PATH
 - **Оставлено для К4:** /api/access/check, webapp.db, utils/auth.js
 - **Git tag:** `v0.9.0-corp3-unified`
+
+## Сессия 01.03.2026 (v0.9.1 → v0.9.2) — GPT-5.2 финансовый советник
+
+### GPT-5.2 Responses API
+- Полная миграция с Chat Completions на Responses API
+- `client.responses.create()` вместо `client.chat.completions.create()`
+- `instructions=""` вместо `messages=[{role: "system"}]`
+- `reasoning={"effort": "high"}` вместо `temperature`
+- Streaming: `event.type == 'response.output_text.delta'` → `event.delta`
+
+### Agentic loop
+- Мульти-раундовый tool calling (до 5 раундов, 17+ вызовов за запрос)
+- Tool results: `{"type": "function_call_output", "call_id": ..., "output": ...}`
+
+### 5 Tools (flat schema, без function wrapper)
+- `search_lots` — поиск лотов по фильтрам
+- `get_lot_details` — детали апартамента
+- `calculate_roi` — расчёт доходности
+- `calculate_installment` — варианты рассрочки
+- `compare_with_deposit` — сравнение с банковским депозитом
+- Schema: name/description/parameters на верхнем уровне (НЕ внутри function:{})
+- БЕЗ `strict: True`, БЕЗ `additionalProperties: False`
+
+### ADVISOR_INSTRUCTION
+- Финансовый советник с 3 стратегиями на бюджет клиента
+- Терминология: "лот"/"апартамент" (никогда "юнит")
+- Капитализация: +20%/год стройка, +10%/год после сдачи
+
+### Strategy PDF
+- `backend/services/strategy_pdf_generator.py` — PDF отчёт для инвестора
+- Endpoint: `POST /api/strategy-pdf`
+- `max_output_tokens=16000` для длинных финансовых отчётов
+
+### Коммиты
+- `2b94190` — Initial GPT-5.2 migration
+- `77bc628` — Fix tools schema format
+- `dafc3be` — Remove strict mode
+- `40bb824` — Agentic loop
+- `e75fda5` — Force text response
+- `c0e6458` — Терминология + капитализация
