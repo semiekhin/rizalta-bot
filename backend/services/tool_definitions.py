@@ -61,10 +61,8 @@ TOOLS = [
                     "description": "Максимум результатов (по умолчанию 10, макс 20)."
                 }
             },
-            "required": [],
-            "additionalProperties": False
-        },
-        "strict": True
+            "required": []
+        }
     },
     {
         "type": "function",
@@ -87,10 +85,8 @@ TOOLS = [
                     "description": "Корпус (если код дублируется между корпусами)"
                 }
             },
-            "required": ["code"],
-            "additionalProperties": False
-        },
-        "strict": True
+            "required": ["code"]
+        }
     },
     {
         "type": "function",
@@ -122,10 +118,8 @@ TOOLS = [
                     "description": "Цена в рублях (если code не указан)"
                 }
             },
-            "required": [],
-            "additionalProperties": False
-        },
-        "strict": True
+            "required": []
+        }
     },
     {
         "type": "function",
@@ -144,10 +138,8 @@ TOOLS = [
                     "description": "Стоимость апартамента в рублях"
                 }
             },
-            "required": ["price"],
-            "additionalProperties": False
-        },
-        "strict": True
+            "required": ["price"]
+        }
     },
     {
         "type": "function",
@@ -170,10 +162,8 @@ TOOLS = [
                     "description": "Срок инвестиции в годах (по умолчанию 11)"
                 }
             },
-            "required": ["amount"],
-            "additionalProperties": False
-        },
-        "strict": True
+            "required": ["amount"]
+        }
     }
 ]
 
