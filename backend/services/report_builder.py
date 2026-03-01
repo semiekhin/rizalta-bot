@@ -13,6 +13,28 @@ from services.deposit_calculator import calculate_all_scenarios
 from services.data_loader import load_finance
 
 
+def slim_deposit(scenarios: dict) -> dict:
+    """Оставить только итоговые цифры для AI (без yearly_details)."""
+    result = {}
+    for name, data in scenarios.items():
+        if hasattr(data, '__dict__'):
+            d = data.__dict__ if not hasattr(data, '_asdict') else data._asdict()
+        else:
+            d = data
+        result[name] = {
+            "final_balance": d.get("final_balance"),
+            "total_net_interest": d.get("total_net_interest"),
+            "total_roi_pct": d.get("total_roi_pct"),
+            "effective_rate": d.get("effective_rate"),
+        }
+    return result
+
+
+def slim_roi(roi: dict) -> dict:
+    """Убрать highlights, оставить только totals."""
+    return {k: v for k, v in roi.items() if k != "highlights"}
+
+
 def build_lot_report_data(code: str, building: int | None = None) -> dict:
     """Собрать ВСЕ данные по лоту для фин. отчёта.
 
@@ -47,16 +69,16 @@ def build_lot_report_data(code: str, building: int | None = None) -> dict:
         "installment_18m": calc_18m(price),
     }
 
-    # 4. Сравнение с депозитом (dataclass → dict)
+    # 4. Сравнение с депозитом (только итоги)
     deposit_raw = calculate_all_scenarios(price, years=11)
-    deposit = {k: asdict(v) for k, v in deposit_raw.items()}
+    deposit = slim_deposit(deposit_raw)
 
     # 5. Финансовые параметры проекта
     finance = load_finance()
 
     return {
         "lot": lot,
-        "roi": roi,
+        "roi": slim_roi(roi),
         "installment": installment,
         "deposit_comparison": deposit,
         "project": {
@@ -90,7 +112,7 @@ def build_portfolio_data(budget: int) -> dict:
     lots_installment_json = execute_search_lots({
         "max_price": max_price_installment,
         "status": "available",
-        "limit": 10,
+        "limit": 5,
     })
     lots_installment = json.loads(lots_installment_json)
 
@@ -107,11 +129,11 @@ def build_portfolio_data(budget: int) -> dict:
                     "area": lot["area_m2"],
                     "price": lot["price_rub"],
                 })
-                roi_results[code] = json.loads(roi_json)
+                roi_results[code] = slim_roi(json.loads(roi_json))
 
-    # Депозит для сравнения (dataclass → dict)
+    # Депозит для сравнения (только итоги)
     deposit_raw = calculate_all_scenarios(budget, years=11)
-    deposit = {k: asdict(v) for k, v in deposit_raw.items()}
+    deposit = slim_deposit(deposit_raw)
 
     finance = load_finance()
 
