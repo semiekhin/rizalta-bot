@@ -78,10 +78,9 @@ git push
 
 ---
 
-## 📋 ШАГ 4: Выдать ПОЛНЫЙ промпт для нового webapp-чата
+## 📋 ШАГ 4: Выдать промпт для нового webapp-чата
 
-Формат промпта:
-
+Формат промпта (СТРОГО, не менять):
 ```
 # ⚠️ ВНИМАНИЕ: Два параллельных чата!
 # Этот чат = WEBAPP (/opt/webapp, /opt/webapp-dev)
@@ -89,71 +88,16 @@ git push
 # Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, НЕ затирать!
 # Claude chat = архитектор, 1Code = реализация
 # ⚠️ НЕ ПИШИ КОД И НЕ ВНОСИ ИЗМЕНЕНИЯ если не уверен на 100%!
+# ⚠️ Работаем ТОЛЬКО в DEV. В PROD деплоим только при полной работоспособности!
 
 ---
 
-# RIZALTA WebApp — контекст сессии
+Прочитай документацию проекта:
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=CLAUDE.md
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=TASK_MAP.md
 
-## Сервер
-ssh -p 2222 root@72.56.64.91
-
-## Версии
-- **WebApp:** v[X.X.X]
-- **Бот:** v[X.X.X] (не трогаем)
-
-## Среды
-[таблица DEV/PROD: URL, путь, порт, systemd, favicon]
-
-## DevOps Pipeline
-[webhook, deploy-to-prod.sh, session-end.sh]
-
-## Репозитории
-[3 репо: webapp ветка, bot-dev, bot-prod]
-
-## Стек
-[Frontend, Backend, AI, PDF, БД]
-
-## Критически важно — НЕ ТРОГАТЬ
-[/opt/bot, /opt/bot-dev, /opt/webapp PROD, properties.db]
-
-## Что сделано (последние сессии)
-[2-3 последние сессии с датами и ключевыми изменениями]
-
-## Бэклог (актуализирован [ДАТА])
-[🔴 Ближайшие, 🟡 Средний приоритет, 🟢 Nice-to-have]
-
-## Workflow разработки
-1. Claude chat — архитектура, ТЗ, анализ
-2. 1Code (Mac: cd ~/1code && bun run dev) — реализация
-3. Push → GitHub → DEV auto-deploy (webhook)
-4. Проверка на DEV
-5. Деплой: bash /opt/webapp-dev/deploy-to-prod.sh
-
-## Git теги
-[все теги с описаниями]
-
-## Документация
-
-### GitHub DEV:
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_CONTEXT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_CURRENT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_ARCHITECTURE.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_KNOWLEDGE.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_TASKS.md
-
-### GitHub PROD:
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_CONTEXT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_CURRENT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_TASKS.md
-
-### WebApp:
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/CLAUDE.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/TASK_MAP.md
-
-### Шаблон завершения сессии:
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/SESSION_END_TEMPLATE_WEBAPP.md
-
----
+Шаблон завершения сессии:
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEBAPP.md
 
 При команде "завершаем сессию" или "новый чат" — ОБЯЗАТЕЛЬНО:
 1. Скачать SESSION_END_TEMPLATE_WEBAPP.md
@@ -163,28 +107,10 @@ ssh -p 2222 root@72.56.64.91
 
 ---
 
-Перед началом работы прочитай CLAUDE.md и TASK_MAP.md.
 Первая задача — [описание следующей задачи].
 ```
 
----
-
-## 📎 Ссылки на документы GitHub
-
-**WebApp (ветка webapp):**
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/CLAUDE.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/TASK_MAP.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/webapp/SESSION_END_TEMPLATE_WEBAPP.md
-
-**Общие docs DEV:**
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_CONTEXT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_CURRENT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot-dev/main/docs/RIZALTA_TASKS.md
-
-**Общие docs PROD:**
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_CONTEXT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_CURRENT.md
-- https://raw.githubusercontent.com/semiekhin/rizalta-bot/main/docs/RIZALTA_TASKS.md
+⚠️ НЕ добавлять в промпт версии, инфраструктуру, стек, бэклог, теги — всё это уже в CLAUDE.md и TASK_MAP.md. Claude читает их по ссылкам с сервера (через /api/docs/file, НЕ через GitHub CDN — чтобы избежать кэширования).
 
 ---
 

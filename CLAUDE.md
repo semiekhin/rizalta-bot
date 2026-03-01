@@ -69,6 +69,11 @@ bash /opt/webapp-dev/deploy-to-prod.sh
 ```
 Скрипт: проверка DEV health → git pull → build → restart → health check → автооткат при ошибке
 
+### DEV/PROD
+- Работаем ТОЛЬКО в DEV (/opt/webapp-dev)
+- В PROD деплоим ТОЛЬКО при полной работоспособности: bash /opt/webapp-dev/deploy-to-prod.sh
+- НИКОГДА не редактировать /opt/webapp напрямую
+
 ### Workflow для 1Code
 
 1. 1Code запускается: `cd ~/1code && bun run dev` (Mac)
@@ -342,6 +347,11 @@ curl -s "http://127.0.0.1:8004/api/docs/file?path=CLAUDE.md" | head -5
 - **Этот репо (webapp)** — webapp разработка
 - **bot-dev** — основной бот
 - Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, не затирать!
+
+### DEV/PROD
+- Работаем ТОЛЬКО в DEV (/opt/webapp-dev)
+- В PROD деплоим ТОЛЬКО при полной работоспособности: bash /opt/webapp-dev/deploy-to-prod.sh
+- НИКОГДА не редактировать /opt/webapp напрямую
 
 ### Workflow
 - **Claude chat** = архитектор (ТЗ, анализ, спецификации)
