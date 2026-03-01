@@ -325,3 +325,17 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 ### Среды
 - DEV: https://dev-webapp.rizaltaservice.ru (v0.9.2)
 - PROD: https://webapp.rizaltaservice.ru (v0.9.0, ожидает деплой)
+
+## 🌐 WebApp: v0.9.3 (02.03.2026)
+
+### AI Chat v2 — три режима
+- Архитектура: бэкенд собирает JSON → 1 вызов AI (вместо 5 раундов agentic loop)
+- Три режима: "Фин. отчёт по лоту" (кнопка), "Портфель по бюджету" (кнопка), свободный чат
+- report_builder.py: build_lot_report_data(), build_portfolio_data()
+- Ускорение: ~7 сек (было 20-30), reasoning: low, max_output_tokens: 4000
+- slim_deposit(), slim_roi() — оптимизация размера JSON
+- Chat.jsx: две кнопки + модалки ввода + пресеты бюджета
+
+### Среды
+- DEV: https://dev-webapp.rizaltaservice.ru (v0.9.3)
+- PROD: https://webapp.rizaltaservice.ru (v0.9.0, ожидает деплой)
