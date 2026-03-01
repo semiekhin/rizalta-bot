@@ -191,6 +191,7 @@ LOT_REPORT_PROMPT = """
 - Термины: "лот" или "апартамент", НИКОГДА "юнит"
 - НЕ проси дополнительные данные — ВСЁ есть в JSON ниже
 - НЕ предлагай связаться с отделом продаж (пользователь — это и есть отдел продаж)
+- Максимум 300 слов. Без воды.
 """
 
 
@@ -222,6 +223,7 @@ PORTFOLIO_PROMPT = """
 - Только цифры из JSON, ничего не выдумывай
 - "лот"/"апартамент", не "юнит"
 - НЕ проси контакты клиента
+- Максимум 500 слов. Без воды.
 """
 
 
@@ -266,8 +268,8 @@ def stream_lot_report(code: str, building: int | None = None):
             model=model,
             instructions="Ты финансовый аналитик. Форматируй ответ в Markdown.",
             input=[{"role": "user", "content": prompt}],
-            reasoning={"effort": "medium"},
-            max_output_tokens=16000,
+            reasoning={"effort": "low"},
+            max_output_tokens=4000,
             stream=True,
         )
 
@@ -316,8 +318,8 @@ def stream_portfolio_report(budget: int):
             model=model,
             instructions="Ты финансовый аналитик. Форматируй ответ в Markdown.",
             input=[{"role": "user", "content": prompt}],
-            reasoning={"effort": "medium"},
-            max_output_tokens=16000,
+            reasoning={"effort": "low"},
+            max_output_tokens=4000,
             stream=True,
         )
 
