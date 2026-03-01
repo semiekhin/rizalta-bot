@@ -282,6 +282,19 @@ def stream_lot_report(code: str, building: int | None = None):
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен"}, ensure_ascii=False)}\n\n'
         return
 
+    # Send strategy_data for PDF button
+    strategy_data = {
+        "tools_used": ["get_lot_details", "calculate_roi", "calculate_installment", "compare_with_deposit"],
+        "results": {
+            "get_lot_details_0": data.get("lot", {}),
+            "calculate_roi_0": data.get("roi", {}),
+        },
+        "lot_data": data.get("lot", {}),
+        "user_query": f"Фин. отчёт по лоту {code}",
+        "report_data": data,
+    }
+    yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
+
     # Кнопки
     actions = [
         {"label": f"Открыть {code}", "type": "navigate", "to": f"/lots/{code}?from=chat"},
@@ -331,6 +344,15 @@ def stream_portfolio_report(budget: int):
         logger.error(f"[PORTFOLIO] AI error: {e}")
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен"}, ensure_ascii=False)}\n\n'
         return
+
+    # Send strategy_data for PDF button
+    strategy_data = {
+        "tools_used": ["search_lots", "calculate_roi"],
+        "results": {},
+        "user_query": f"Портфель на {budget_fmt} ₽",
+        "report_data": data,
+    }
+    yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
 
     actions = [
         {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
