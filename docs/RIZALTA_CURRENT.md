@@ -339,3 +339,10 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 ### Среды
 - DEV: https://dev-webapp.rizaltaservice.ru (v0.9.3)
 - PROD: https://webapp.rizaltaservice.ru (v0.9.0, ожидает деплой)
+
+## WebApp v0.9.3 (02.03.2026)
+- PDF инвестиционные отчёты в стиле RIZALTA (strategy_pdf_generator.py rewrite)
+- report_builder.py: сбор данных напрямую из БД (0 AI токенов)
+- stream_lot_report / stream_portfolio_report: быстрые отчёты через 1 вызов AI
+- strategy_data SSE fix: кнопка "Скачать PDF" теперь появляется во всех режимах
+- Коммиты: 1062d90, f2042b4
