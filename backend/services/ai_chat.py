@@ -449,9 +449,16 @@ def stream_chat_with_tools(message: str, history: list[dict]):
             if full_response_text:
                 strategy_data["response_text"] = full_response_text
 
+        # Enrich strategy_data with lot_data for PDF generation
+        if strategy_data.get("results"):
+            for key, val in strategy_data["results"].items():
+                if key.startswith("get_lot_details") and isinstance(val, dict) and "code" in val:
+                    strategy_data["lot_data"] = val
+                    break
+
         # Strategy data for PDF
         strategy_data["user_query"] = message
-        if len(strategy_data["tools_used"]) >= 2:
+        if len(strategy_data["tools_used"]) >= 1:
             yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
 
         # Actions — collect all function_call items from current_input

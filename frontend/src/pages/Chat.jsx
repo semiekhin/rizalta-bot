@@ -339,9 +339,10 @@ export default function Chat({ lots, onNavigate }) {
               <div className="pl-10 mt-2">
                 <button
                   onClick={() => downloadStrategyPdf(msg.strategyData)}
-                  className="px-4 py-2 bg-rz-gold text-rz-green-dark rounded-lg font-medium hover:bg-rz-gold-light transition-colors text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-rz-gold text-rz-green-dark rounded-lg font-medium hover:bg-rz-gold-light transition-colors text-sm"
                 >
-                  Скачать отчёт для инвестора (PDF)
+                  <span>📄</span>
+                  <span>Скачать PDF отчёт</span>
                 </button>
               </div>
             )}
