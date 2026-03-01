@@ -161,70 +161,168 @@ ADVISOR_INSTRUCTION = """
 """
 
 
-LOT_REPORT_PROMPT = """
-Ты — финансовый аналитик RIZALTA. Сформируй экспресс инвест-отчёт по данным ниже.
+LOT_REPORT_PROMPT = """Ты — финансовый аналитик RIZALTA. Ниже — готовая сводка по апартаменту.
 
-ФОРМАТ ОТЧЁТА (строго):
-
-## Лот {код} — {корпус}
-{площадь} м² | Этаж {этаж} | {цена} ₽
-
-## Доходность
-- Чистый доход от аренды: {X} ₽/год ({Y}% годовых)
-- Рост стоимости к 2028: +20%/год (стройка)
-- Рост стоимости с 2028: +10%/год
-- Итого за 11 лет (2025-2035): ROI {Z}%
-
-## Варианты оплаты
-Кратко: 100% (скидка 5%), рассрочка 12 мес (0%), рассрочка 18 мес (удорожание).
-Для каждого — ежемесячный платёж и итоговая переплата.
-
-## RIZALTA vs Депозит
-Одна таблица: вложил X → через 11 лет RIZALTA = Y, Депозит (18%) = Z.
-
-## Рекомендация
-2-3 предложения: кому подходит этот лот, оптимальная стратегия покупки.
+Оформи её как компактный инвест-отчёт для риэлтора.
 
 ПРАВИЛА:
-- Компактно: весь отчёт не больше 1 экрана
+- Все цифры УЖЕ посчитаны — просто оформи красиво
 - Цифры с пробелами: 14 300 000 ₽
 - Термины: "лот" или "апартамент", НИКОГДА "юнит"
-- НЕ проси дополнительные данные — ВСЁ есть в JSON ниже
-- НЕ предлагай связаться с отделом продаж (пользователь — это и есть отдел продаж)
-- Максимум 300 слов. Без воды.
+- НЕ предлагай связаться с менеджером (пользователь = отдел продаж)
+- Компактно: весь отчёт 200-300 слов, не больше 1 экрана
+- В конце — короткая рекомендация (2-3 предложения)
 """
 
+PORTFOLIO_PROMPT = """Ты — финансовый аналитик RIZALTA. Ниже — данные по подбору портфеля.
 
-PORTFOLIO_PROMPT = """
-Ты — финансовый аналитик RIZALTA. Клиент с бюджетом {budget} ₽.
-Проанализируй данные и предложи 2-3 стратегии.
-
-ФОРМАТ:
-
-## Портфель на {budget_formatted} ₽
-
-### Стратегия 1: Один лот за 100% (скидка 5%)
-Лучший кандидат, почему, ROI, итог за 11 лет.
-
-### Стратегия 2: Лот(ы) в рассрочку
-ПВ 30% от бюджета → какие лоты доступны, cash flow, когда окупится.
-
-### Стратегия 3 (если бюджет позволяет): Комбинация
-Два лота / разные схемы оплаты.
-
-## Сравнение с депозитом
-Таблица: бюджет в RIZALTA vs бюджет на депозите.
-
-## Рекомендация
-Какая стратегия лучше и почему. 2-3 предложения.
+Оформи как компактный инвест-отчёт: сравни стратегии, выдели лучший вариант.
 
 ПРАВИЛА:
-- Компактно, не больше 1.5 экранов
-- Только цифры из JSON, ничего не выдумывай
+- Все цифры УЖЕ посчитаны — оформи красиво
 - "лот"/"апартамент", не "юнит"
 - НЕ проси контакты клиента
-- Максимум 500 слов. Без воды.
+- Компактно: 300-500 слов, не больше 1.5 экранов
+- В конце — рекомендация: какая стратегия лучше и почему
 """
+
+
+def format_lot_summary(data: dict) -> str:
+    """Превращает JSON report_builder в читаемую сводку для AI."""
+    lot = data["lot"]
+    roi = data["roi"]
+    inst = data["installment"]
+    dep = data["deposit_comparison"]
+    proj = data["project"]
+
+    def fmt(v):
+        return f"{int(round(v)):,}".replace(",", " ")
+
+    code = lot.get("code", "")
+    building_num = lot.get("building_num", "")
+    bnames = {1: "Family", 2: "Business", 3: "Digital"}
+    bname = f'Корпус {building_num} "{bnames.get(building_num, "")}"' if building_num else lot.get("building", "")
+    area = lot.get("area_m2", 0)
+    floor = lot.get("floor", "?")
+    price = lot.get("price_rub", 0)
+
+    # ROI fields (from execute_calculate_roi → slim_roi)
+    total_rental = roi.get("total_rental_income", 0)
+    total_growth = roi.get("total_growth", 0)
+    total_profit = roi.get("total_profit_rub", 0)
+    roi_pct = roi.get("roi_pct", 0)
+    avg_annual = roi.get("avg_annual_pct", 0)
+    final_value = roi.get("final_value_rub", 0)
+
+    # Installment
+    full = inst.get("full_payment", {})
+    i12 = inst.get("installment_12m", {})
+    i18 = inst.get("installment_18m", {})
+
+    # Deposit
+    dep_base = dep.get("base", {})
+
+    lines = [
+        f"АПАРТАМЕНТ: {code}, {bname}",
+        f"Площадь: {area} м², этаж {floor}",
+        f"Цена: {fmt(price)} ₽",
+        f"Точка входа (ПВ 30%): {fmt(price * 0.3)} ₽",
+        "",
+        "ДОХОДНОСТЬ (11 лет, 2025-2035):",
+        f"Аренда за 11 лет: {fmt(total_rental)} ₽",
+        f"Рост стоимости за 11 лет: {fmt(total_growth)} ₽",
+        f"Совокупная прибыль: {fmt(total_profit)} ₽",
+        f"ROI: {roi_pct:.1f}%, среднегодовая: {avg_annual:.1f}%",
+        f"Стоимость актива через 11 лет: {fmt(final_value)} ₽",
+        f"Капитализация: +20%/год (стройка до {proj['completion']}), +10%/год после",
+        f"Аренда: тариф {fmt(proj['daily_rate'])} ₽/сутки, загрузка {proj['occupancy']}%, расходы {proj['expenses']}%",
+        "",
+        "ВАРИАНТЫ ОПЛАТЫ:",
+    ]
+
+    # 100% payment
+    if full:
+        price_95 = int(price * 0.95)
+        discount = price - price_95
+        lines.append(f"100% оплата: {fmt(price_95)} ₽ (скидка 5% = {fmt(discount)} ₽)")
+
+    # 12 month installment
+    if i12:
+        lines.append(f"Рассрочка 12 мес (0%): ПВ 30% = {fmt(i12.get('pv_30', 0))} ₽, платёж {fmt(i12.get('monthly_30', 0))} ₽/мес")
+
+    # 18 month installment
+    if i18:
+        markup = i18.get("markup_30", 0)
+        final_18 = i18.get("final_price_30", 0)
+        lines.append(f"Рассрочка 18 мес (+9%): ПВ 30% = {fmt(i18.get('pv_30', 0))} ₽, платёж {fmt(i18.get('monthly_30', 0))} ₽/мес, итого {fmt(final_18)} ₽ (переплата {fmt(markup)} ₽)")
+
+    lines.append("")
+    lines.append("СРАВНЕНИЕ С ДЕПОЗИТОМ (та же сумма на вкладе, 11 лет):")
+    if dep_base:
+        dep_final = dep_base.get("final_balance", 0)
+        dep_interest = dep_base.get("total_net_interest", 0)
+        dep_roi = dep_base.get("total_roi_pct", 0)
+        lines.append(f"Депозит (базовый): капитал {fmt(dep_final)} ₽, проценты {fmt(dep_interest)} ₽, ROI {dep_roi:.0f}%")
+        lines.append(f"RIZALTA: прибыль {fmt(total_profit)} ₽, ROI {roi_pct:.0f}%, актив {fmt(final_value)} ₽")
+        advantage = total_profit - dep_interest
+        lines.append(f"Преимущество RIZALTA: +{fmt(advantage)} ₽")
+
+    return "\n".join(lines)
+
+
+def format_portfolio_summary(data: dict, budget: int) -> str:
+    """Текстовая сводка для портфельного отчёта."""
+    def fmt(v):
+        return f"{int(round(v)):,}".replace(",", " ")
+
+    lines = [f"БЮДЖЕТ КЛИЕНТА: {fmt(budget)} ₽", ""]
+
+    # Стратегия A
+    sa = data.get("strategy_a", {})
+    lots_a = sa.get("lots", {}).get("lots", [])
+    lines.append(f"СТРАТЕГИЯ A: {sa.get('name', '100% оплата')}")
+    if lots_a:
+        for lot in lots_a[:3]:
+            code = lot.get("code", "")
+            area = lot.get("area_m2", 0)
+            price = lot.get("price_rub", 0)
+            roi_data = data.get("roi", {}).get(code, {})
+            roi_pct = roi_data.get("roi_pct", 0)
+            lines.append(f"  {code}: {area} м², {fmt(price)} ₽, ROI {roi_pct:.0f}%")
+    else:
+        lines.append("  Нет подходящих лотов в этом бюджете")
+
+    lines.append("")
+
+    # Стратегия B
+    sb = data.get("strategy_b", {})
+    lots_b = sb.get("lots", {}).get("lots", [])
+    lines.append(f"СТРАТЕГИЯ B: {sb.get('name', 'Рассрочка')}")
+    lines.append(f"  Макс. цена лота: {fmt(sb.get('max_lot_price', 0))} ₽")
+    if lots_b:
+        for lot in lots_b[:3]:
+            code = lot.get("code", "")
+            area = lot.get("area_m2", 0)
+            price = lot.get("price_rub", 0)
+            roi_data = data.get("roi", {}).get(code, {})
+            roi_pct = roi_data.get("roi_pct", 0)
+            lines.append(f"  {code}: {area} м², {fmt(price)} ₽, ROI {roi_pct:.0f}%")
+    else:
+        lines.append("  Нет подходящих лотов")
+
+    lines.append("")
+
+    # Депозит
+    dep = data.get("deposit_comparison", {})
+    dep_base = dep.get("base", {})
+    if dep_base:
+        lines.append("ДЕПОЗИТ ДЛЯ СРАВНЕНИЯ:")
+        dep_final = dep_base.get("final_balance", 0)
+        dep_interest = dep_base.get("total_net_interest", 0)
+        dep_roi = dep_base.get("total_roi_pct", 0)
+        lines.append(f"  {fmt(budget)} ₽ на вкладе 11 лет → {fmt(dep_final)} ₽ (проценты {fmt(dep_interest)} ₽, ROI {dep_roi:.0f}%)")
+
+    return "\n".join(lines)
 
 
 def stream_lot_report(code: str, building: int | None = None):
@@ -260,7 +358,8 @@ def stream_lot_report(code: str, building: int | None = None):
 
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
-    prompt = LOT_REPORT_PROMPT + "\n\nДАННЫЕ:\n```json\n" + json.dumps(data, ensure_ascii=False, indent=2) + "\n```"
+    summary = format_lot_summary(data)
+    prompt = LOT_REPORT_PROMPT + "\n\nСВОДКА:\n" + summary
 
     try:
         client = get_client()
@@ -322,8 +421,8 @@ def stream_portfolio_report(budget: int):
 
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
-    prompt = PORTFOLIO_PROMPT.replace("{budget}", str(budget)).replace("{budget_formatted}", budget_fmt)
-    prompt += "\n\nДАННЫЕ:\n```json\n" + json.dumps(data, ensure_ascii=False, indent=2) + "\n```"
+    summary = format_portfolio_summary(data, budget)
+    prompt = PORTFOLIO_PROMPT + "\n\nСВОДКА:\n" + summary
 
     try:
         client = get_client()
