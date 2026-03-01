@@ -313,3 +313,40 @@
 - 🔴 Исправить AI промпты отчётов (нечитаемый ответ с переменными)
 - 🔴 Адаптировать PDF генератор под report_builder данные
 - 🔴 Починить портфельный PDF (не скачивается)
+## WebApp (v0.9.3, обновлено 02.03.2026)
+
+### ✅ Выполнено (webapp)
+
+#### 02.03.2026: AI Reports + Agentic Loop (v0.9.1 → v0.9.3)
+- ai_chat.py — 3 пути (navigation/reports/agentic loop)
+- report_builder.py — данные из БД для отчётов
+- tool_definitions.py — 5 OpenAI tools
+- strategy_pdf_generator.py — PDF с RIZALTA branding
+- strategy_data SSE fix — кнопка PDF во всех режимах
+- Chat.jsx — кнопки отчётов + PDF download
+
+#### 28.02.2026: Claude-оркестратор (v0.9.0 → v0.9.1)
+- /api/docs/file — чтение файлов проекта для Claude
+- SESSION_END_TEMPLATE_WEBAPP.md
+
+#### 24.02.2026: Интеграция К3 (v0.8.5 → v0.9.0)
+- К3 в штатном каталоге (3 вкладки)
+- Whitelist-код закомментирован для К4
+
+### 🔴 Ближайшие задачи (webapp)
+
+1. Исправить AI промпты отчётов (LOT_REPORT_PROMPT, PORTFOLIO_PROMPT)
+2. Адаптировать strategy_pdf_generator.py под данные report_builder
+3. Починить портфельный PDF
+
+### 🟡 Средний приоритет (webapp)
+
+4. Function calling в AI чате
+5. "Взять" → секретарь (автосоздание задачи)
+6. История чата
+
+### 🟢 Nice-to-have (webapp)
+
+7. Push-уведомления для секретаря
+8. К4 whitelist
+9. Миграция на российский LLM

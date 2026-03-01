@@ -346,3 +346,29 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 - stream_lot_report / stream_portfolio_report: быстрые отчёты через 1 вызов AI
 - strategy_data SSE fix: кнопка "Скачать PDF" теперь появляется во всех режимах
 - Коммиты: 1062d90, f2042b4
+## WebApp
+
+📅 **Последняя сессия:** 02.03.2026
+🏷️ **Версия:** v0.9.3
+
+### ✅ Что сделано (02.03.2026, v0.9.1 → v0.9.3)
+
+#### AI Reports + Agentic Loop
+- **ai_chat.py:** 3 пути — navigation intents (0 AI), reports (report_builder + GPT-5.2), agentic loop (GPT-5.2 + 5 tools)
+- **report_builder.py:** build_lot_report_data(), build_portfolio_data() — данные из БД без AI
+- **tool_definitions.py:** 5 OpenAI tools (search_lots, get_lot_details, calculate_roi, calculate_installment, compare_with_deposit)
+- **strategy_pdf_generator.py:** Full rewrite — RIZALTA branding (Montserrat, green/gold/cream), 4-page reports
+- **strategy_data SSE fix:** Кнопка "Скачать PDF" во всех режимах
+- **Chat.jsx:** Кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" + PDF download
+- **WEBAPP_ROOT env:** DEV корректно читает ресурсы
+- **POST /api/strategy-pdf:** Эндпоинт генерации инвестиционного PDF
+
+### 🔄 Текущее состояние WebApp
+- **PROD:** webapp.rizaltaservice.ru ✅
+- **DEV:** dev-webapp.rizaltaservice.ru ✅
+- **Webhook auto-deploy:** ✅
+
+### 🔜 Следующие задачи WebApp
+1. 🔴 Исправить AI промпты отчётов (нечитаемый ответ)
+2. 🔴 Адаптировать PDF генератор под данные report_builder
+3. 🔴 Починить портфельный PDF
