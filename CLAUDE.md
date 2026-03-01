@@ -348,10 +348,6 @@ curl -s "http://127.0.0.1:8004/api/docs/file?path=CLAUDE.md" | head -5
 - **bot-dev** — основной бот
 - Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, не затирать!
 
-### DEV/PROD
-- Работаем ТОЛЬКО в DEV (/opt/webapp-dev)
-- В PROD деплоим ТОЛЬКО при полной работоспособности: bash /opt/webapp-dev/deploy-to-prod.sh
-- НИКОГДА не редактировать /opt/webapp напрямую
 
 ### Workflow
 - **Claude chat** = архитектор (ТЗ, анализ, спецификации)
