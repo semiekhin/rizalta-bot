@@ -34,8 +34,7 @@
 ### Сессия 15.02.2026 (v0.8.0 → v0.8.4)
 - **Фикс Excel для К3:** encodeURIComponent на фронте + normalize_lot_code на бэке + поиск в corp3_units.json по building=3
 - **PDF "Варианты оплаты":** Новый endpoint /api/payment-pdf + payment_pdf_generator.py + кнопка в модалке
-- **Поиск по коду лота:** GET /api/lots/search ищет в К1+К2 (properties.db) + К3 (JSON), выбор корпуса при дублях (А200 есть в К1 и К2)
-- **Фикс планировки К3 через поиск:** layout_url с токеном whitelist, без дублирования ?token=
+- **Поиск по коду лота:** GET /api/lots/search ищет в К1+К2 (properties.db) + К3 (JSON), выбор корпуса при дублях
 
 ### Сессия 16.02.2026 (v0.8.4 → v0.8.5) — DevOps
 - **DEV-окружение:** /opt/webapp-dev, порт 8004, systemd, nginx, SSL
@@ -58,36 +57,39 @@
 - **Новый workflow** — ссылки вместо копипасты, актуальный контекст с сервера
 - **OpenAI API ключ** обновлён (новый аккаунт)
 
+### Сессия 02.03.2026 (v0.9.1 → v0.9.3) — AI Reports + Agentic Loop
+- **ai_chat.py:** 3 пути — navigation intents (0 AI), reports (report_builder + 1 GPT-5.2), agentic loop (GPT-5.2 + 5 tools)
+- **report_builder.py:** build_lot_report_data(), build_portfolio_data() — данные из БД без AI
+- **tool_definitions.py:** 5 OpenAI tools (search_lots, get_lot_details, calculate_roi, calculate_installment, compare_with_deposit)
+- **strategy_pdf_generator.py:** Full rewrite — RIZALTA branding (Montserrat, green/gold/cream), 4-page lot/portfolio reports
+- **strategy_data SSE fix (f2042b4):** Кнопка "Скачать PDF" появляется во всех 3 режимах
+- **Chat.jsx:** Кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" с UI вводом + PDF download
+- **WEBAPP_ROOT env:** DEV корректно читает ресурсы из /opt/webapp-dev
+- **POST /api/strategy-pdf:** Эндпоинт генерации инвестиционного PDF
+- **Git tags:** v0.9.2 (AI agentic loop + tools), v0.9.3 (PDF reports + SSE fix)
+
 ---
 
+## 🔜 БЭКЛОГ (актуализирован 02.03.2026)
 
-### Сессия 02.03.2026 (v0.9.2 → v0.9.3) — PDF Investment Reports
-- **strategy_pdf_generator.py:** Полный rewrite — RIZALTA branding (Montserrat, green/gold/cream), 4-page lot report, 4-page portfolio report, wkhtmltopdf A4
-- **report_builder.py:** Сбор данных напрямую из БД (0 AI токенов) — build_lot_report_data(), build_portfolio_data()
-- **stream_lot_report / stream_portfolio_report:** Быстрые отчёты через report_builder + 1 вызов AI (GPT-5.2 Responses API)
-- **strategy_data SSE fix (f2042b4):** Добавлена отправка strategy_data event в обе report-функции — кнопка "Скачать PDF отчёт" теперь появляется
-- **Chat.jsx:** Кнопка PDF со стилем RIZALTA (gold/green), кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" с UI вводом
-- **WEBAPP_ROOT env:** DEV теперь читает файлы из /opt/webapp-dev через API docs/file
-- **Коммиты:** 1062d90 (PDF generator + Chat.jsx), f2042b4 (strategy_data SSE fix)
+### Приоритет 🔴 (ближайшие)
 
-## 🔜 БЭКЛОГ (Phase 3.3+)
+1. **Исправить AI промпты отчётов** — LOT_REPORT_PROMPT и PORTFOLIO_PROMPT дают нечитаемый ответ: сырой markdown с переменными из JSON (total_profit_rub, final_value_rub), таблицы с |---|. Нужно: AI форматирует для человека, чистые цифры, без технических полей
+2. **Адаптировать strategy_pdf_generator.py** — под данные report_builder. Сейчас: страница 3 пустая в лотовом отчёте, портфельный PDF не скачивается
+3. **Починить портфельный PDF** — strategy_data для портфеля не содержит нужных полей для PDF генератора
 
-### Приоритет 🔴
+### Приоритет 🟡 (средний)
 
-1. ~~Function calling в AI чате~~ → ВЫПОЛНЕНО v0.9.2
-2. **Автосинхронизация данных бот↔webapp** — rizalta_finance.json, instructions.txt (через .env пути, без копий)
+4. Function calling в AI чате — расчёт ROI, поиск лота из чата
+5. "Взять" → секретарь — автосоздание задачи
+6. История чата — сохранение сессий (сейчас browser-only)
 
-### Приоритет 🟡
+### Приоритет 🟢 (nice-to-have)
 
-3. **Миграция на российский LLM** (DeepSeek/YandexGPT)
-4. **История чата** — сохранение сессий (сейчас browser-only)
-5. **Push-уведомления** — для задач секретаря
-6. **К4 whitelist** — переиспользовать код whitelist при появлении нового корпуса
-
-### Приоритет 🟢
-
-7. **Админ-панель** — управление лотами, статусами, whitelist
-8. **"Взять" → секретарь** — автосоздание задачи (бот-сайд)
+7. Push-уведомления для секретаря
+8. К4 whitelist (инфраструктура готова, код закомментирован)
+9. Миграция на российский LLM (DeepSeek/YandexGPT)
+10. Админ-панель — управление лотами, статусами, whitelist
 
 ---
 
@@ -101,12 +103,12 @@
 | v0.8.2-xlsx-fix | Фикс Excel для К3 |
 | v0.8.3-payment-pdf | PDF вариантов оплаты |
 | v0.8.4-search-complete | Поиск по коду лота |
-| v0.9.2 | AI agentic loop + tools + report_builder |
-| v0.9.3 | PDF investment reports + strategy_data SSE fix |
 | v0.8.5-env-paths | Пути в .env |
 | v0.8.5-devops-pipeline | Webhook + deploy скрипт |
 | v0.9.0-corp3-unified | К3 в штатном каталоге |
 | v0.9.1-claude-orchestrator | Эндпоинт /api/docs/file |
+| v0.9.2 | AI agentic loop + tools + report_builder |
+| v0.9.3 | PDF investment reports + strategy_data SSE fix |
 
 ---
 
@@ -119,37 +121,19 @@ bash /opt/webapp-dev/deploy-to-prod.sh
 
 ### Откат
 ```bash
-cd /opt/webapp
-git reset --hard v0.9.1-claude-orchestrator  # или другой тег
-npm run build --prefix frontend
-systemctl restart webapp.service
+cd /opt/webapp-dev
+git reset --hard v0.9.3  # или другой тег
+cd frontend && npm run build
+sudo systemctl restart webapp-dev.service
 ```
 
 ---
 
 ## 📝 ВАЖНЫЕ ЗАМЕЧАНИЯ
 
-- WebApp ЧИТАЕТ `/opt/bot/properties.db` (К1+К2+К3, все лоты)
+- WebApp ЧИТАЕТ `/opt/bot/properties.db` (все лоты в единой БД)
 - WebApp ПИШЕТ INSERT в `properties.db` таблицу bookings (кнопка "Взять")
-- `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git (TODO: автосинхронизация)
-- Разработка webapp параллельна с ботом — docs интегрируем, не затираем!
+- `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git
+- Разработка webapp параллельна с ботом — docs дополняем, не затираем!
 - Claude читает код через `/api/docs/file` — не нужен копипаст
-
-### Сессия 01.03.2026 (v0.9.1 → v0.9.2) — GPT-5.2 финансовый советник
-- **GPT-5.2 Responses API** — полная миграция с Chat Completions
-- **Agentic loop** — мульти-раундовый tool calling (5 раундов, 17+ calls)
-- **5 tools** — search_lots, get_lot_details, calculate_roi, calculate_installment, compare_with_deposit
-- **ADVISOR_INSTRUCTION** — финансовый советник, 3 стратегии на бюджет
-- **Strategy PDF generator** — endpoint POST /api/strategy-pdf
-- **Терминология** — "лот"/"апартамент", капитализация +20%/+10%
-- **max_output_tokens=16000** — для длинных финансовых отчётов
-- **Git tag:** `v0.9.2-gpt52-advisor`
-
-### Сессия 02.03.2026 (v0.9.2 → v0.9.3) — AI Chat v2: три режима
-- **report_builder.py** — сборщик JSON для отчётов без AI (build_lot_report_data, build_portfolio_data)
-- **Три режима AI чата:** кнопка "Фин. отчёт по лоту", кнопка "Портфель по бюджету", свободный чат
-- **Оптимизация:** 1 JSON → 1 вызов AI вместо 5 раундов agentic loop (~7 сек vs 20-30 сек)
-- **reasoning: "low"**, max_output_tokens: 4000, slim_deposit(), slim_roi()
-- **Chat.jsx:** две кнопки + модалки ввода (код лота / бюджет с пресетами)
-- **ADVISOR_INSTRUCTION** обновлён для риэлтора
-- **Git tag:** `v0.9.3-ai-chat-v2`
+- AI: GPT-5.2 для отчётов и agentic loop, gpt-4o-mini для простого чата

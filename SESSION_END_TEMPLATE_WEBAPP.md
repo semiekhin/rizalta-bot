@@ -15,6 +15,7 @@
 - Env переменные (если добавлялись)
 - Git теги (если создавались)
 - TODO (актуализировать)
+- Добавить секцию сессии
 
 **`/opt/webapp-dev/TASK_MAP.md`** — обновить:
 - Версию в шапке
@@ -24,13 +25,11 @@
 
 ### 1.2 Общие docs (bot-dev/docs/) — ⚠️ ДОПОЛНЯТЬ, НЕ ЗАТИРАТЬ:
 
-**`/opt/bot-dev/docs/RIZALTA_CURRENT.md`** — добавить секцию webapp:
+**`/opt/bot-dev/docs/RIZALTA_CURRENT.md`** — добавить/обновить секцию `## WebApp`:
 - Версия, что сделано в этой сессии
 
-**`/opt/bot-dev/docs/RIZALTA_TASKS.md`** — обновить webapp-задачи:
+**`/opt/bot-dev/docs/RIZALTA_TASKS.md`** — добавить/обновить секцию `## WebApp`:
 - Выполненные, новые, изменённые приоритеты
-
-**`/opt/bot-dev/docs/RIZALTA_CONTEXT.md`** — если менялся контекст проекта
 
 ⚠️ Эти файлы редактирует и бот-чат — дополняем свою секцию, чужое НЕ трогаем!
 
@@ -41,14 +40,11 @@
 ```bash
 cp /opt/bot-dev/docs/RIZALTA_CURRENT.md /opt/bot/docs/
 cp /opt/bot-dev/docs/RIZALTA_TASKS.md /opt/bot/docs/
-cp /opt/bot-dev/docs/RIZALTA_CONTEXT.md /opt/bot/docs/
 ```
 
 ---
 
 ## 📦 ШАГ 3: Коммит 3 репо
-
-Запустить скрипт или вручную:
 
 ```bash
 bash /opt/webapp-dev/session-end.sh
@@ -78,39 +74,30 @@ git push
 
 ---
 
-## 📋 ШАГ 4: Выдать промпт для нового webapp-чата
+## 📋 ШАГ 4: Выдать КОМПАКТНЫЙ промпт для нового webapp-чата
 
-Формат промпта (СТРОГО, не менять):
+⚠️ Промпт — КОМПАКТНЫЙ. Вся детальная информация в CLAUDE.md и TASK_MAP.md на сервере.
+Claude в новом чате сам прочитает их через API.
+
 ```
 # ⚠️ ВНИМАНИЕ: Два параллельных чата!
-# Этот чат = WEBAPP (/opt/webapp, /opt/webapp-dev)
-# Соседний чат = БОТ (/opt/bot, /opt/bot-dev)
-# Общие docs (bot-dev/docs/) — ДОПОЛНЯТЬ, НЕ затирать!
-# Claude chat = архитектор, 1Code = реализация
-# ⚠️ НЕ ПИШИ КОД И НЕ ВНОСИ ИЗМЕНЕНИЯ если не уверен на 100%!
-# ⚠️ Работаем ТОЛЬКО в DEV. В PROD деплоим только при полной работоспособности!
+# Этот чат = WEBAPP, Claude = архитектор, 1Code = реализация
+# ⚠️ ЧИТАЙ ДОКУМЕНТАЦИЮ С СЕРВЕРА, НЕ ПРИДУМЫВАЙ!
 
----
-
-Прочитай документацию проекта:
+Подтяни контекст:
 https://dev-webapp.rizaltaservice.ru/api/docs/file?path=CLAUDE.md
 https://dev-webapp.rizaltaservice.ru/api/docs/file?path=TASK_MAP.md
 
-Шаблон завершения сессии:
+Шаблон завершения:
 https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEBAPP.md
 
-При команде "завершаем сессию" или "новый чат" — ОБЯЗАТЕЛЬНО:
-1. Скачать SESSION_END_TEMPLATE_WEBAPP.md
-2. Обновить ВСЕ docs (дополнять, НЕ затирать)
-3. Коммит: bash /opt/webapp-dev/session-end.sh
-4. Выдать ПОЛНЫЙ промпт для нового чата
-
----
+[⚠️ Если доки не обновились — описать что нужно обновить]
 
 Первая задача — [описание следующей задачи].
-```
 
-⚠️ НЕ добавлять в промпт версии, инфраструктуру, стек, бэклог, теги — всё это уже в CLAUDE.md и TASK_MAP.md. Claude читает их по ссылкам с сервера (через /api/docs/file, НЕ через GitHub CDN — чтобы избежать кэширования).
+[Ссылки на код для анализа, если нужно:]
+https://dev-webapp.rizaltaservice.ru/api/docs/file?path=путь/к/файлу
+```
 
 ---
 
@@ -126,7 +113,6 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - [ ] TASK_MAP.md
 - [ ] RIZALTA_CURRENT.md (дополнено)
 - [ ] RIZALTA_TASKS.md (дополнено)
-- [ ] RIZALTA_CONTEXT.md (если нужно)
 
 **Коммиты:**
 - [ ] webapp (ветка webapp)
