@@ -111,6 +111,7 @@ def get_all_available_lots() -> List[Dict[str, Any]]:
         SELECT code, building, floor, rooms, area_m2, price_rub, 
                layout_url, block_section
         FROM units
+        WHERE status='available'
         ORDER BY building, floor, code
     """)
     
@@ -134,7 +135,7 @@ def get_lots_by_building(building: int) -> List[Dict[str, Any]]:
         SELECT code, building, floor, rooms, area_m2, price_rub, 
                layout_url, block_section
         FROM units
-        WHERE building = ?
+        WHERE building = ? AND status='available'
         ORDER BY floor, code
     """, (building,))
     
@@ -157,7 +158,7 @@ def get_lots_by_floor(building: int, floor: int) -> List[Dict[str, Any]]:
         SELECT code, building, floor, rooms, area_m2, price_rub, 
                layout_url, block_section
         FROM units
-        WHERE building = ? AND floor = ?
+        WHERE building = ? AND floor = ? AND status='available'
         ORDER BY area_m2, price_rub
     """, (building, floor))
     
@@ -195,7 +196,7 @@ def get_lots_filtered(
         SELECT code, building, floor, rooms, area_m2, price_rub, 
                layout_url, block_section
         FROM units
-        WHERE 1=1
+        WHERE 1=1 AND status='available'
     """
     params = []
     
@@ -263,7 +264,7 @@ def get_lot_by_code(code: str, building: int = None) -> Optional[Dict[str, Any]]
             SELECT code, building, floor, rooms, area_m2, price_rub, 
                    layout_url, block_section
             FROM units
-            WHERE (code = ? OR code = ?) AND building = ?
+            WHERE (code = ? OR code = ?) AND building = ? AND status='available'
             LIMIT 1
         """, (code_cyr, code_lat, building))
     else:
@@ -271,7 +272,7 @@ def get_lot_by_code(code: str, building: int = None) -> Optional[Dict[str, Any]]
             SELECT code, building, floor, rooms, area_m2, price_rub, 
                    layout_url, block_section
             FROM units
-            WHERE code = ? OR code = ?
+            WHERE (code = ? OR code = ?) AND status='available'
             LIMIT 1
         """, (code_cyr, code_lat))
     
@@ -300,7 +301,7 @@ def get_lots_by_code(code: str) -> List[Dict[str, Any]]:
         SELECT code, building, floor, rooms, area_m2, price_rub, 
                layout_url, block_section
         FROM units
-        WHERE code = ? OR code = ?
+        WHERE (code = ? OR code = ?) AND status='available'
         ORDER BY building
     """, (code_cyr, code_lat))
     
@@ -325,7 +326,7 @@ def get_lot_by_area(area: float, tolerance: float = 0.05) -> Optional[Dict[str, 
         SELECT code, building, floor, rooms, area_m2, price_rub, 
                layout_url, block_section
         FROM units
-        WHERE ABS(area_m2 - ?) < ?
+        WHERE ABS(area_m2 - ?) < ? AND status='available'
         ORDER BY price_rub
         LIMIT 1
     """, (area, tolerance))
@@ -356,7 +357,7 @@ def get_available_floors(building: int) -> List[Dict[str, Any]]:
     cursor.execute("""
         SELECT floor, COUNT(*) as count, MIN(price_rub) as min_price
         FROM units
-        WHERE building = ?
+        WHERE building = ? AND status='available'
         GROUP BY floor
         ORDER BY floor
     """, (building,))
