@@ -60,6 +60,16 @@
 
 ---
 
+
+### Сессия 02.03.2026 (v0.9.2 → v0.9.3) — PDF Investment Reports
+- **strategy_pdf_generator.py:** Полный rewrite — RIZALTA branding (Montserrat, green/gold/cream), 4-page lot report, 4-page portfolio report, wkhtmltopdf A4
+- **report_builder.py:** Сбор данных напрямую из БД (0 AI токенов) — build_lot_report_data(), build_portfolio_data()
+- **stream_lot_report / stream_portfolio_report:** Быстрые отчёты через report_builder + 1 вызов AI (GPT-5.2 Responses API)
+- **strategy_data SSE fix (f2042b4):** Добавлена отправка strategy_data event в обе report-функции — кнопка "Скачать PDF отчёт" теперь появляется
+- **Chat.jsx:** Кнопка PDF со стилем RIZALTA (gold/green), кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" с UI вводом
+- **WEBAPP_ROOT env:** DEV теперь читает файлы из /opt/webapp-dev через API docs/file
+- **Коммиты:** 1062d90 (PDF generator + Chat.jsx), f2042b4 (strategy_data SSE fix)
+
 ## 🔜 БЭКЛОГ (Phase 3.3+)
 
 ### Приоритет 🔴
@@ -91,6 +101,8 @@
 | v0.8.2-xlsx-fix | Фикс Excel для К3 |
 | v0.8.3-payment-pdf | PDF вариантов оплаты |
 | v0.8.4-search-complete | Поиск по коду лота |
+| v0.9.2 | AI agentic loop + tools + report_builder |
+| v0.9.3 | PDF investment reports + strategy_data SSE fix |
 | v0.8.5-env-paths | Пути в .env |
 | v0.8.5-devops-pipeline | Webhook + deploy скрипт |
 | v0.9.0-corp3-unified | К3 в штатном каталоге |

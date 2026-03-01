@@ -236,7 +236,8 @@ GET  /api/news/flights                # Авиабилеты (Aviasales)
 GET  /api/news/digest                 # RSS: Ведомости, Коммерсантъ, РБК (10-15 новостей)
 
 # AI Чат (Phase 3.2.2)
-POST /api/chat                        # SSE stream + action JSON, rate limited
+POST /api/chat                        # SSE stream + action JSON + strategy_data, rate limited
+POST /api/strategy-pdf                # PDF генерация инвестиционного отчёта (NEW v0.9.3)
 
 # Секретарь (Phase 3.2.2)
 GET  /api/secretary/tasks             # Задачи по дате
@@ -277,6 +278,7 @@ OPENAI_API_KEY        # Ключ OpenAI
 OPENAI_MODEL          # gpt-4o-mini
 OPENAI_MAX_TOKENS     # 2000
 SHOWS_GROUP_ID        # ID Telegram группы показов
+WEBAPP_ROOT           # Корневая директория webapp (DEV: /opt/webapp-dev)
 
 # Пути (v0.8.5)
 WEBAPP_DB=./webapp.db
@@ -295,6 +297,7 @@ WEBAPP_ROOT=/opt/webapp-dev          # для /api/docs/file (v0.9.1)
 - Токен К3: MkKGpwCAsq6IF3RtRH7bvg
 
 ## Git теги
+- `v0.9.3` — PDF investment reports + strategy_data SSE fix
 - `v0.5.0-stable` — Phase 3.1 (whitelist)
 - `v0.6.1-pre-phase322` — точка отката до Phase 3.2.2
 - `v0.8.0-stable` — Phase 3.2.2 завершена
