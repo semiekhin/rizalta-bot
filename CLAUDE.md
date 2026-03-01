@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.9.1** (Claude-оркестратор + SESSION_END_TEMPLATE_WEBAPP)
+**v0.9.3** (AI Chat v2 — три режима)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -420,3 +420,50 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - `40bb824` — Agentic loop
 - `e75fda5` — Force text response
 - `c0e6458` — Терминология + капитализация
+
+## Сессия 02.03.2026 (v0.9.2 → v0.9.3) — AI Chat v2: три режима
+
+### Архитектура AI чата v2
+Три режима работы вместо единого agentic loop:
+
+1. **Кнопка "Фин. отчёт по лоту"** — бэкенд собирает ВСЕ данные в 1 JSON (SQL + калькуляторы, 0 токенов) → 1 вызов AI → экспресс инвест-отчёт
+2. **Кнопка "Портфель по бюджету"** — бэкенд подбирает лоты + ROI + рассрочка + депозит → 1 вызов AI → анализ стратегий
+3. **Свободный чат** — agentic loop как раньше (для нестандартных вопросов)
+
+### Новые файлы
+- `backend/services/report_builder.py` — сборщик JSON для отчётов (build_lot_report_data, build_portfolio_data, slim_deposit, slim_roi)
+
+### Изменённые файлы
+- `backend/services/ai_chat.py`:
+  - LOT_REPORT_PROMPT, PORTFOLIO_PROMPT (шаблоны для AI)
+  - stream_lot_report(), stream_portfolio_report() — SSE streaming
+  - ADVISOR_INSTRUCTION обновлён (компактный, для риэлтора)
+  - reasoning={"effort": "low"}, max_output_tokens=4000 для отчётов
+- `backend/app.py`:
+  - ChatRequest: + mode, lot_code, building, budget
+  - Роутинг: lot_report → stream_lot_report(), portfolio → stream_portfolio_report()
+- `frontend/src/pages/Chat.jsx`:
+  - Две кнопки быстрого действия (📊 Фин. отчёт / 💼 Портфель)
+  - Модалка ввода кода лота
+  - Модалка бюджета с пресетами (5/10/15/20/30/50 млн)
+  - sendReport() + общий handleStream()
+
+### Оптимизации скорости
+- Отчёт по лоту: ~7 сек (было 20-30 сек через agentic loop) — ускорение 3-4x
+- reasoning: "low" вместо "high" (данные готовы, AI только форматирует)
+- max_output_tokens: 4000 вместо 16000
+- slim_deposit() — убраны yearly_details из deposit_comparison
+- slim_roi() — убраны highlights, только totals
+- strategy_b: limit 5 лотов вместо 10
+
+### Коммиты
+- `6d54de2` — feat: AI Chat v2 — три режима
+- `a70b0bb` — effort low + max_output_tokens 4000
+- `0751bf1` — slim_deposit + slim_roi + limit 5
+
+### Бэклог (после v0.9.3)
+- 🔴 PDF инвест-отчёт в стиле RIZALTA (зелёный/золотой) + кнопка в чате
+- 🔴 Деплой v0.9.3 на PROD
+- 🟡 Формат B полный Investment Memo (IRR/NPV/Sensitivity Analysis)
+- 🟡 Мониторинг стоимости GPT-5.2
+- 🟡 Миграция на российский LLM

@@ -97,7 +97,7 @@ async def lifespan(app_instance):
     yield
 
 
-app = FastAPI(title="RIZALTA Web App API", version="0.9.2", lifespan=lifespan)
+app = FastAPI(title="RIZALTA Web App API", version="0.9.3", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
