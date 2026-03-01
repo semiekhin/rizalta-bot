@@ -136,7 +136,7 @@ def get_lots_by_building(building: int) -> List[Dict[str, Any]]:
                layout_url, block_section
         FROM units
         WHERE building = ? AND status='available'
-        ORDER BY floor, code
+        ORDER BY area_m2, price_rub
     """, (building,))
     
     columns = ['code', 'building', 'floor', 'rooms', 'area', 'price', 

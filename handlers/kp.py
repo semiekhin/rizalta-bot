@@ -455,7 +455,9 @@ async def handle_kp_floors_range(chat_id: int, building: int, floor_range: str):
         inline_buttons.append([{"text": btn_text, "callback_data": f"kp_lot_{lot['code']}"}])
     
     if len(lots) > MAX_BUTTONS_PER_MESSAGE:
-        inline_buttons.append([{"text": f"... ещё {len(lots) - MAX_BUTTONS_PER_MESSAGE} лотов", "callback_data": "noop"}])
+        _search_cache[chat_id] = {"lots": lots, "offset": MAX_BUTTONS_PER_MESSAGE, "back_callback": f"kp_building_{building}"}
+        remaining = len(lots) - MAX_BUTTONS_PER_MESSAGE
+        inline_buttons.append([{"text": f"📋 Показать ещё {remaining} лотов", "callback_data": "kp_show_more"}])
     
     inline_buttons.append([{"text": "🔙 К этажам", "callback_data": f"kp_building_{building}"}])
     
