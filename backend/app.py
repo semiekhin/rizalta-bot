@@ -26,7 +26,7 @@ from services.calc_xlsx_generator import generate_roi_xlsx
 from services.deposit_calculator import calculate_deposit, calculate_all_scenarios
 from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
-from services.ai_chat import stream_chat_with_tools
+from services.ai_chat import stream_chat_with_tools, stream_lot_report, stream_portfolio_report
 from services.intent_router import quick_classify_navigation
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.secretary_ai import parse_task_with_ai
@@ -155,6 +155,10 @@ class DepositRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
+    mode: str = "free"           # "lot_report" | "portfolio" | "free"
+    lot_code: str | None = None
+    building: int | None = None
+    budget: int | None = None
 
 class TaskCreateRequest(BaseModel):
     task: str
@@ -276,23 +280,31 @@ async def search_lot(code: str):
 
 @app.post("/api/chat")
 async def api_chat(req: ChatRequest, request: Request):
-    """AI chat with function calling."""
+    """AI chat with three modes: lot_report, portfolio, free."""
     check_chat_rate(request)
 
-    if not req.message.strip():
-        raise HTTPException(status_code=400, detail="Empty message")
+    # Mode routing
+    if req.mode == "lot_report" and req.lot_code:
+        generator = stream_lot_report(req.lot_code, req.building)
+    elif req.mode == "portfolio" and req.budget:
+        generator = stream_portfolio_report(req.budget)
+    else:
+        # Free chat
+        if not req.message.strip():
+            raise HTTPException(status_code=400, detail="Empty message")
 
-    # 1. Quick navigation (regex, no OpenAI)
-    try:
-        nav = quick_classify_navigation(req.message)
-        if nav:
-            return nav
-    except Exception as e:
-        logging.error(f"[CHAT] Navigation classify error: {e}")
+        # Quick navigation (regex, no OpenAI)
+        try:
+            nav = quick_classify_navigation(req.message)
+            if nav:
+                return nav
+        except Exception as e:
+            logging.error(f"[CHAT] Navigation classify error: {e}")
 
-    # 2. Everything else → OpenAI with tools
+        generator = stream_chat_with_tools(req.message, req.history)
+
     return StreamingResponse(
-        stream_chat_with_tools(req.message, req.history),
+        generator,
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

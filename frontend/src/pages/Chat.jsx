@@ -35,6 +35,10 @@ export default function Chat({ lots, onNavigate }) {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState(null)
+  const [showLotInput, setShowLotInput] = useState(false)
+  const [showBudgetInput, setShowBudgetInput] = useState(false)
+  const [lotCode, setLotCode] = useState('')
+  const [budget, setBudget] = useState('')
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
   const abortRef = useRef(null)
@@ -56,26 +60,10 @@ export default function Chat({ lots, onNavigate }) {
     }
   }, [input])
 
-  const sendMessage = async (text) => {
-    const trimmed = text.trim()
-    if (!trimmed || isStreaming) return
-
+  // Shared SSE stream handler
+  const handleStream = async (body) => {
     setError(null)
-    setInput('')
-
-    // Add user message
-    const userMsg = { role: 'user', content: trimmed }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
     setIsStreaming(true)
-
-    // Prepare history
-    const history = newMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({ role: m.role, content: m.content }))
-      .slice(0, -1)
-
-    // Add placeholder assistant message
     setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
     try {
@@ -85,7 +73,7 @@ export default function Chat({ lots, onNavigate }) {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed, history }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       })
 
@@ -166,7 +154,6 @@ export default function Chat({ lots, onNavigate }) {
                 return updated
               })
             } else if (event.type === 'actions') {
-              // Action buttons appended after AI streaming
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
@@ -213,6 +200,43 @@ export default function Chat({ lots, onNavigate }) {
       setIsStreaming(false)
       abortRef.current = null
     }
+  }
+
+  const sendMessage = async (text) => {
+    const trimmed = text.trim()
+    if (!trimmed || isStreaming) return
+
+    setInput('')
+
+    // Add user message
+    const userMsg = { role: 'user', content: trimmed }
+    setMessages(prev => [...prev, userMsg])
+
+    // Prepare history
+    const history = [...messages, userMsg]
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: m.content }))
+      .slice(0, -1)
+
+    await handleStream({ message: trimmed, history })
+  }
+
+  const sendReport = async (mode, code = null, budgetVal = null) => {
+    if (isStreaming) return
+    setShowLotInput(false)
+    setShowBudgetInput(false)
+
+    const userMsg = mode === 'lot_report'
+      ? `Фин. отчёт по лоту ${code}`
+      : `Портфель на ${(budgetVal / 1000000).toFixed(0)} млн ₽`
+
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+
+    const body = { message: userMsg, history: [], mode }
+    if (code) body.lot_code = code
+    if (budgetVal) body.budget = parseInt(budgetVal)
+
+    await handleStream(body)
   }
 
   const handleSubmit = (e) => {
@@ -324,19 +348,95 @@ export default function Chat({ lots, onNavigate }) {
           </div>
         ))}
 
-        {/* Quick actions after welcome */}
+        {/* Report buttons + quick actions after welcome */}
         {messages.length === 1 && !isStreaming && (
-          <div className="flex flex-wrap gap-2 pl-10">
-            {quickActions.map((qa, i) => (
+          <>
+            <div className="flex gap-3 pl-10">
               <button
-                key={i}
-                onClick={() => qa.action ? qa.action() : sendMessage(qa.query)}
-                className="bg-rz-green-mid text-sm px-3 py-1.5 rounded-full hover:bg-rz-green-light transition-colors text-rz-cream-dark border border-rz-green-light"
+                onClick={() => { setShowLotInput(true); setShowBudgetInput(false) }}
+                className="flex-1 bg-rz-green-light border border-rz-gold/30 rounded-xl p-3 text-left hover:border-rz-gold transition"
               >
-                {qa.label}
+                <div className="text-rz-gold font-semibold text-sm">Фин. отчёт по лоту</div>
+                <div className="text-rz-cream-dark text-xs mt-1">ROI, рассрочка, сравнение с депозитом</div>
               </button>
-            ))}
-          </div>
+              <button
+                onClick={() => { setShowBudgetInput(true); setShowLotInput(false) }}
+                className="flex-1 bg-rz-green-light border border-rz-gold/30 rounded-xl p-3 text-left hover:border-rz-gold transition"
+              >
+                <div className="text-rz-gold font-semibold text-sm">Портфель по бюджету</div>
+                <div className="text-rz-cream-dark text-xs mt-1">Подбор лотов и стратегий</div>
+              </button>
+            </div>
+
+            {showLotInput && (
+              <div className="ml-10 p-3 bg-rz-green-mid rounded-xl border border-rz-gold/20">
+                <label className="text-rz-cream text-sm">Код лота:</label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={lotCode}
+                    onChange={e => setLotCode(e.target.value.toUpperCase())}
+                    placeholder="Например В818"
+                    className="flex-1 bg-rz-green-dark text-rz-cream rounded-lg px-3 py-2 border border-rz-cream-muted/30 focus:border-rz-gold outline-none text-sm"
+                    autoFocus
+                    onKeyDown={e => { if (e.key === 'Enter' && lotCode.trim()) sendReport('lot_report', lotCode.trim()) }}
+                  />
+                  <button
+                    onClick={() => lotCode.trim() && sendReport('lot_report', lotCode.trim())}
+                    className="bg-rz-gold text-rz-green-dark font-semibold rounded-lg px-4 py-2 text-sm"
+                  >
+                    Сформировать
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showBudgetInput && (
+              <div className="ml-10 p-3 bg-rz-green-mid rounded-xl border border-rz-gold/20">
+                <label className="text-rz-cream text-sm">Бюджет клиента:</label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="number"
+                    value={budget}
+                    onChange={e => setBudget(e.target.value)}
+                    placeholder="15000000"
+                    className="flex-1 bg-rz-green-dark text-rz-cream rounded-lg px-3 py-2 border border-rz-cream-muted/30 focus:border-rz-gold outline-none text-sm"
+                    autoFocus
+                    onKeyDown={e => { if (e.key === 'Enter' && budget) sendReport('portfolio', null, budget) }}
+                  />
+                  <button
+                    onClick={() => budget && sendReport('portfolio', null, budget)}
+                    className="bg-rz-gold text-rz-green-dark font-semibold rounded-lg px-4 py-2 text-sm"
+                  >
+                    Подобрать
+                  </button>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {[5, 10, 15, 20, 30, 50].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setBudget(m * 1000000)}
+                      className="text-xs bg-rz-green-dark text-rz-cream-dark rounded px-2 py-1 hover:text-rz-gold transition"
+                    >
+                      {m} млн
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 pl-10">
+              {quickActions.map((qa, i) => (
+                <button
+                  key={i}
+                  onClick={() => qa.action ? qa.action() : sendMessage(qa.query)}
+                  className="bg-rz-green-mid text-sm px-3 py-1.5 rounded-full hover:bg-rz-green-light transition-colors text-rz-cream-dark border border-rz-green-light"
+                >
+                  {qa.label}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Typing indicator */}

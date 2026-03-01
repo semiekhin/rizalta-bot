@@ -126,69 +126,215 @@ def build_system_prompt() -> str:
 
 ADVISOR_INSTRUCTION = """
 
-Ты — AI финансовый советник RIZALTA Resort Belokurikha.
-Твоя задача — помочь риэлтору подобрать оптимальную инвестиционную стратегию для клиента.
+Ты — AI финансовый консультант RIZALTA Resort Belokurikha.
+Пользователи — риэлторы и отдел продаж. Они УЖЕ общаются с клиентами.
+
+## ТВОЯ РОЛЬ
+
+Помогай риэлтору:
+- Аргументировать преимущества RIZALTA перед депозитом/акциями/другой недвижимостью
+- Отвечать на сложные финансовые вопросы клиентов
+- Сравнивать варианты и давать рекомендации
+- Объяснять финансовые концепции простым языком
 
 ## ДОСТУПНЫЕ ИНСТРУМЕНТЫ
 
-- search_lots: поиск лотов по фильтрам (корпус, площадь, цена, статус)
-- get_lot_details: полная информация о конкретном лоте
-- calculate_roi: расчёт ROI за 11 лет (2025-2035)
-- calculate_installment: варианты рассрочки (12 мес 0%, 18 мес с удорожанием)
-- compare_with_deposit: сравнение RIZALTA vs банковский депозит
-
-## СТРАТЕГИЧЕСКИЙ ПОДХОД
-
-При запросе "портфель на X млн" или "бюджет X" — ОБЯЗАТЕЛЬНО:
-
-1. **Найди подходящие лоты** (search_lots с фильтрами)
-2. **Рассмотри минимум 2 стратегии:**
-   - Стратегия A: Один лот за 100% → остаток на депозит
-   - Стратегия B: Два лота в рассрочку (ПВ 30%) → cash flow анализ
-   - Стратегия C (если бюджет позволяет): Три лота с минимальным ПВ
-3. **Для каждой стратегии рассчитай:**
-   - ROI каждого лота (calculate_roi)
-   - Условия рассрочки (calculate_installment)
-   - Сравнение с депозитом (compare_with_deposit)
-   - Cash flow: ежемесячные расходы до 2028 vs арендный доход с 2028
-   - Точку безубыточности
-4. **Дай рекомендацию** с обоснованием
-
-## CASH FLOW АНАЛИЗ
-
-- До Q4 2027: только расходы (рассрочка) — дом строится
-- С 2028: начинается аренда (загрузка 40% первый год, 60-70% далее)
-- Расходы на эксплуатацию: 50% от валового дохода
-- Рассрочка 12 мес: платежи заканчиваются через год
-- Рассрочка 18 мес: платежи до середины 2027
-- Рост стоимости актива: +20%/год (стройка), +10%/год (после сдачи)
-- Окупаемость считать с учётом роста капитализации (не только арендный доход!)
-- Пример: лот 14.3 млн → к 2028: ~17.2 млн → к 2035: ~33.5 млн (рост стоимости) + аренда ~13 млн = итого ~32 млн прибыли
+- search_lots: поиск лотов по фильтрам
+- get_lot_details: информация о лоте
+- calculate_roi: расчёт ROI за 11 лет
+- calculate_installment: варианты рассрочки
+- compare_with_deposit: сравнение с депозитом
 
 ## ФОРМАТ ОТВЕТА
 
-Отвечай структурированно:
-- Используй заголовки: **Стратегия 1**, **Стратегия 2**
-- Указывай конкретные цифры с форматированием: 14 300 000 ₽
-- В конце — чёткая рекомендация
-- НЕ используй эмодзи в финансовых отчётах
-- При расчёте ROI для нескольких лотов — показывай совокупный ROI портфеля
+- Компактно: не больше 1 экрана
+- Конкретные цифры (через tools)
+- "лот"/"апартамент", НИКОГДА "юнит"
+- НЕ предлагай связаться с отделом продаж (пользователь = отдел продаж)
+- НЕ проси контакты клиента
+- Капитализация: +20%/год стройка, +10%/год после сдачи
 
-## ПРАВИЛА
+## ВАЖНО
 
-1. ВСЕГДА используй tools для получения данных — НЕ выдумывай цифры
-2. Цены и площади — только из БД через tools
-3. Если код лота дублируется — уточни корпус
-4. Форматируй цены с пробелами: 14 300 000 ₽
-5. При бюджете инвестора — рассмотри комбинации, не только одиночные лоты
-6. Используй термин "лот" или "апартамент", НИКОГДА не пиши "юнит"
-7. При расчёте окупаемости ОБЯЗАТЕЛЬНО учитывай рост капитализации:
-   - На стадии строительства (до Q4 2027): +20% в год к стоимости
-   - После сдачи (с 2028): +10% в год к стоимости
-   Это значит: лот за 14 300 000 ₽ к моменту сдачи стоит ~17 160 000 ₽, через 5 лет ~27 600 000 ₽
-8. Для ROI ВСЕГДА используй данные из calculate_roi — там уже заложена модель капитализации + аренда. НЕ считай окупаемость вручную — бери цифры из tool
-9. Если calculate_roi показывает ROI 234% за 11 лет — используй эту цифру, не пересчитывай сам
+Для стандартных отчётов есть кнопки "Фин. отчёт по лоту" и "Портфель по бюджету".
+В свободном чате фокусируйся на АНАЛИЗЕ и АРГУМЕНТАЦИИ, а не на генерации отчётов.
 """
+
+
+LOT_REPORT_PROMPT = """
+Ты — финансовый аналитик RIZALTA. Сформируй экспресс инвест-отчёт по данным ниже.
+
+ФОРМАТ ОТЧЁТА (строго):
+
+## Лот {код} — {корпус}
+{площадь} м² | Этаж {этаж} | {цена} ₽
+
+## Доходность
+- Чистый доход от аренды: {X} ₽/год ({Y}% годовых)
+- Рост стоимости к 2028: +20%/год (стройка)
+- Рост стоимости с 2028: +10%/год
+- Итого за 11 лет (2025-2035): ROI {Z}%
+
+## Варианты оплаты
+Кратко: 100% (скидка 5%), рассрочка 12 мес (0%), рассрочка 18 мес (удорожание).
+Для каждого — ежемесячный платёж и итоговая переплата.
+
+## RIZALTA vs Депозит
+Одна таблица: вложил X → через 11 лет RIZALTA = Y, Депозит (18%) = Z.
+
+## Рекомендация
+2-3 предложения: кому подходит этот лот, оптимальная стратегия покупки.
+
+ПРАВИЛА:
+- Компактно: весь отчёт не больше 1 экрана
+- Цифры с пробелами: 14 300 000 ₽
+- Термины: "лот" или "апартамент", НИКОГДА "юнит"
+- НЕ проси дополнительные данные — ВСЁ есть в JSON ниже
+- НЕ предлагай связаться с отделом продаж (пользователь — это и есть отдел продаж)
+"""
+
+
+PORTFOLIO_PROMPT = """
+Ты — финансовый аналитик RIZALTA. Клиент с бюджетом {budget} ₽.
+Проанализируй данные и предложи 2-3 стратегии.
+
+ФОРМАТ:
+
+## Портфель на {budget_formatted} ₽
+
+### Стратегия 1: Один лот за 100% (скидка 5%)
+Лучший кандидат, почему, ROI, итог за 11 лет.
+
+### Стратегия 2: Лот(ы) в рассрочку
+ПВ 30% от бюджета → какие лоты доступны, cash flow, когда окупится.
+
+### Стратегия 3 (если бюджет позволяет): Комбинация
+Два лота / разные схемы оплаты.
+
+## Сравнение с депозитом
+Таблица: бюджет в RIZALTA vs бюджет на депозите.
+
+## Рекомендация
+Какая стратегия лучше и почему. 2-3 предложения.
+
+ПРАВИЛА:
+- Компактно, не больше 1.5 экранов
+- Только цифры из JSON, ничего не выдумывай
+- "лот"/"апартамент", не "юнит"
+- НЕ проси контакты клиента
+"""
+
+
+def stream_lot_report(code: str, building: int | None = None):
+    """Быстрый фин. отчёт по лоту: 1 JSON → 1 вызов AI."""
+    from services.report_builder import build_lot_report_data
+
+    # Шаг 1: собрать данные (мгновенно, 0 токенов)
+    yield f'data: {json.dumps({"type": "thinking", "tool": "report_builder", "label": "Собираю данные по лоту..."}, ensure_ascii=False)}\n\n'
+
+    try:
+        data = build_lot_report_data(code, building)
+    except Exception as e:
+        logger.error(f"[LOT REPORT] Data build error: {e}")
+        yield f'data: {json.dumps({"type": "error", "content": "Ошибка сбора данных по лоту"}, ensure_ascii=False)}\n\n'
+        return
+
+    if "error" in data:
+        err_msg = data["error"]
+        yield f'data: {json.dumps({"type": "token", "content": f"Ошибка: {err_msg}"}, ensure_ascii=False)}\n\n'
+        yield f'data: {json.dumps({"type": "done"})}\n\n'
+        return
+
+    if data.get("multiple"):
+        msg = data["message"]
+        options = data["options"]
+        text = f"{msg}\n" + "\n".join(f"- Корпус {o['building']}" for o in options)
+        yield f'data: {json.dumps({"type": "token", "content": text}, ensure_ascii=False)}\n\n'
+        yield f'data: {json.dumps({"type": "done"})}\n\n'
+        return
+
+    # Шаг 2: один вызов AI с полным JSON
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую отчёт..."}, ensure_ascii=False)}\n\n'
+
+    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+
+    prompt = LOT_REPORT_PROMPT + "\n\nДАННЫЕ:\n```json\n" + json.dumps(data, ensure_ascii=False, indent=2) + "\n```"
+
+    try:
+        client = get_client()
+        stream = client.responses.create(
+            model=model,
+            instructions="Ты финансовый аналитик. Форматируй ответ в Markdown.",
+            input=[{"role": "user", "content": prompt}],
+            reasoning={"effort": "medium"},
+            max_output_tokens=16000,
+            stream=True,
+        )
+
+        for event in stream:
+            if hasattr(event, 'type') and event.type == 'response.output_text.delta':
+                yield f'data: {json.dumps({"type": "token", "content": event.delta}, ensure_ascii=False)}\n\n'
+
+    except Exception as e:
+        logger.error(f"[LOT REPORT] AI error: {e}")
+        yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен"}, ensure_ascii=False)}\n\n'
+        return
+
+    # Кнопки
+    actions = [
+        {"label": f"Открыть {code}", "type": "navigate", "to": f"/lots/{code}?from=chat"},
+    ]
+    yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
+    yield f'data: {json.dumps({"type": "done"})}\n\n'
+
+
+def stream_portfolio_report(budget: int):
+    """Портфельный анализ: 1 JSON → 1 вызов AI."""
+    from services.report_builder import build_portfolio_data
+
+    yield f'data: {json.dumps({"type": "thinking", "tool": "report_builder", "label": "Подбираю лоты и считаю доходность..."}, ensure_ascii=False)}\n\n'
+
+    try:
+        data = build_portfolio_data(budget)
+    except Exception as e:
+        logger.error(f"[PORTFOLIO] Data build error: {e}")
+        yield f'data: {json.dumps({"type": "error", "content": "Ошибка сбора данных для портфеля"}, ensure_ascii=False)}\n\n'
+        return
+
+    budget_fmt = f"{budget:,}".replace(",", " ")
+
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Анализирую стратегии..."}, ensure_ascii=False)}\n\n'
+
+    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+
+    prompt = PORTFOLIO_PROMPT.replace("{budget}", str(budget)).replace("{budget_formatted}", budget_fmt)
+    prompt += "\n\nДАННЫЕ:\n```json\n" + json.dumps(data, ensure_ascii=False, indent=2) + "\n```"
+
+    try:
+        client = get_client()
+        stream = client.responses.create(
+            model=model,
+            instructions="Ты финансовый аналитик. Форматируй ответ в Markdown.",
+            input=[{"role": "user", "content": prompt}],
+            reasoning={"effort": "medium"},
+            max_output_tokens=16000,
+            stream=True,
+        )
+
+        for event in stream:
+            if hasattr(event, 'type') and event.type == 'response.output_text.delta':
+                yield f'data: {json.dumps({"type": "token", "content": event.delta}, ensure_ascii=False)}\n\n'
+
+    except Exception as e:
+        logger.error(f"[PORTFOLIO] AI error: {e}")
+        yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен"}, ensure_ascii=False)}\n\n'
+        return
+
+    actions = [
+        {"label": "Открыть каталог", "type": "navigate", "to": "/lots"},
+    ]
+    yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
+    yield f'data: {json.dumps({"type": "done"})}\n\n'
 
 
 def stream_chat_with_tools(message: str, history: list[dict]):
