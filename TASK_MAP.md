@@ -143,3 +143,14 @@ sudo systemctl restart webapp-dev.service
 - **report_card SSE event** — данные из report_builder до AI
 - **format_lot_summary / format_portfolio_summary** — pre-format
 - **marked удалён** — карточки вместо markdown
+
+### Сессия 02.03.2026 part 3 (v0.9.3 → v0.9.5) — Инвест-метрики + AI Portfolio
+- **Инвестиционные метрики:** NOI, Cap Rate, Cash-on-Cash (100%/30%), Equity Multiple в calculator.py
+- **Report Builder v2:** 3 сценария (1 премиальный лот / портфель 100% / макс. плечо 30%), оптимизация расчётов
+- **AI-driven Portfolio (Level 3):** gpt-4o-mini selector выбирает лоты → Python считает → GPT-5.2 пишет аналитику
+- **AI промпты:** полноценный 7-секционный анализ (400-800 слов) вместо 2-3 предложений
+- **UI карточки:** MetricCell, LotReportCard (2x3 метрики), PortfolioReportCardV2 (3 сценария + reasoning + vs deposit)
+- **renderText():** лёгкий markdown рендеринг (**bold** → <strong>) в чате
+- **PDF v2:** 4-страничный портфельный PDF с 3 сценариями + сравнительная таблица
+- **Budget guard:** Python валидация бюджета после AI selection
+- **INVESTMENT_METHODOLOGY.md:** документация формул и методики

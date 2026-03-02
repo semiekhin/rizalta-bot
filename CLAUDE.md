@@ -449,3 +449,28 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **marked удалён** — не работал, карточки заменили markdown
 - **format_lot_summary / format_portfolio_summary** — pre-format данных для AI
 - **Коммиты:** bbaf9a3, f97a1fe, 9bdbeb8, 9dc06b4
+
+### Сессия 02.03.2026 part 3 (v0.9.3 → v0.9.5)
+- **calculator.py:** calculate_investment_metrics() — NOI, Cap Rate, Cash-on-Cash (100%/30%), Equity Multiple
+- **report_builder.py:** build_portfolio_data_v2() — 3 сценария (premium/portfolio/leverage), _enrich_lots() оптимизация
+- **build_portfolio_ai_context() + _build_lots_table()** — подготовка данных для AI selector
+- **_build_scenario_from_codes()** — расчёт сценария по AI-выбранным кодам лотов с budget guard
+- **ai_chat.py:** AI-driven portfolio (Level 3) — gpt-4o-mini selector + GPT-5.2 analyst, fallback на v2 алгоритм
+- **AI_PORTFOLIO_SELECTOR_PROMPT** — промпт для AI-подбора лотов с правилами диверсификации
+- **PORTFOLIO_PROMPT_V3 + format_portfolio_summary_v3()** — 3-сценарный анализ 500-800 слов
+- **LOT_REPORT_PROMPT** — полноценный 7-секционный инвестиционный анализ 400-600 слов
+- **Chat.jsx:** renderText() (bold markdown), MetricCell, LotReportCard с 2x3 метриками, PortfolioReportCardV2 с ScenarioCard + reasoning + vs deposit
+- **strategy_pdf_generator.py:** _generate_portfolio_report_v2() — 4-страничный PDF с 3 сценариями + сравнительная таблица
+- **INVESTMENT_METHODOLOGY.md** — документация метрик (NOI, Cap Rate, CoC, Equity Multiple)
+- **Коммиты:** 859c8a9, 4e17836, 8a8567d, 0e2a9e9, 0fb6b57, aa13085, b745a4f
+
+### Сессия 02.03.2026 part 3 (v0.9.3 → v0.9.5)
+- **calculator.py:** calculate_investment_metrics() — NOI, Cap Rate, Cash-on-Cash (100%/30%), Equity Multiple
+- **report_builder.py:** build_portfolio_data_v2() — 3 сценария, _enrich_lots(), build_portfolio_ai_context()
+- **AI-driven portfolio (Level 3):** gpt-4o-mini selector + GPT-5.2 analyst + fallback на v2
+- **AI промпты:** полноценный 7-секционный анализ 400-800 слов
+- **Chat.jsx:** renderText(), MetricCell, LotReportCard (2x3), PortfolioReportCardV2 (ScenarioCard + reasoning)
+- **strategy_pdf_generator.py:** _generate_portfolio_report_v2() — 4 страницы
+- **INVESTMENT_METHODOLOGY.md** — документация метрик
+- **Budget guard** — Python валидация бюджета после AI selection
+- **Коммиты:** 859c8a9, 4e17836, 8a8567d, 0e2a9e9, 0fb6b57, aa13085, b745a4f
