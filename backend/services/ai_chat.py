@@ -161,30 +161,9 @@ ADVISOR_INSTRUCTION = """
 """
 
 
-LOT_REPORT_PROMPT = """Ты — финансовый аналитик RIZALTA. Ниже — готовая сводка по апартаменту.
+LOT_REPORT_PROMPT = """На основе данных по апартаменту напиши ТОЛЬКО рекомендацию: кому подходит этот лот и оптимальную стратегию покупки. 2-3 предложения, без цифр (они уже показаны в карточке). Термин "лот" или "апартамент", не "юнит". НЕ предлагай связаться с менеджером."""
 
-Оформи её как компактный инвест-отчёт для риэлтора.
-
-ПРАВИЛА:
-- Все цифры УЖЕ посчитаны — просто оформи красиво
-- Цифры с пробелами: 14 300 000 ₽
-- Термины: "лот" или "апартамент", НИКОГДА "юнит"
-- НЕ предлагай связаться с менеджером (пользователь = отдел продаж)
-- Компактно: весь отчёт 200-300 слов, не больше 1 экрана
-- В конце — короткая рекомендация (2-3 предложения)
-"""
-
-PORTFOLIO_PROMPT = """Ты — финансовый аналитик RIZALTA. Ниже — данные по подбору портфеля.
-
-Оформи как компактный инвест-отчёт: сравни стратегии, выдели лучший вариант.
-
-ПРАВИЛА:
-- Все цифры УЖЕ посчитаны — оформи красиво
-- "лот"/"апартамент", не "юнит"
-- НЕ проси контакты клиента
-- Компактно: 300-500 слов, не больше 1.5 экранов
-- В конце — рекомендация: какая стратегия лучше и почему
-"""
+PORTFOLIO_PROMPT = """На основе портфельного анализа напиши ТОЛЬКО рекомендацию: какая стратегия лучше и почему. 2-3 предложения, без цифр (они уже показаны в карточке). НЕ предлагай связаться с менеджером."""
 
 
 def format_lot_summary(data: dict) -> str:
@@ -353,8 +332,11 @@ def stream_lot_report(code: str, building: int | None = None):
         yield f'data: {json.dumps({"type": "done"})}\n\n'
         return
 
-    # Шаг 2: один вызов AI с полным JSON
-    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую отчёт..."}, ensure_ascii=False)}\n\n'
+    # Шаг 2: отправить данные в карточку (мгновенно)
+    yield f'data: {json.dumps({"type": "report_card", "card_type": "lot_report", "data": data}, ensure_ascii=False, default=str)}\n\n'
+
+    # Шаг 3: AI пишет только рекомендацию
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую рекомендацию..."}, ensure_ascii=False)}\n\n'
 
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
@@ -365,10 +347,10 @@ def stream_lot_report(code: str, building: int | None = None):
         client = get_client()
         stream = client.responses.create(
             model=model,
-            instructions="Ты финансовый аналитик. Форматируй ответ в Markdown.",
+            instructions="Ты финансовый аналитик RIZALTA.",
             input=[{"role": "user", "content": prompt}],
             reasoning={"effort": "low"},
-            max_output_tokens=4000,
+            max_output_tokens=500,
             stream=True,
         )
 
@@ -417,7 +399,10 @@ def stream_portfolio_report(budget: int):
 
     budget_fmt = f"{budget:,}".replace(",", " ")
 
-    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Анализирую стратегии..."}, ensure_ascii=False)}\n\n'
+    # Отправить данные в карточку
+    yield f'data: {json.dumps({"type": "report_card", "card_type": "portfolio_report", "data": data}, ensure_ascii=False, default=str)}\n\n'
+
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую рекомендацию..."}, ensure_ascii=False)}\n\n'
 
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
@@ -428,10 +413,10 @@ def stream_portfolio_report(budget: int):
         client = get_client()
         stream = client.responses.create(
             model=model,
-            instructions="Ты финансовый аналитик. Форматируй ответ в Markdown.",
+            instructions="Ты финансовый аналитик RIZALTA.",
             input=[{"role": "user", "content": prompt}],
             reasoning={"effort": "low"},
-            max_output_tokens=4000,
+            max_output_tokens=500,
             stream=True,
         )
 

@@ -33,6 +33,193 @@ function resolveNavigation(to, onNavigate) {
   }
 }
 
+const fmt = (v) => new Intl.NumberFormat('ru-RU').format(Math.round(v || 0))
+const BNAMES = { 1: 'Family', 2: 'Business', 3: 'Digital' }
+
+function LotReportCard({ data }) {
+  const lot = data.lot || {}
+  const roi = data.roi || {}
+  const inst = data.installment || {}
+  const dep = data.deposit_comparison || {}
+  const bname = BNAMES[lot.building_num] || ''
+  const depBase = dep.base || {}
+  const totalProfit = roi.total_profit_rub || 0
+  const depInterest = depBase.total_net_interest || 0
+  const advantage = totalProfit - depInterest
+  const i12 = inst.installment_12m || {}
+  const i18 = inst.installment_18m || {}
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-rz-green-mid rounded-xl p-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="font-bold text-lg text-rz-gold">{lot.code}</p>
+            <p className="text-sm text-rz-cream-dark">
+              Корпус {lot.building_num} {bname && `\u00AB${bname}\u00BB`} &bull; {lot.area_m2} м&sup2; &bull; этаж {lot.floor}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-bold text-lg">{fmt(lot.price_rub)} &#8381;</p>
+            <p className="text-xs text-rz-cream-muted">ПВ 30%: {fmt(lot.price_rub * 0.3)} &#8381;</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-rz-success/15 rounded-xl p-3">
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-sm text-rz-success font-medium">Доходность за 11 лет</p>
+          <p className="text-2xl font-bold text-rz-success">{(roi.roi_pct || 0).toFixed(0)}%</p>
+        </div>
+        <p className="text-xs text-rz-cream-dark">~{(roi.avg_annual_pct || 0).toFixed(1)}% годовых</p>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="bg-rz-green-mid/50 rounded-lg p-2">
+            <p className="text-xs text-rz-cream-muted">Аренда</p>
+            <p className="text-sm font-bold text-rz-gold">{fmt(roi.total_rental_income)} &#8381;</p>
+          </div>
+          <div className="bg-rz-green-mid/50 rounded-lg p-2">
+            <p className="text-xs text-rz-cream-muted">Рост стоимости</p>
+            <p className="text-sm font-bold text-rz-gold">{fmt(roi.total_growth)} &#8381;</p>
+          </div>
+        </div>
+        <div className="mt-2 pt-2 border-t border-rz-success/20 flex justify-between">
+          <div>
+            <p className="text-xs text-rz-cream-muted">Общая прибыль</p>
+            <p className="font-bold text-rz-gold">{fmt(totalProfit)} &#8381;</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-rz-cream-muted">Стоимость в 2035</p>
+            <p className="font-bold">{fmt(roi.final_value_rub)} &#8381;</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs text-rz-cream-muted font-medium">Варианты оплаты</p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-rz-green-mid rounded-lg p-2">
+            <p className="text-xs text-rz-success font-medium">100%</p>
+            <p className="text-sm font-bold">{fmt(lot.price_rub * 0.95)} &#8381;</p>
+            <p className="text-xs text-rz-cream-muted">скидка 5%</p>
+          </div>
+          <div className="bg-rz-green-mid rounded-lg p-2">
+            <p className="text-xs text-rz-gold font-medium">12 мес</p>
+            <p className="text-sm font-bold">{fmt(i12.monthly_30)} &#8381;/мес</p>
+            <p className="text-xs text-rz-cream-muted">ПВ {fmt(i12.pv_30)} &#8381;</p>
+          </div>
+          <div className="bg-rz-green-mid rounded-lg p-2">
+            <p className="text-xs text-rz-gold font-medium">18 мес</p>
+            <p className="text-sm font-bold">{fmt(i18.monthly_30)} &#8381;/мес</p>
+            <p className="text-xs text-rz-cream-muted">ПВ {fmt(i18.pv_30)} &#8381;</p>
+          </div>
+        </div>
+      </div>
+
+      {depBase.total_net_interest != null && (
+        <div className="bg-rz-gold/10 rounded-xl p-3 border border-rz-gold/20">
+          <p className="text-xs text-rz-cream-muted font-medium mb-2">RIZALTA vs Депозит (11 лет)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-rz-success">RIZALTA</p>
+              <p className="font-bold text-rz-success">{fmt(totalProfit)} &#8381;</p>
+              <p className="text-xs text-rz-cream-muted">ROI {(roi.roi_pct || 0).toFixed(0)}%</p>
+            </div>
+            <div>
+              <p className="text-xs text-rz-cream-dark">Депозит</p>
+              <p className="font-bold">{fmt(depInterest)} &#8381;</p>
+              <p className="text-xs text-rz-cream-muted">ROI {(depBase.total_roi_pct || 0).toFixed(0)}%</p>
+            </div>
+          </div>
+          {advantage > 0 && (
+            <p className="text-sm font-bold text-rz-gold mt-2 pt-2 border-t border-rz-gold/20">
+              RIZALTA выгоднее на {fmt(advantage)} &#8381;
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PortfolioReportCard({ data }) {
+  const budget = data.budget || 0
+  const sa = data.strategy_a || {}
+  const sb = data.strategy_b || {}
+  const roiMap = data.roi || {}
+  const dep = data.deposit_comparison || {}
+  const depBase = dep.base || {}
+  const lotsA = sa.lots?.lots || []
+  const lotsB = sb.lots?.lots || []
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-rz-green-mid rounded-xl p-3">
+        <p className="text-xs text-rz-cream-muted">Портфельный анализ</p>
+        <p className="font-bold text-lg text-rz-gold">{fmt(budget)} &#8381;</p>
+      </div>
+
+      <div className="border border-rz-success/30 rounded-xl p-3">
+        <p className="text-sm font-bold text-rz-success mb-2">{sa.name || 'Стратегия A'}</p>
+        {lotsA.length > 0 ? (
+          <div className="space-y-1.5">
+            {lotsA.slice(0, 3).map(lot => {
+              const r = roiMap[lot.code] || {}
+              return (
+                <div key={lot.code} className="flex justify-between items-center bg-rz-green-mid/50 rounded-lg p-2 text-sm">
+                  <div>
+                    <span className="font-medium">{lot.code}</span>
+                    <span className="text-rz-cream-muted text-xs ml-2">{lot.area_m2} м&sup2;</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-rz-gold font-medium">{fmt(lot.price_rub)} &#8381;</span>
+                    {r.roi_pct != null && <span className="text-rz-success text-xs ml-2">ROI {r.roi_pct.toFixed(0)}%</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
+        )}
+      </div>
+
+      <div className="border border-rz-gold/30 rounded-xl p-3">
+        <p className="text-sm font-bold text-rz-gold mb-1">{sb.name || 'Стратегия B'}</p>
+        <p className="text-xs text-rz-cream-muted mb-2">Макс. цена лота: {fmt(sb.max_lot_price)} &#8381;</p>
+        {lotsB.length > 0 ? (
+          <div className="space-y-1.5">
+            {lotsB.slice(0, 3).map(lot => {
+              const r = roiMap[lot.code] || {}
+              return (
+                <div key={lot.code} className="flex justify-between items-center bg-rz-green-mid/50 rounded-lg p-2 text-sm">
+                  <div>
+                    <span className="font-medium">{lot.code}</span>
+                    <span className="text-rz-cream-muted text-xs ml-2">{lot.area_m2} м&sup2;</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-rz-gold font-medium">{fmt(lot.price_rub)} &#8381;</span>
+                    {r.roi_pct != null && <span className="text-rz-success text-xs ml-2">ROI {r.roi_pct.toFixed(0)}%</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
+        )}
+      </div>
+
+      {depBase.total_net_interest != null && (
+        <div className="bg-rz-gold/10 rounded-xl p-3 border border-rz-gold/20">
+          <p className="text-xs text-rz-cream-muted font-medium mb-1">Депозит для сравнения (11 лет)</p>
+          <p className="font-bold">{fmt(depBase.final_balance)} &#8381;</p>
+          <p className="text-xs text-rz-cream-dark">Проценты: {fmt(depBase.total_net_interest)} &#8381; &bull; ROI {(depBase.total_roi_pct || 0).toFixed(0)}%</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Chat({ lots, onNavigate }) {
   const [messages, setMessages] = useState([WELCOME_MSG])
   const [input, setInput] = useState('')
@@ -180,6 +367,18 @@ export default function Chat({ lots, onNavigate }) {
                 }
                 return updated
               })
+            } else if (event.type === 'report_card') {
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                if (last && last.role === 'assistant') {
+                  updated[updated.length - 1] = {
+                    ...last,
+                    reportCard: { card_type: event.card_type, data: event.data },
+                  }
+                }
+                return updated
+              })
             } else if (event.type === 'error') {
               setError(event.content)
             }
@@ -297,30 +496,54 @@ export default function Chat({ lots, onNavigate }) {
       <div className="flex-1 p-4 space-y-4 overflow-auto pb-36">
         {messages.map((msg, i) => (
           <div key={i}>
-            <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'gap-2'}`}>
-              {msg.role === 'assistant' && (
+            {msg.reportCard ? (
+              <div className="flex gap-2">
                 <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0 mt-1">
                   R
                 </div>
-              )}
-              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                msg.role === 'user'
-                  ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
-                  : 'bg-rz-green-light rounded-tl-none'
-              }`}>
-                {msg.role === 'assistant' ? (
-                  <div className="ai-message text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content || '') }} />
-                ) : (
-                  <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
-                )}
-                {msg.thinking && (
-                  <div className="flex items-center gap-2 text-rz-cream-muted text-sm mt-1">
-                    <span className="animate-pulse">●</span>
-                    <span>{msg.thinking}</span>
+                <div className="flex-1 min-w-0 space-y-2">
+                  {msg.reportCard.card_type === 'lot_report'
+                    ? <LotReportCard data={msg.reportCard.data} />
+                    : <PortfolioReportCard data={msg.reportCard.data} />}
+                  {msg.thinking && (
+                    <div className="flex items-center gap-2 text-rz-cream-muted text-sm">
+                      <span className="animate-pulse">●</span>
+                      <span>{msg.thinking}</span>
+                    </div>
+                  )}
+                  {msg.content && (
+                    <div className="bg-rz-green-light rounded-2xl rounded-tl-none px-4 py-2.5">
+                      <div className="ai-message text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content || '') }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'gap-2'}`}>
+                {msg.role === 'assistant' && (
+                  <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0 mt-1">
+                    R
                   </div>
                 )}
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                  msg.role === 'user'
+                    ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
+                    : 'bg-rz-green-light rounded-tl-none'
+                }`}>
+                  {msg.role === 'assistant' ? (
+                    <div className="ai-message text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content || '') }} />
+                  ) : (
+                    <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+                  )}
+                  {msg.thinking && (
+                    <div className="flex items-center gap-2 text-rz-cream-muted text-sm mt-1">
+                      <span className="animate-pulse">●</span>
+                      <span>{msg.thinking}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Action buttons */}
             {msg.actions && msg.actions.length > 0 && (
@@ -448,7 +671,7 @@ export default function Chat({ lots, onNavigate }) {
         )}
 
         {/* Typing indicator */}
-        {isStreaming && messages[messages.length - 1]?.content === '' && (
+        {isStreaming && messages[messages.length - 1]?.content === '' && !messages[messages.length - 1]?.reportCard && (
           <div className="flex gap-2">
             <div className="w-8 h-8 bg-rz-gold rounded-full flex items-center justify-center text-sm text-rz-green-dark font-bold flex-shrink-0">
               R
