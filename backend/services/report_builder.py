@@ -252,12 +252,15 @@ def _enrich_lots(lots: list[dict], budget: int) -> list[dict]:
 def _scenario_premium(lots: list[dict], budget: int) -> dict:
     """Scenario 1: One premium lot, 100% payment with 5% discount."""
     max_price = budget / 0.95
-    eligible = [l for l in lots if l["price_rub"] <= max_price]
+    eligible = sorted(
+        [l for l in lots if l["price_rub"] <= max_price],
+        key=lambda l: -l["price_rub"],
+    )
 
     if not eligible:
-        return {"name": "Один премиальный лот (100%)", "lot": None, "error": "no_lots"}
+        return {"name": "Один премиальный лот (100%)", "error": "no_lots"}
 
-    lot = eligible[-1]  # most expensive (list sorted by price ASC)
+    lot = eligible[0]
     price = lot["price_rub"]
     discounted = int(price * 0.95)
     remaining = budget - discounted
@@ -273,87 +276,67 @@ def _scenario_premium(lots: list[dict], budget: int) -> dict:
         "total_rental": lot["total_rental"],
         "total_growth": lot["total_growth"],
         "final_value": lot["final_value"],
+        "reasoning": f"Самый дорогой доступный лот: {lot['code']}, {lot['area_m2']}м², К{lot.get('building', '?')}, этаж {lot.get('floor', '?')}. Макс. площадь = макс. арендный доход.",
     }
 
 
 def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
-    """Scenario 2: Multiple lots at 100% payment, diversified portfolio.
-
-    3-step algorithm:
-    1. Greedy pack cheapest first (max lot count)
-    2. Upgrade last lot while remaining > 10% budget
-    3. Deduplicate same (area, price) types, fill freed budget with different types
-    """
-    candidates = []
+    """Scenario 2: Portfolio with 100% payment, building rotation for diversification."""
+    # Group by building, sort each by price DESC
+    by_building = {}
     for lot in lots:
+        b = lot.get("building", 0)
         dp = int(lot["price_rub"] * 0.95)
         if dp <= budget:
-            candidates.append({**lot, "discounted_price": dp})
+            by_building.setdefault(b, []).append({**lot, "discounted_price": dp})
 
-    candidates.sort(key=lambda x: x["discounted_price"])
+    for b in by_building:
+        by_building[b].sort(key=lambda l: -l["price_rub"])
 
-    # Step 1: Greedy pack cheapest first
+    # Round-robin: К1 → К2 → К3 → К1 → ...
+    buildings = sorted(by_building.keys())
+    pointers = {b: 0 for b in buildings}
+
     selected = []
     spent = 0
-    for c in candidates:
-        if spent + c["discounted_price"] <= budget:
-            selected.append(c)
-            spent += c["discounted_price"]
+    used_keys = set()  # (building, floor) to avoid same building+floor
+
+    max_rounds = 50  # safety limit
+    rounds = 0
+    while rounds < max_rounds:
+        added_this_round = False
+        for b in buildings:
+            bl = by_building.get(b, [])
+            while pointers[b] < len(bl):
+                candidate = bl[pointers[b]]
+                pointers[b] += 1
+                key = (candidate.get("building"), candidate.get("floor"))
+
+                # Skip if same building+floor already selected
+                if key in used_keys:
+                    continue
+
+                # Skip if same area+price combo (near-duplicate)
+                if any(
+                    abs(s["area_m2"] - candidate["area_m2"]) < 1.0
+                    and s.get("building") == candidate.get("building")
+                    for s in selected
+                ):
+                    continue
+
+                if spent + candidate["discounted_price"] <= budget:
+                    selected.append(candidate)
+                    spent += candidate["discounted_price"]
+                    used_keys.add(key)
+                    added_this_round = True
+                    break  # next building
+
+        rounds += 1
+        if not added_this_round:
+            break
 
     if not selected:
-        return {"name": "Портфель 100% оплата", "lots": [], "lot_count": 0, "error": "no_lots"}
-
-    # Step 2: While remaining > 10% budget, upgrade last lot to more expensive
-    for _ in range(len(selected)):
-        remaining = budget - spent
-        if remaining <= budget * 0.10 or not selected:
-            break
-        last = selected[-1]
-        avail = remaining + last["discounted_price"]
-        sel_keys = {(s["code"], s["building"]) for s in selected[:-1]}
-
-        upgrade = None
-        for c in candidates:
-            ck = (c["code"], c["building"])
-            if ck in sel_keys or ck == (last["code"], last["building"]):
-                continue
-            if c["discounted_price"] > last["discounted_price"] and c["discounted_price"] <= avail:
-                upgrade = c  # last match = most expensive that fits
-
-        if upgrade:
-            spent = spent - last["discounted_price"] + upgrade["discounted_price"]
-            selected[-1] = upgrade
-        else:
-            break
-
-    # Step 3: Deduplicate — keep 1 lot per (area, price) type
-    seen_types = {}
-    deduped = []
-    for lot in selected:
-        lt = (lot["area_m2"], lot["price_rub"])
-        if lt in seen_types:
-            spent -= lot["discounted_price"]
-        else:
-            seen_types[lt] = True
-            deduped.append(lot)
-    selected = deduped
-
-    # Fill freed budget with lots of different types (expensive first)
-    sel_keys = {(s["code"], s["building"]) for s in selected}
-    existing_types = {(s["area_m2"], s["price_rub"]) for s in selected}
-    for c in reversed(candidates):
-        ck = (c["code"], c["building"])
-        ct = (c["area_m2"], c["price_rub"])
-        if ck in sel_keys or ct in existing_types:
-            continue
-        if spent + c["discounted_price"] <= budget:
-            selected.append(c)
-            sel_keys.add(ck)
-            existing_types.add(ct)
-            spent += c["discounted_price"]
-
-    if not selected:
-        return {"name": "Портфель 100% оплата", "lots": [], "lot_count": 0, "error": "no_lots"}
+        return {"name": "Портфель 100% оплата", "error": "no_lots"}
 
     return {
         "name": "Портфель 100% оплата",
@@ -366,32 +349,74 @@ def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
         "total_rental": sum(l["total_rental"] for l in selected),
         "total_growth": sum(l["total_growth"] for l in selected),
         "avg_roi_pct": round(sum(l["roi_pct"] for l in selected) / len(selected), 1),
+        "reasoning": f"Диверсификация: {len(set(l.get('building') for l in selected))} корпуса, {len(set(l.get('floor') for l in selected))} этажей. Round-robin подбор от дорогих к дешёвым.",
     }
 
 
 def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
-    """Scenario 3: Max leverage — budget = sum of 30% down payments."""
+    """Scenario 3: Maximum leverage via installment, DP 30%, building rotation."""
+    by_building = {}
+    for lot in lots:
+        b = lot.get("building", 0)
+        dp = int(lot["price_rub"] * 0.30)
+        if dp <= budget:
+            by_building.setdefault(b, []).append(lot)
+
+    for b in by_building:
+        by_building[b].sort(key=lambda l: -l["price_rub"])
+
+    buildings = sorted(by_building.keys())
+    pointers = {b: 0 for b in buildings}
+
     selected = []
-    spent = 0  # sum of DPs
+    spent = 0
+    used_keys = set()
 
-    for lot in lots:  # already sorted by price ASC
-        price = lot["price_rub"]
-        dp = int(price * 0.30)
-        if spent + dp <= budget:
-            base = price - SERVICE_FEE
-            remaining = int(base * 0.70)
-            markup = int(remaining * MARKUP_18M_30_PCT)
+    max_rounds = 50
+    rounds = 0
+    while rounds < max_rounds:
+        added_this_round = False
+        for b in buildings:
+            bl = by_building.get(b, [])
+            while pointers[b] < len(bl):
+                candidate = bl[pointers[b]]
+                pointers[b] += 1
+                key = (candidate.get("building"), candidate.get("floor"))
 
-            selected.append({
-                **lot,
-                "down_payment": dp,
-                "markup": markup,
-                "total_cost": price + markup,
-            })
-            spent += dp
+                if key in used_keys:
+                    continue
+
+                if any(
+                    abs(s["area_m2"] - candidate["area_m2"]) < 1.0
+                    and s.get("building") == candidate.get("building")
+                    for s in selected
+                ):
+                    continue
+
+                dp = int(candidate["price_rub"] * 0.30)
+                if spent + dp <= budget:
+                    price = candidate["price_rub"]
+                    base = price - SERVICE_FEE
+                    remaining_debt = int(base * 0.70)
+                    markup = int(remaining_debt * MARKUP_18M_30_PCT)
+
+                    selected.append({
+                        **candidate,
+                        "down_payment": dp,
+                        "markup": markup,
+                        "total_cost": price + markup,
+                    })
+                    spent += dp
+                    used_keys.add(key)
+                    added_this_round = True
+                    break
+
+        rounds += 1
+        if not added_this_round:
+            break
 
     if not selected:
-        return {"name": "Максимальное плечо (рассрочка)", "lots": [], "lot_count": 0, "error": "no_lots"}
+        return {"name": "Максимальное плечо (рассрочка)", "error": "no_lots"}
 
     total_markup = sum(l["markup"] for l in selected)
     total_profit = sum(l["total_profit"] for l in selected)
@@ -409,9 +434,8 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
         "total_growth": sum(l["total_growth"] for l in selected),
         "net_profit": total_profit - total_markup,
         "remaining_cash": budget - spent,
-        "avg_coc": round(
-            sum(l["coc_installment"] for l in selected) / len(selected), 1
-        ),
+        "avg_coc": round(sum(l["coc_installment"] for l in selected) / len(selected), 1),
+        "reasoning": f"Макс. плечо: {len(selected)} лотов, {len(set(l.get('building') for l in selected))} корпуса. ПВ {spent:,}₽ из {budget:,}₽ ({round(spent/budget*100)}%).",
     }
 
 
@@ -447,180 +471,3 @@ def build_portfolio_data_v2(budget: int) -> dict:
             "completion": finance.get("completion_year", 2027),
         },
     }
-
-
-# ---------------------------------------------------------------------------
-# Level 3: AI-driven portfolio selection — data helpers
-# ---------------------------------------------------------------------------
-
-def _build_lots_table(lots: list[dict], budget: int) -> str:
-    """Compact lots table for AI selector (minimal tokens)."""
-    lines = [
-        f"Бюджет: {budget:,} ₽",
-        "Скидка 100%: 5%. Рассрочка ПВ: 30%, переплата: 9% (18 мес).",
-        "",
-        "Код | Корпус | Этаж | Площадь | Цена | NOI/год | Cap% | ROI% | CoC100% | CoC30%",
-        "---|---|---|---|---|---|---|---|---|---",
-    ]
-    for lot in lots:
-        m = lot["_metrics"]
-        lines.append(
-            f"{lot['code']} | К{lot.get('building', '?')} | "
-            f"{lot.get('floor', '?')} | {lot['area_m2']}м² | "
-            f"{lot['price_rub']:,} | {m['noi']:,} | "
-            f"{m['cap_rate']}% | {m['roi_pct']}% | "
-            f"{m['coc_full']}% | {m['coc_installment']}%"
-        )
-    return "\n".join(lines)
-
-
-def build_portfolio_ai_context(budget: int) -> dict:
-    """Prepare all data for AI selector: lots table + enriched lots + deposit."""
-    lots_raw = _load_all_available_lots()
-    lots_enriched = _enrich_lots(lots_raw, budget)
-
-    if not lots_enriched:
-        return {"budget": budget, "lots_table": "", "lots_enriched": [], "deposit_raw": {}}
-
-    lots_table = _build_lots_table(lots_enriched, budget)
-
-    deposit_raw = calculate_all_scenarios(budget, years=11)
-    deposit = slim_deposit(deposit_raw)
-
-    return {
-        "budget": budget,
-        "lots_table": lots_table,
-        "lots_enriched": lots_enriched,
-        "deposit_raw": deposit,
-    }
-
-
-def _build_scenario_from_codes(
-    lots_enriched: list[dict],
-    codes: list[str],
-    budget: int,
-    payment_type: str,
-) -> dict | None:
-    """Build scenario from AI-ranked lot codes.
-
-    AI provides priority order, Python packs greedily within budget.
-    If < 80% budget filled after AI list, Python backfills from remaining lots.
-
-    Returns same shape as _scenario_*() for frontend compatibility.
-    payment_type: "premium" | "full" | "installment"
-    """
-    lot_map = {l["code"]: l for l in lots_enriched}
-    multiplier = 0.95 if payment_type in ("premium", "full") else 0.30
-
-    # Step 1: Take lots in AI priority order while they fit
-    selected = []
-    spent = 0
-    used_codes = set()
-    for c in codes:
-        lot = lot_map.get(c)
-        if not lot:
-            continue
-        cost = int(lot["price_rub"] * multiplier)
-        if spent + cost <= budget:
-            selected.append(lot)
-            spent += cost
-            used_codes.add(c)
-            if payment_type == "premium":
-                break
-
-    # Step 2: Python backfill if < 80% budget used (skip for premium)
-    if payment_type != "premium" and spent < budget * 0.80:
-        remaining = [l for l in lots_enriched if l["code"] not in used_codes]
-        remaining.sort(key=lambda l: (l.get("building", 0), l["price_rub"]))
-
-        for lot in remaining:
-            cost = int(lot["price_rub"] * multiplier)
-            if spent + cost <= budget:
-                # Skip if same building+floor already in portfolio
-                if any(
-                    s.get("building") == lot.get("building")
-                    and s.get("floor") == lot.get("floor")
-                    for s in selected
-                ):
-                    continue
-                selected.append(lot)
-                spent += cost
-                used_codes.add(lot["code"])
-
-    if not selected:
-        return None
-
-    if payment_type == "premium":
-        lot = selected[0]
-        price = lot["price_rub"]
-        dp = int(price * 0.95)
-        return {
-            "name": "Один премиальный лот (100%)",
-            "lot": lot,
-            "discounted_price": dp,
-            "remaining_cash": budget - dp,
-            "metrics": lot["_metrics"],
-            "roi_pct": lot["roi_pct"],
-            "total_profit": lot["total_profit"],
-            "total_rental": lot["total_rental"],
-            "total_growth": lot["total_growth"],
-            "final_value": lot["final_value"],
-        }
-
-    elif payment_type == "full":
-        lots = []
-        spent = 0
-        for lot in selected:
-            dp = int(lot["price_rub"] * 0.95)
-            lots.append({**lot, "discounted_price": dp})
-            spent += dp
-        return {
-            "name": "Портфель 100% оплата",
-            "lots": lots,
-            "lot_count": len(lots),
-            "total_invested": spent,
-            "remaining_cash": budget - spent,
-            "total_noi": sum(l["noi"] for l in lots),
-            "total_profit": sum(l["total_profit"] for l in lots),
-            "total_rental": sum(l["total_rental"] for l in lots),
-            "total_growth": sum(l["total_growth"] for l in lots),
-            "avg_roi_pct": round(sum(l["roi_pct"] for l in lots) / len(lots), 1),
-        }
-
-    elif payment_type == "installment":
-        lots = []
-        spent = 0
-        for lot in selected:
-            price = lot["price_rub"]
-            dp = int(price * 0.30)
-            base = price - SERVICE_FEE
-            remaining = int(base * 0.70)
-            markup = int(remaining * MARKUP_18M_30_PCT)
-            lots.append({
-                **lot,
-                "down_payment": dp,
-                "markup": markup,
-                "total_cost": price + markup,
-            })
-            spent += dp
-        total_markup = sum(l["markup"] for l in lots)
-        total_profit = sum(l["total_profit"] for l in lots)
-        return {
-            "name": "Максимальное плечо (рассрочка)",
-            "lots": lots,
-            "lot_count": len(lots),
-            "total_down_payment": spent,
-            "total_portfolio_value": sum(l["price_rub"] for l in lots),
-            "total_markup": total_markup,
-            "total_noi": sum(l["noi"] for l in lots),
-            "total_profit": total_profit,
-            "total_rental": sum(l["total_rental"] for l in lots),
-            "total_growth": sum(l["total_growth"] for l in lots),
-            "net_profit": total_profit - total_markup,
-            "remaining_cash": budget - spent,
-            "avg_coc": round(
-                sum(l["coc_installment"] for l in lots) / len(lots), 1
-            ),
-        }
-
-    return None
