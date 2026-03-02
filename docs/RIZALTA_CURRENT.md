@@ -372,3 +372,8 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 1. 🔴 Исправить AI промпты отчётов (нечитаемый ответ)
 2. 🔴 Адаптировать PDF генератор под данные report_builder
 3. 🔴 Починить портфельный PDF
+
+### ✅ 02.03.2026 part 2 (webapp v0.9.3+)
+- Report Cards в чате (LotReportCard, PortfolioReportCard)
+- report_card SSE event — данные как UI-компоненты до AI
+- marked удалён — карточки заменили markdown

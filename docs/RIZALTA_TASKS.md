@@ -350,3 +350,11 @@
 7. Push-уведомления для секретаря
 8. К4 whitelist
 9. Миграция на российский LLM
+
+### 🔴 Ближайшие (webapp, обновлено 02.03.2026 part 2)
+1. Инвест-метрики: NOI, Cap Rate, Cash-on-Cash, Equity Multiple
+2. Обновить report_builder.py
+3. Полноценные AI промпты (сценарный анализ, риски)
+4. Обновить карточки Chat.jsx
+5. Адаптировать strategy_pdf_generator.py (PDF)
+6. INVESTMENT_METHODOLOGY.md
