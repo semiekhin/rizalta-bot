@@ -290,10 +290,11 @@ function PortfolioReportCardV2({ data }) {
               <MetricCell label="Остаток" value={`${fmt(sp.remaining_cash)} \u20BD`} />
             </div>
             {sp.metrics && (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <MetricCell label="Чистый доход / год" value={`${fmt(sp.metrics.noi)} \u20BD`} highlight />
                 <MetricCell label="Доходность (Cap Rate)" value={`${sp.metrics.cap_rate}%`} highlight />
-                <MetricCell label="Доход на вложенное (100%)" value={`${sp.metrics.coc_full}%`} />
+                <MetricCell label="ROI 11 лет" value={`${sp.roi_pct}%`} sub={`~${sp.metrics.avg_annual_pct}% / год`} />
+                <MetricCell label="Доход на вложенное" value={`${sp.metrics.coc_full}%`} sub="при 100% оплате" />
               </div>
             )}
             <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
@@ -327,8 +328,10 @@ function PortfolioReportCardV2({ data }) {
               ))}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <MetricCell label="Суммарный чистый доход / год" value={`${fmt(sf.total_noi)} \u20BD`} highlight />
-              <MetricCell label="Средний ROI" value={`${sf.avg_roi_pct}%`} />
+              <MetricCell label="Чистый доход / год" value={`${fmt(sf.total_noi)} \u20BD`} sub="суммарный" highlight />
+              <MetricCell label="Доходность (Cap Rate)" value={`${sf.avg_cap_rate || 0}%`} sub="средняя" highlight />
+              <MetricCell label="ROI 11 лет" value={`${sf.avg_roi_pct}%`} sub="средний" />
+              <MetricCell label="Доход на вложенное" value={`${sf.avg_coc_full || 0}%`} sub="средний CoC" />
             </div>
             <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
               <span className="text-rz-cream-muted">Прибыль 11 лет</span>
@@ -347,26 +350,31 @@ function PortfolioReportCardV2({ data }) {
           <div className="space-y-2">
             <div className="space-y-1">
               {sl.lots.slice(0, 5).map(l => (
-                <div key={`${l.code}-${l.building}`} className="bg-rz-green-mid/50 rounded-lg p-2 text-sm flex justify-between">
-                  <div>
-                    <span className="font-medium">{l.code}</span>
-                    <span className="text-rz-cream-muted text-xs ml-1">К{l.building}, {l.floor}эт.</span>
-                    <span className="text-rz-cream-muted text-xs ml-2">ПВ {fmt(l.down_payment)} &#8381;</span>
+                <div key={`${l.code}-${l.building}`} className="bg-rz-green-mid/50 rounded-lg p-2 text-sm">
+                  <div className="flex justify-between">
+                    <div>
+                      <span className="font-medium">{l.code}</span>
+                      <span className="text-rz-cream-muted text-xs ml-1">К{l.building}, {l.floor}эт.</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-rz-cream-dark">{fmt(l.price_rub)} &#8381;</span>
+                      <span className="text-rz-success text-xs ml-2">ROI {l.roi_pct}%</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-rz-cream-dark">{fmt(l.price_rub)} &#8381;</span>
-                    <span className="text-rz-success text-xs ml-2">ROI {l.roi_pct}%</span>
-                    <span className="text-rz-gold text-xs ml-1">· CoC {l.coc_installment}%</span>
-                    {l.monthly_payment && <p className="text-xs text-rz-cream-muted">{fmt(l.monthly_payment)} &#8381;/мес</p>}
+                  <div className="flex justify-between text-xs text-rz-cream-muted mt-0.5">
+                    <span>ПВ {fmt(l.down_payment)} &#8381;</span>
+                    {l.monthly_payment && <span>{fmt(l.monthly_payment)} &#8381;/мес</span>}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <MetricCell label="Чистый доход / год" value={`${fmt(sl.total_noi)} \u20BD`} sub="суммарный" highlight />
+              <MetricCell label="Доходность (Cap Rate)" value={`${sl.avg_cap_rate || 0}%`} sub="средняя" highlight />
+              <MetricCell label="ROI 11 лет" value={`${sl.avg_roi_pct || 0}%`} sub="средний" />
               <MetricCell label="Первоначальный взнос" value={`${fmt(sl.total_down_payment)} \u20BD`} />
-              <MetricCell label="Суммарный чистый доход / год" value={`${fmt(sl.total_noi)} \u20BD`} highlight />
-              <MetricCell label="Переплата по рассрочке" value={`${fmt(sl.total_markup)} \u20BD`} sub="18 месяцев" />
               {sl.total_monthly != null && <MetricCell label="Платёж / мес" value={`${fmt(sl.total_monthly)} \u20BD`} sub="рассрочка 18м" highlight />}
+              <MetricCell label="Переплата" value={`${fmt(sl.total_markup)} \u20BD`} sub="за 18 месяцев" />
             </div>
             <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
               <span className="text-rz-cream-muted">Чистая прибыль</span>

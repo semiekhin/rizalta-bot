@@ -349,6 +349,8 @@ def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
         "total_rental": sum(l["total_rental"] for l in selected),
         "total_growth": sum(l["total_growth"] for l in selected),
         "avg_roi_pct": round(sum(l["roi_pct"] for l in selected) / len(selected), 1),
+        "avg_cap_rate": round(sum(l["cap_rate"] for l in selected) / len(selected), 1),
+        "avg_coc_full": round(sum(l["coc_full"] for l in selected) / len(selected), 1),
         "reasoning": f"Диверсификация: {len(set(l.get('building') for l in selected))} корпуса, {len(set(l.get('floor') for l in selected))} этажей. Round-robin подбор для максимального количества лотов.",
     }
 
@@ -439,6 +441,8 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
         "remaining_cash": budget - spent,
         "total_monthly": sum(l["monthly_payment"] for l in selected),
         "avg_coc": round(sum(l["coc_installment"] for l in selected) / len(selected), 1),
+        "avg_cap_rate": round(sum(l["cap_rate"] for l in selected) / len(selected), 1),
+        "avg_roi_pct": round(sum(l["roi_pct"] for l in selected) / len(selected), 1),
         "reasoning": f"Макс. плечо: {len(selected)} лотов, {len(set(l.get('building') for l in selected))} корпуса. ПВ {spent:,}₽ из {budget:,}₽ ({round(spent/budget*100)}%).",
     }
 
