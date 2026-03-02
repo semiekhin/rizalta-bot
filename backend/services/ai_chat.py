@@ -618,7 +618,7 @@ def stream_portfolio_report(budget: int):
                 {"role": "system", "content": "Ты — профессиональный инвестиционный аналитик."},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
             temperature=0.7,
             stream=True,
         )

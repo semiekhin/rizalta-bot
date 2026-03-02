@@ -291,7 +291,7 @@ def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
             by_building.setdefault(b, []).append({**lot, "discounted_price": dp})
 
     for b in by_building:
-        by_building[b].sort(key=lambda l: -l["price_rub"])
+        by_building[b].sort(key=lambda l: l["price_rub"])  # ASC — pack more lots
 
     # Round-robin: К1 → К2 → К3 → К1 → ...
     buildings = sorted(by_building.keys())
