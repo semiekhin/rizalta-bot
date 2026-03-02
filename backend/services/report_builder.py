@@ -349,7 +349,7 @@ def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
         "total_rental": sum(l["total_rental"] for l in selected),
         "total_growth": sum(l["total_growth"] for l in selected),
         "avg_roi_pct": round(sum(l["roi_pct"] for l in selected) / len(selected), 1),
-        "reasoning": f"Диверсификация: {len(set(l.get('building') for l in selected))} корпуса, {len(set(l.get('floor') for l in selected))} этажей. Round-robin подбор от дорогих к дешёвым.",
+        "reasoning": f"Диверсификация: {len(set(l.get('building') for l in selected))} корпуса, {len(set(l.get('floor') for l in selected))} этажей. Round-robin подбор для максимального количества лотов.",
     }
 
 
@@ -400,11 +400,14 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
                     remaining_debt = int(base * 0.70)
                     markup = int(remaining_debt * MARKUP_18M_30_PCT)
 
+                    monthly_payment = int((remaining_debt + markup) / 18)
+
                     selected.append({
                         **candidate,
                         "down_payment": dp,
                         "markup": markup,
                         "total_cost": price + markup,
+                        "monthly_payment": monthly_payment,
                     })
                     spent += dp
                     used_keys.add(key)
@@ -434,6 +437,7 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
         "total_growth": sum(l["total_growth"] for l in selected),
         "net_profit": total_profit - total_markup,
         "remaining_cash": budget - spent,
+        "total_monthly": sum(l["monthly_payment"] for l in selected),
         "avg_coc": round(sum(l["coc_installment"] for l in selected) / len(selected), 1),
         "reasoning": f"Макс. плечо: {len(selected)} лотов, {len(set(l.get('building') for l in selected))} корпуса. ПВ {spent:,}₽ из {budget:,}₽ ({round(spent/budget*100)}%).",
     }

@@ -87,12 +87,12 @@ function LotReportCard({ data }) {
 
       {metrics.noi != null && (
         <div className="grid grid-cols-3 gap-2">
-          <MetricCell label="NOI / год" value={`${fmt(metrics.noi)} \u20BD`} sub="стабилиз. 2030" highlight />
-          <MetricCell label="Cap Rate" value={`${metrics.cap_rate}%`} sub="NOI / цена" highlight />
+          <MetricCell label="Чистый доход / год" value={`${fmt(metrics.noi)} \u20BD`} sub="стабилиз. 2030" highlight />
+          <MetricCell label="Доходность (Cap Rate)" value={`${metrics.cap_rate}%`} sub="NOI / цена" highlight />
           <MetricCell label="ROI 11 лет" value={`${metrics.roi_pct}%`} sub={`~${metrics.avg_annual_pct}% / год`} />
-          <MetricCell label="CoC 100%" value={`${metrics.coc_full}%`} sub="скидка 5%" />
-          <MetricCell label="CoC 30%" value={`${metrics.coc_installment}%`} sub="рассрочка" />
-          <MetricCell label="Equity" value={`${metrics.equity_multiple_full}x`} sub={`рассрочка ${metrics.equity_multiple_installment}x`} />
+          <MetricCell label="Доход на вложенное (100%)" value={`${metrics.coc_full}%`} sub="скидка 5%" />
+          <MetricCell label="Доход на вложенное (30%)" value={`${metrics.coc_installment}%`} sub="рассрочка" />
+          <MetricCell label="Мультипликатор капитала" value={`${metrics.equity_multiple_full}x`} sub={`рассрочка ${metrics.equity_multiple_installment}x`} />
         </div>
       )}
 
@@ -282,7 +282,7 @@ function PortfolioReportCardV2({ data }) {
       </div>
 
       {/* Scenario 1: Premium */}
-      <ScenarioCard title={sp.name || 'Премиальный лот'} icon="◆" color="gold" subtitle={sp.lot ? `${sp.lot.code}, ${sp.lot.area_m2} м², корпус ${sp.lot.building}` : null} vsDeposit={sp.vs_deposit}>
+      <ScenarioCard title={sp.name || 'Премиальный лот'} icon="◆" color="gold" subtitle={sp.lot ? `${sp.lot.code}, ${sp.lot.area_m2} м², корпус ${sp.lot.building} · ROI ${sp.roi_pct}%` : null} vsDeposit={sp.vs_deposit}>
         {sp.lot ? (
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
@@ -291,9 +291,9 @@ function PortfolioReportCardV2({ data }) {
             </div>
             {sp.metrics && (
               <div className="grid grid-cols-3 gap-2">
-                <MetricCell label="NOI / год" value={`${fmt(sp.metrics.noi)} \u20BD`} highlight />
-                <MetricCell label="Cap Rate" value={`${sp.metrics.cap_rate}%`} highlight />
-                <MetricCell label="CoC 100%" value={`${sp.metrics.coc_full}%`} />
+                <MetricCell label="Чистый доход / год" value={`${fmt(sp.metrics.noi)} \u20BD`} highlight />
+                <MetricCell label="Доходность (Cap Rate)" value={`${sp.metrics.cap_rate}%`} highlight />
+                <MetricCell label="Доход на вложенное (100%)" value={`${sp.metrics.coc_full}%`} />
               </div>
             )}
             <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
@@ -327,7 +327,7 @@ function PortfolioReportCardV2({ data }) {
               ))}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <MetricCell label="Суммарный NOI" value={`${fmt(sf.total_noi)} \u20BD/год`} highlight />
+              <MetricCell label="Суммарный чистый доход / год" value={`${fmt(sf.total_noi)} \u20BD`} highlight />
               <MetricCell label="Средний ROI" value={`${sf.avg_roi_pct}%`} />
             </div>
             <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
@@ -355,15 +355,18 @@ function PortfolioReportCardV2({ data }) {
                   </div>
                   <div className="text-right">
                     <span className="text-rz-cream-dark">{fmt(l.price_rub)} &#8381;</span>
-                    <span className="text-rz-gold text-xs ml-2">CoC {l.coc_installment}%</span>
+                    <span className="text-rz-success text-xs ml-2">ROI {l.roi_pct}%</span>
+                    <span className="text-rz-gold text-xs ml-1">· CoC {l.coc_installment}%</span>
+                    {l.monthly_payment && <p className="text-xs text-rz-cream-muted">{fmt(l.monthly_payment)} &#8381;/мес</p>}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <MetricCell label="ПВ всего" value={`${fmt(sl.total_down_payment)} \u20BD`} />
-              <MetricCell label="Суммарный NOI" value={`${fmt(sl.total_noi)} \u20BD/год`} highlight />
-              <MetricCell label="Переплата" value={`${fmt(sl.total_markup)} \u20BD`} sub="рассрочка 18м" />
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCell label="Первоначальный взнос" value={`${fmt(sl.total_down_payment)} \u20BD`} />
+              <MetricCell label="Суммарный чистый доход / год" value={`${fmt(sl.total_noi)} \u20BD`} highlight />
+              <MetricCell label="Переплата по рассрочке" value={`${fmt(sl.total_markup)} \u20BD`} sub="18 месяцев" />
+              {sl.total_monthly != null && <MetricCell label="Платёж / мес" value={`${fmt(sl.total_monthly)} \u20BD`} sub="рассрочка 18м" highlight />}
             </div>
             <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
               <span className="text-rz-cream-muted">Чистая прибыль</span>
