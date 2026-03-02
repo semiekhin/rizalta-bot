@@ -13,7 +13,7 @@ from services.tool_definitions import (
 from services.installment_calculator import calc_12m, calc_18m, calc_full
 from services.deposit_calculator import calculate_all_scenarios
 from services.data_loader import load_finance
-from services.calculator import calculate_investment_metrics, calculate_roi
+from services.calculator import calculate_investment_metrics, calculate_roi, RATE_PER_M2, OCCUPANCY, DAYS_IN_YEAR, EXPENSES_PCT
 
 
 def slim_deposit(scenarios: dict) -> dict:
@@ -194,26 +194,57 @@ def _load_all_available_lots() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def _enrich_lots(lots: list[dict]) -> list[dict]:
-    """Pre-compute ROI + metrics once for all lots. 1 ROI call per lot (not 3×N)."""
+def _enrich_lots(lots: list[dict], budget: int) -> list[dict]:
+    """Pre-compute ROI + metrics for lots within budget.
+
+    Only enriches lots where price * 0.30 <= budget (max leverage scenario).
+    Computes metrics inline from ROI result — avoids double calculate_roi().
+    """
+    max_price = budget / 0.30  # cheapest entry = 30% DP
+    # Stabilized year 2030 constants (same as calculator.py)
+    rate_m2 = RATE_PER_M2[2030]      # 787.31
+    occ = OCCUPANCY[2030] / 100      # 0.70
+    days = DAYS_IN_YEAR[2030]        # 365
+    exp = EXPENSES_PCT               # 0.50
+
     enriched = []
     for lot in lots:
-        area = lot["area_m2"]
         price = lot["price_rub"]
+        if price > max_price:
+            continue
+
+        area = lot["area_m2"]
         roi = calculate_roi(area, price)
-        metrics = calculate_investment_metrics(area, price)
+
+        # Inline metrics (avoids calling calculate_investment_metrics → 2nd calculate_roi)
+        gross_income = days * rate_m2 * area * occ
+        noi = int(gross_income * (1 - exp))
+        cap_rate = round(noi / price * 100, 1) if price > 0 else 0
+        coc_full = round(noi / (price * 0.95) * 100, 1) if price > 0 else 0
+        coc_installment = round(noi / (price * 0.30) * 100, 1) if price > 0 else 0
+        invested_full = price * 0.95
+        eq_full = round((roi["final_value"] + roi["total_rental"]) / invested_full, 2) if invested_full > 0 else 0
+        eq_inst = round((roi["final_value"] + roi["total_rental"]) / price, 2) if price > 0 else 0
+
         enriched.append({
             **lot,
-            "_metrics": metrics,  # kept for premium card, not serialized to SSE lots
+            "_metrics": {
+                "noi": noi, "cap_rate": cap_rate,
+                "coc_full": coc_full, "coc_installment": coc_installment,
+                "equity_multiple_full": eq_full, "equity_multiple_installment": eq_inst,
+                "roi_pct": roi["roi_pct"], "avg_annual_pct": roi["avg_annual_pct"],
+                "total_rental": roi["total_rental"], "total_growth": roi["total_growth"],
+                "final_value": roi["final_value"], "gross_income": int(gross_income),
+            },
             "roi_pct": roi["roi_pct"],
             "total_profit": roi["total_rental"] + roi["total_growth"],
             "total_rental": roi["total_rental"],
             "total_growth": roi["total_growth"],
             "final_value": roi["final_value"],
-            "noi": metrics["noi"],
-            "cap_rate": metrics["cap_rate"],
-            "coc_full": metrics["coc_full"],
-            "coc_installment": metrics["coc_installment"],
+            "noi": noi,
+            "cap_rate": cap_rate,
+            "coc_full": coc_full,
+            "coc_installment": coc_installment,
         })
     return enriched
 
@@ -328,7 +359,7 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
 
 def build_portfolio_data_v2(budget: int) -> dict:
     """Build data for 3-scenario portfolio analysis (v2)."""
-    lots = _enrich_lots(_load_all_available_lots())
+    lots = _enrich_lots(_load_all_available_lots(), budget)
 
     s_premium = _scenario_premium(lots, budget)
     s_portfolio = _scenario_portfolio_full(lots, budget)
