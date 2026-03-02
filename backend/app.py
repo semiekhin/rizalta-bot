@@ -97,7 +97,7 @@ async def lifespan(app_instance):
     yield
 
 
-app = FastAPI(title="RIZALTA Web App API", version="0.9.3", lifespan=lifespan)
+app = FastAPI(title="RIZALTA Web App API", version="0.9.5", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -220,7 +220,7 @@ async def get_lots():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "version": "0.9.2"}
+    return {"status": "healthy", "version": "0.9.5"}
 
 
 DOCS_BASE_DIR = Path(os.getenv("WEBAPP_ROOT", "/opt/webapp"))
