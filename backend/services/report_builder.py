@@ -226,7 +226,7 @@ def _scenario_premium(lots: list[dict], budget: int) -> dict:
 
 
 def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
-    """Scenario 2: Multiple lots at 100% payment, greedy pack by ROI."""
+    """Scenario 2: Multiple lots at 100% payment, cheapest first for max diversification."""
     candidates = []
     for lot in lots:
         dp = int(lot["price_rub"] * 0.95)
@@ -246,8 +246,8 @@ def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
                 "coc_full": metrics["coc_full"],
             })
 
-    # Sort by roi_pct DESC for greedy packing
-    candidates.sort(key=lambda x: x["roi_pct"], reverse=True)
+    # Sort by price ASC — pack cheapest first for max lot count (diversification)
+    candidates.sort(key=lambda x: x["discounted_price"])
 
     selected = []
     spent = 0
