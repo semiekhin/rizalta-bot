@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.9.3** (PDF investment reports + strategy_data SSE fix + report_builder)
+**v0.9.5** (AI-driven portfolio + investment metrics + 3 scenarios)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -333,6 +333,8 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=<относительн�
 | v0.9.1-claude-orchestrator | Эндпоинт /api/docs/file |
 | v0.9.2 | AI agentic loop + tools + report_builder |
 | v0.9.3 | PDF investment reports + strategy_data SSE fix |
+| v0.9.4 | Investment metrics (NOI, Cap Rate, CoC, Equity Multiple) |
+| v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
 
 ## Команды
 ```bash
@@ -364,23 +366,22 @@ curl -s http://127.0.0.1:8004/api/health
 
 ## TODO (актуализировано 02.03.2026)
 
-### 🔴 Ближайшие
-1. **Профессиональные инвест-метрики** — calculator.py: добавить NOI, Cap Rate, Cash-on-Cash (при разных вариантах оплаты), Equity Multiple
-2. **Обновить report_builder.py** — включить новые метрики в build_lot_report_data() и build_portfolio_data()
-3. **Полноценные AI промпты** — LOT_REPORT_PROMPT и PORTFOLIO_PROMPT: инвест-профиль, анализ доходности, сценарный анализ (3 сценария), стратегия входа, риски, вывод (400-800 слов)
-4. **Обновить карточки Chat.jsx** — показать NOI, Cap Rate, Cash-on-Cash, Equity Multiple
-5. **Адаптировать strategy_pdf_generator.py** — под данные report_builder (портфельный PDF не открывается, лотовый некрасивый)
-6. **Создать INVESTMENT_METHODOLOGY.md** — сохранить методику метрик (Формат A экспресс / Формат B memo)
+### 🔴 Ближайшие — Фикс AI портфеля (4 проблемы)
+1. **AI не заполняет бюджет** — Сценарий 3 использует 51% бюджета вместо ≥90%. Python должен добирать лоты если AI заполнил <80%
+2. **Одинаковые лоты в сценарии 3** — К1 дубли по цене. AI selector должен диверсифицировать (разные корпуса/этажи)
+3. **Ценовая непоследовательность** — карточка показывает цену со скидкой, AI текст — без скидки. Нужно единообразие
+4. **Сценарий 1 — остаток 50% бюджета** — Если самый дорогой лот покрывает <70% бюджета — reasoning должен объяснить
 
 ### 🟡 Средний приоритет
-7. Function calling в AI чате (расчёт ROI, поиск лота из чата)
-8. "Взять" → секретарь (автосоздание задачи)
-9. История чата (сохранение сессий)
+5. Портфельный PDF с 3 сценариями (проверить работоспособность)
+6. Тест лотового отчёта + PDF с метриками
+7. История чата (сохранение сессий)
+8. Формат B метрик (IRR, NPV, Sensitivity Analysis)
 
 ### 🟢 Nice-to-have
-10. Push-уведомления для секретаря
-11. К4 whitelist (инфраструктура готова)
-12. Миграция на российский LLM (DeepSeek/YandexGPT)
+9. К4 whitelist
+10. Миграция на российский LLM
+11. Автосинхронизация данных бот↔webapp
 
 ## ⚠️ ПРАВИЛА РАЗРАБОТКИ
 
