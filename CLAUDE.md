@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.9.5** (AI-driven portfolio + investment metrics + 3 scenarios)
+**v0.9.6** (Python portfolio + unified metrics + portfolio PDF)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -335,6 +335,7 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=<относительн�
 | v0.9.3 | PDF investment reports + strategy_data SSE fix |
 | v0.9.4 | Investment metrics (NOI, Cap Rate, CoC, Equity Multiple) |
 | v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
+| v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |
 
 ## Команды
 ```bash
@@ -364,24 +365,31 @@ curl -s http://127.0.0.1:8003/api/health
 curl -s http://127.0.0.1:8004/api/health
 ```
 
-## TODO (актуализировано 02.03.2026)
+## TODO (актуализировано 02.03.2026 part 4)
 
-### 🔴 Ближайшие — Фикс AI портфеля (4 проблемы)
-1. **AI не заполняет бюджет** — Сценарий 3 использует 51% бюджета вместо ≥90%. Python должен добирать лоты если AI заполнил <80%
-2. **Одинаковые лоты в сценарии 3** — К1 дубли по цене. AI selector должен диверсифицировать (разные корпуса/этажи)
-3. **Ценовая непоследовательность** — карточка показывает цену со скидкой, AI текст — без скидки. Нужно единообразие
-4. **Сценарий 1 — остаток 50% бюджета** — Если самый дорогой лот покрывает <70% бюджета — reasoning должен объяснить
+### 🔴 Этап 1 — Портфельный калькулятор (отдельный экран)
+1. Новый экран Portfolio.jsx — ввод бюджета → 3 сценария (Python, мгновенно)
+2. Перенос PortfolioReportCardV2, ScenarioCard, MetricCell из Chat.jsx
+3. Кнопка "Инвестиционный портфель" в главном меню (Home.jsx)
+4. PDF кнопка → /api/portfolio-pdf
+5. Убрать кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" из Chat.jsx
 
-### 🟡 Средний приоритет
-5. Портфельный PDF с 3 сценариями (проверить работоспособность)
-6. Тест лотового отчёта + PDF с метриками
-7. История чата (сохранение сессий)
-8. Формат B метрик (IRR, NPV, Sensitivity Analysis)
+### 🟡 Этап 2 — Инвестиционная сводка по лоту
+6. Новый экран/модалка LotSummary — ВСЕ калькуляторы на одной странице
+7. Метрики (NOI, Cap Rate, CoC, ROI) + МГП + Рассрочка + Ипотека + Депозит
+8. Кнопка в меню лота (LotDetail.jsx)
+9. PDF полной сводки
+
+### 🟢 Этап 3 — Чат-консьерж
+10. Добавить в system prompt: ДДУ (ddu.pdf), договор аренды (arenda.pdf), RIZALTA_KNOWLEDGE.md
+11. Статистика лотов в реальном времени (мин/макс цена, доступность по корпусам)
+12. Убрать stream_lot_report, stream_portfolio_report, report_card из чата
+13. Оставить: stream_chat_response + intent_router + навигация
 
 ### 🟢 Nice-to-have
-9. К4 whitelist
-10. Миграция на российский LLM
-11. Автосинхронизация данных бот↔webapp
+14. К4 whitelist
+15. Миграция на российский LLM
+16. Деплой v0.9.6 в PROD (после тестирования)
 
 ## ⚠️ ПРАВИЛА РАЗРАБОТКИ
 
@@ -475,3 +483,19 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **INVESTMENT_METHODOLOGY.md** — документация метрик
 - **Budget guard** — Python валидация бюджета после AI selection
 - **Коммиты:** 859c8a9, 4e17836, 8a8567d, 0e2a9e9, 0fb6b57, aa13085, b745a4f
+
+### Сессия 02.03.2026 part 4 (v0.9.5 → v0.9.6) — Python portfolio + UX
+- **AI selector удалён** — Python подбирает лоты для всех 3 сценариев (round-robin по корпусам)
+- **_scenario_premium:** гарантирует самый дорогой лот в бюджете
+- **_scenario_portfolio_full:** round-robin К1→К2→К3, сортировка ASC для максимума лотов
+- **_scenario_max_leverage:** round-robin, ПВ 30%, ежемесячные платежи
+- **GPT-5.2 fix:** max_tokens → max_completion_tokens
+- **Единые метрики:** NOI, Cap Rate, ROI, CoC во всех сценариях
+- **Human-readable labels:** "Чистый доход / год", "Доходность (Cap Rate)" и т.д.
+- **Monthly payments:** расчёт и отображение ежемесячных платежей в сценарии 3
+- **portfolio_pdf_generator.py:** новый PDF генератор в стиле чат-карточек
+- **POST /api/portfolio-pdf:** эндпоинт портфельного PDF
+- **Smart PDF routing:** Chat.jsx маршрутизирует lot→strategy-pdf, portfolio→portfolio-pdf
+- **Архитектурное решение:** чат → консьерж, портфель → отдельный экран, сводка лота → отдельный экран
+- **Удалено:** AI_PORTFOLIO_SELECTOR_PROMPT, select_portfolio_lots, _build_lots_table, _build_scenario_from_codes (-392 строки)
+- **Коммиты:** d11f485, 8f35c8d, 349dae9, 6171b9a, 9c619f4
