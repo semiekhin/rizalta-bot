@@ -33,9 +33,20 @@ function resolveNavigation(to, onNavigate) {
 const fmt = (v) => new Intl.NumberFormat('ru-RU').format(Math.round(v || 0))
 const BNAMES = { 1: 'Family', 2: 'Business', 3: 'Digital' }
 
+function MetricCell({ label, value, sub, highlight }) {
+  return (
+    <div className={`rounded-lg p-2 ${highlight ? 'bg-rz-gold/15' : 'bg-rz-green-mid/50'}`}>
+      <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">{label}</p>
+      <p className={`text-sm font-bold ${highlight ? 'text-rz-gold' : 'text-rz-cream'}`}>{value}</p>
+      {sub && <p className="text-[10px] text-rz-cream-muted">{sub}</p>}
+    </div>
+  )
+}
+
 function LotReportCard({ data }) {
   const lot = data.lot || {}
   const roi = data.roi || {}
+  const metrics = data.metrics || {}
   const inst = data.installment || {}
   const dep = data.deposit_comparison || {}
   const bname = BNAMES[lot.building_num] || ''
@@ -62,6 +73,17 @@ function LotReportCard({ data }) {
           </div>
         </div>
       </div>
+
+      {metrics.noi != null && (
+        <div className="grid grid-cols-3 gap-2">
+          <MetricCell label="NOI / год" value={`${fmt(metrics.noi)} \u20BD`} sub="стабилиз. 2030" highlight />
+          <MetricCell label="Cap Rate" value={`${metrics.cap_rate}%`} sub="NOI / цена" highlight />
+          <MetricCell label="ROI 11 лет" value={`${metrics.roi_pct}%`} sub={`~${metrics.avg_annual_pct}% / год`} />
+          <MetricCell label="CoC 100%" value={`${metrics.coc_full}%`} sub="скидка 5%" />
+          <MetricCell label="CoC 30%" value={`${metrics.coc_installment}%`} sub="рассрочка" />
+          <MetricCell label="Equity" value={`${metrics.equity_multiple_full}x`} sub={`рассрочка ${metrics.equity_multiple_installment}x`} />
+        </div>
+      )}
 
       <div className="bg-rz-success/15 rounded-xl p-3">
         <div className="flex justify-between items-center mb-2">
@@ -143,10 +165,33 @@ function PortfolioReportCard({ data }) {
   const sa = data.strategy_a || {}
   const sb = data.strategy_b || {}
   const roiMap = data.roi || {}
+  const metricsMap = data.metrics || {}
   const dep = data.deposit_comparison || {}
   const depBase = dep.base || {}
   const lotsA = sa.lots?.lots || []
   const lotsB = sb.lots?.lots || []
+
+  const LotRow = ({ lot, strategy }) => {
+    const r = roiMap[lot.code] || {}
+    const m = metricsMap[lot.code] || {}
+    return (
+      <div className="bg-rz-green-mid/50 rounded-lg p-2 text-sm">
+        <div className="flex justify-between items-center">
+          <div>
+            <span className="font-medium">{lot.code}</span>
+            <span className="text-rz-cream-muted text-xs ml-2">{lot.area_m2} м&sup2;</span>
+          </div>
+          <span className="text-rz-gold font-medium">{fmt(lot.price_rub)} &#8381;</span>
+        </div>
+        <div className="flex gap-3 mt-1 text-xs text-rz-cream-dark">
+          {r.roi_pct != null && <span className="text-rz-success">ROI {r.roi_pct.toFixed(0)}%</span>}
+          {m.cap_rate != null && <span>Cap {m.cap_rate}%</span>}
+          {strategy === 'a' && m.coc_full != null && <span>CoC {m.coc_full}%</span>}
+          {strategy === 'b' && m.coc_installment != null && <span>CoC {m.coc_installment}%</span>}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
@@ -159,21 +204,7 @@ function PortfolioReportCard({ data }) {
         <p className="text-sm font-bold text-rz-success mb-2">{sa.name || 'Стратегия A'}</p>
         {lotsA.length > 0 ? (
           <div className="space-y-1.5">
-            {lotsA.slice(0, 3).map(lot => {
-              const r = roiMap[lot.code] || {}
-              return (
-                <div key={lot.code} className="flex justify-between items-center bg-rz-green-mid/50 rounded-lg p-2 text-sm">
-                  <div>
-                    <span className="font-medium">{lot.code}</span>
-                    <span className="text-rz-cream-muted text-xs ml-2">{lot.area_m2} м&sup2;</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-rz-gold font-medium">{fmt(lot.price_rub)} &#8381;</span>
-                    {r.roi_pct != null && <span className="text-rz-success text-xs ml-2">ROI {r.roi_pct.toFixed(0)}%</span>}
-                  </div>
-                </div>
-              )
-            })}
+            {lotsA.slice(0, 3).map(lot => <LotRow key={lot.code} lot={lot} strategy="a" />)}
           </div>
         ) : (
           <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
@@ -185,21 +216,7 @@ function PortfolioReportCard({ data }) {
         <p className="text-xs text-rz-cream-muted mb-2">Макс. цена лота: {fmt(sb.max_lot_price)} &#8381;</p>
         {lotsB.length > 0 ? (
           <div className="space-y-1.5">
-            {lotsB.slice(0, 3).map(lot => {
-              const r = roiMap[lot.code] || {}
-              return (
-                <div key={lot.code} className="flex justify-between items-center bg-rz-green-mid/50 rounded-lg p-2 text-sm">
-                  <div>
-                    <span className="font-medium">{lot.code}</span>
-                    <span className="text-rz-cream-muted text-xs ml-2">{lot.area_m2} м&sup2;</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-rz-gold font-medium">{fmt(lot.price_rub)} &#8381;</span>
-                    {r.roi_pct != null && <span className="text-rz-success text-xs ml-2">ROI {r.roi_pct.toFixed(0)}%</span>}
-                  </div>
-                </div>
-              )
-            })}
+            {lotsB.slice(0, 3).map(lot => <LotRow key={lot.code} lot={lot} strategy="b" />)}
           </div>
         ) : (
           <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>

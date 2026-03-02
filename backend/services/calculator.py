@@ -86,3 +86,53 @@ def calculate_roi(area: float, price: int) -> Dict:
         "avg_annual_pct": round(avg_annual_pct, 1),
         "years": years_data,
     }
+
+
+def calculate_investment_metrics(area: float, price: int) -> Dict:
+    """Профессиональные инвестиционные метрики (NOI, Cap Rate, CoC, Equity Multiple).
+
+    Расчёт на стабилизированный год (2030): occupancy 70%, rate_m2 787.31.
+    """
+    roi = calculate_roi(area, price)
+
+    # Стабилизированный год 2030
+    rate_m2 = RATE_PER_M2[2030]        # 787.31
+    occupancy = OCCUPANCY[2030] / 100   # 0.70
+    days = DAYS_IN_YEAR[2030]           # 365
+
+    gross_income = days * rate_m2 * area * occupancy
+    noi = gross_income * (1 - EXPENSES_PCT)
+
+    # Cap Rate = NOI / Price
+    cap_rate = (noi / price * 100) if price > 0 else 0
+
+    # Cash-on-Cash: 100% оплата (скидка 5%)
+    invested_full = price * 0.95
+    coc_full = (noi / invested_full * 100) if invested_full > 0 else 0
+
+    # Cash-on-Cash: рассрочка 30% ПВ
+    invested_30 = price * 0.30
+    coc_installment = (noi / invested_30 * 100) if invested_30 > 0 else 0
+
+    # Equity Multiple = (final_value + total_rental) / invested
+    total_rental = roi["total_rental"]
+    final_value = roi["final_value"]
+    equity_full = ((final_value + total_rental) / invested_full) if invested_full > 0 else 0
+    equity_installment = ((final_value + total_rental) / price) if price > 0 else 0
+
+    return {
+        # Метрики
+        "noi": int(noi),
+        "cap_rate": round(cap_rate, 1),
+        "coc_full": round(coc_full, 1),
+        "coc_installment": round(coc_installment, 1),
+        "equity_multiple_full": round(equity_full, 2),
+        "equity_multiple_installment": round(equity_installment, 2),
+        # Базовые данные ROI
+        "roi_pct": roi["roi_pct"],
+        "avg_annual_pct": roi["avg_annual_pct"],
+        "total_rental": total_rental,
+        "total_growth": roi["total_growth"],
+        "final_value": final_value,
+        "gross_income": int(gross_income),
+    }

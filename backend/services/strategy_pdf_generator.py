@@ -16,7 +16,7 @@ import requests
 from pathlib import Path
 from datetime import datetime
 
-from services.calculator import calculate_roi
+from services.calculator import calculate_roi, calculate_investment_metrics
 from services.installment_calculator import calc_12m, calc_18m
 from services.deposit_calculator import calculate_all_scenarios
 from services.investment_compare import calculate_rizalta
@@ -174,17 +174,27 @@ def generate_strategy_pdf(data: dict) -> str | None:
     """Generate investment strategy PDF from AI chat analysis.
 
     Args:
-        data: dict with tools_used, results, user_query, response_text, lot_data
+        data: dict with tools_used, results, user_query, response_text, lot_data,
+              and optionally report_data (from report_builder).
 
     Returns: path to generated PDF or None
     """
-    report_type = _detect_report_type(data)
+    report_data = data.get("report_data")
 
     try:
-        if report_type == "lot":
+        if report_data and "strategy_a" in report_data:
+            # Portfolio from report_builder
+            html = _generate_portfolio_report_from_builder(report_data, data)
+        elif report_data and "lot" in report_data:
+            # Lot from report_builder (lot_data already set in data)
             html = _generate_lot_report(data)
         else:
-            html = _generate_portfolio_report(data)
+            # Legacy agentic loop path
+            report_type = _detect_report_type(data)
+            if report_type == "lot":
+                html = _generate_lot_report(data)
+            else:
+                html = _generate_portfolio_report(data)
 
         if not html:
             logger.error("[STRATEGY PDF] Failed to generate HTML")
@@ -220,6 +230,7 @@ def _generate_lot_report(data: dict) -> str | None:
 
     # Calculations
     roi = calculate_roi(area, price)
+    inv_metrics = calculate_investment_metrics(area, price)
     deposit_scenarios = calculate_all_scenarios(price, 11)
     dep_base = deposit_scenarios["base"]
     rizalta = calculate_rizalta(price, 11, area)
@@ -333,7 +344,40 @@ def _generate_lot_report(data: dict) -> str | None:
       </tr>
     </table>
 
-    <div class="disclaimer">Рост стоимости: +18-20%/год (стройка), +8.8-10%/год (после сдачи). Аренда с 2028.</div>
+    <div class="section-title" style="margin-top: 20px;">Инвестиционные метрики (стабилизированный 2030)</div>
+
+    <table class="metrics">
+      <tr>
+        <td class="metric">
+          <div class="metric-value">{fmt(inv_metrics['noi'])}</div>
+          <div class="metric-label">NOI / ГОД</div>
+        </td>
+        <td class="metric">
+          <div class="metric-value">{fmt_pct(inv_metrics['cap_rate'])}</div>
+          <div class="metric-label">CAP RATE</div>
+        </td>
+        <td class="metric">
+          <div class="metric-value">{fmt_pct(inv_metrics['coc_full'])}</div>
+          <div class="metric-label">CoC (100%)</div>
+        </td>
+        <td class="metric">
+          <div class="metric-value">{fmt_pct(inv_metrics['coc_installment'])}</div>
+          <div class="metric-label">CoC (30%)</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="metric" colspan="2">
+          <div class="metric-value">{inv_metrics['equity_multiple_full']}x</div>
+          <div class="metric-label">EQUITY MULTIPLE (100%)</div>
+        </td>
+        <td class="metric" colspan="2">
+          <div class="metric-value">{inv_metrics['equity_multiple_installment']}x</div>
+          <div class="metric-label">EQUITY MULTIPLE (РАССРОЧКА)</div>
+        </td>
+      </tr>
+    </table>
+
+    <div class="disclaimer">Рост стоимости: +18-20%/год (стройка), +8.8-10%/год (после сдачи). Аренда с 2028. NOI = Gross Income * (1 - 50% расходы).</div>
   </div>
 
   <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
@@ -720,6 +764,223 @@ def _generate_portfolio_report(data: dict) -> str | None:
 
     html += f"""
     <div class="section-title" style="margin-top: 25px;">RIZALTA vs Банковский депозит</div>
+
+    <table class="data-table">
+      <tr>
+        <th>Показатель</th>
+        <th style="text-align:right">Депозит (базовый)</th>
+        <th style="text-align:right">RIZALTA</th>
+        <th style="text-align:right">Разница</th>
+      </tr>
+      <tr>
+        <td>Вложено</td>
+        <td class="num">{fmt(budget)}</td>
+        <td class="num">{fmt(avg_price)}</td>
+        <td class="num">—</td>
+      </tr>
+      <tr>
+        <td>Доход (11 лет)</td>
+        <td class="num">{fmt(dep_base.total_net_interest)}</td>
+        <td class="num">{fmt(rizalta.total_profit)}</td>
+        <td class="num" style="color: #4a7c23; font-weight: 600;">+{fmt(advantage)}</td>
+      </tr>
+      <tr>
+        <td>Итоговый капитал</td>
+        <td class="num">{fmt(dep_base.final_balance)}</td>
+        <td class="num">{fmt(riz_total_capital)}</td>
+        <td class="num" style="color: #4a7c23; font-weight: 600;">+{fmt(riz_total_capital - dep_base.final_balance)}</td>
+      </tr>
+      <tr>
+        <td>ROI</td>
+        <td class="num">{fmt_pct(dep_base.total_roi_pct)}</td>
+        <td class="num">{fmt_pct(rizalta.total_roi_pct)}</td>
+        <td class="num" style="color: #4a7c23; font-weight: 600;">+{fmt_pct(rizalta.total_roi_pct - dep_base.total_roi_pct)}</td>
+      </tr>
+    </table>
+
+    <div class="gold-box">
+      <div class="gold-box-title">ПРЕИМУЩЕСТВО RIZALTA</div>
+      <div class="gold-box-value">+{fmt(advantage)}</div>
+      <div class="gold-box-sub">+{fmt_pct(advantage_pct)} к капиталу за 11 лет</div>
+    </div>
+
+    <div class="disclaimer">Депозит: прогноз ЦБ (ключевая 16.5% → 7%). Источник: cbr.ru</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+
+</body></html>"""
+
+    return html
+
+
+# ─── Portfolio report from report_builder ────────────────────────────────────
+
+def _generate_portfolio_report_from_builder(report_data: dict, data: dict) -> str | None:
+    """Generate portfolio PDF from report_builder data (not agentic loop)."""
+    user_query = _escape_html(data.get("user_query", ""))
+    date_str = datetime.now().strftime("%d.%m.%Y")
+    logo_b64 = load_resource("logo_mono_trim_base64.txt")
+
+    budget = report_data.get("budget", 0)
+    lots_a = report_data.get("strategy_a", {}).get("lots", {}).get("lots", [])
+    lots_b = report_data.get("strategy_b", {}).get("lots", {}).get("lots", [])
+    roi_map = report_data.get("roi", {})
+    metrics_map = report_data.get("metrics", {})
+
+    # Merge all unique lots
+    all_lots = []
+    seen = set()
+    for lot in lots_a + lots_b:
+        code = lot.get("code", "")
+        if code not in seen:
+            seen.add(code)
+            all_lots.append(lot)
+
+    if not all_lots:
+        logger.warning("[STRATEGY PDF] No lots in portfolio report_data")
+        return None
+
+    # Calculate ROI for each lot (use roi_map or calculate)
+    lot_rois = []
+    for lot in all_lots[:8]:
+        area = lot.get("area_m2", 26.8)
+        price = lot.get("price_rub", 0)
+        if price <= 0:
+            continue
+        code = lot.get("code", "")
+        roi_data = roi_map.get(code)
+        if roi_data:
+            roi = roi_data
+        else:
+            roi = calculate_roi(area, price)
+        metrics = metrics_map.get(code) or calculate_investment_metrics(area, price)
+        lot_rois.append({**lot, "roi": roi, "metrics": metrics})
+
+    lot_rois.sort(key=lambda x: x["roi"].get("roi_pct", 0), reverse=True)
+
+    # Deposit comparison
+    deposit_scenarios = calculate_all_scenarios(budget, 11)
+    dep_base = deposit_scenarios["base"]
+
+    avg_price = int(sum(lr.get("price_rub", 0) for lr in lot_rois) / len(lot_rois)) if lot_rois else budget
+    avg_area = sum(lr.get("area_m2", 26.8) for lr in lot_rois) / len(lot_rois) if lot_rois else 26.8
+    rizalta = calculate_rizalta(avg_price, 11, avg_area)
+    advantage = rizalta.total_profit - dep_base.total_net_interest
+    advantage_pct = (advantage / budget * 100) if budget > 0 else 0
+
+    css = _get_base_css()
+
+    # ── PAGE 1: Title ──
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>{css}</style></head><body>
+
+<div class="page">
+  <table class="header-table"><tr><td>
+    {"<img class='logo-header' src='data:image/png;base64," + logo_b64 + "'>" if logo_b64 else ""}
+  </td></tr></table>
+
+  <div class="title-bar">
+    <div class="title-left">Инвестиционная стратегия</div>
+    <div class="title-right">{date_str} &bull; AI Financial Advisor</div>
+    <div style="clear:both"></div>
+  </div>
+
+  <div class="content">
+    <div class="gold-box" style="margin-top: 40px;">
+      <div class="gold-box-title">БЮДЖЕТ ИНВЕСТОРА</div>
+      <div class="gold-box-value">{fmt(budget)}</div>
+    </div>
+
+    {f'<div style="margin-top: 30px; font-style: italic; color: rgba(49,61,32,0.6); font-size: 12px; border-left: 3px solid #DCB764; padding-left: 14px; line-height: 1.6;">Запрос: &laquo;{user_query}&raquo;</div>' if user_query else ''}
+
+    <div style="margin-top: 40px;">
+      <table class="data-table">
+        <tr>
+          <th style="text-align: center;">Лотов подобрано</th>
+          <th style="text-align: center;">Лучший ROI</th>
+          <th style="text-align: center;">Лучший Cap Rate</th>
+        </tr>
+        <tr>
+          <td style="text-align: center; font-size: 20px; font-weight: 600; padding: 18px;">{len(lot_rois)}</td>
+          <td style="text-align: center; font-size: 20px; font-weight: 600; padding: 18px; color: #4a7c23;">{fmt_pct(lot_rois[0]['roi'].get('roi_pct', 0)) if lot_rois else '—'}</td>
+          <td style="text-align: center; font-size: 20px; font-weight: 600; padding: 18px; color: #4a7c23;">{fmt_pct(max(lr['metrics'].get('cap_rate', 0) for lr in lot_rois)) if lot_rois else '—'}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="disclaimer">Расчёты носят прогнозный характер и не являются публичной офертой.</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+"""
+
+    # ── PAGE 2: Lots Table with metrics ──
+    lots_rows = ""
+    for lr in lot_rois:
+        bname = get_building_name(lr.get("building_num", 1)) if isinstance(lr.get("building_num"), int) else lr.get("building", "—")
+        m = lr.get("metrics", {})
+        lots_rows += f"""<tr>
+  <td style="font-weight: 600;">{lr.get('code', '')}</td>
+  <td>{bname}</td>
+  <td class="num">{lr.get('area_m2', '')} м²</td>
+  <td class="num">{fmt(lr.get('price_rub', 0))}</td>
+  <td class="num" style="color: #4a7c23; font-weight: 600;">{fmt_pct(lr['roi'].get('roi_pct', 0))}</td>
+  <td class="num">{fmt_pct(m.get('cap_rate', 0))}</td>
+  <td class="num">{fmt(m.get('noi', 0))}</td>
+</tr>
+"""
+
+    html += f"""
+<div class="page page-break">
+  <div class="content" style="padding-top: 35px;">
+    <div class="section-title">Подобранные апартаменты</div>
+
+    <table class="data-table">
+      <tr>
+        <th>Код</th>
+        <th>Корпус</th>
+        <th style="text-align:right">Площадь</th>
+        <th style="text-align:right">Цена</th>
+        <th style="text-align:right">ROI (11 лет)</th>
+        <th style="text-align:right">Cap Rate</th>
+        <th style="text-align:right">NOI / год</th>
+      </tr>
+      {lots_rows}
+    </table>
+"""
+
+    # Top-3 details with metrics
+    if lot_rois:
+        html += '<div class="section-title" style="margin-top: 25px;">Топ по доходности</div>'
+        for i, lr in enumerate(lot_rois[:3]):
+            roi = lr["roi"]
+            m = lr.get("metrics", {})
+            html += f"""
+    <div style="background: white; padding: 12px 16px; margin-bottom: 8px; {'border-left: 4px solid #DCB764;' if i == 0 else 'border-left: 4px solid rgba(49,61,32,0.2);'}">
+      <div style="font-weight: 600; font-size: 14px;">{lr.get('code', '')} — {fmt(lr.get('price_rub', 0))}</div>
+      <div style="font-size: 11px; margin-top: 4px; color: rgba(49,61,32,0.7);">
+        ROI {fmt_pct(roi.get('roi_pct', 0))} &bull; Cap Rate {fmt_pct(m.get('cap_rate', 0))} &bull; NOI {fmt(m.get('noi', 0))}/год &bull; CoC 100%: {fmt_pct(m.get('coc_full', 0))}
+      </div>
+    </div>"""
+
+    html += """
+    <div class="disclaimer">ROI включает рост стоимости и арендный доход за 11 лет (2025-2035). Cap Rate и NOI — стабилизированный 2030.</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+"""
+
+    # ── PAGE 3: RIZALTA vs Deposit ──
+    riz_total_capital = rizalta.final_value + rizalta.total_rental_profit
+
+    html += f"""
+<div class="page page-break">
+  <div class="content" style="padding-top: 35px;">
+    <div class="section-title">RIZALTA vs Банковский депозит</div>
 
     <table class="data-table">
       <tr>

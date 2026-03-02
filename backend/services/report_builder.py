@@ -11,6 +11,7 @@ from services.tool_definitions import (
 from services.installment_calculator import calc_12m, calc_18m, calc_full
 from services.deposit_calculator import calculate_all_scenarios
 from services.data_loader import load_finance
+from services.calculator import calculate_investment_metrics
 
 
 def slim_deposit(scenarios: dict) -> dict:
@@ -73,12 +74,16 @@ def build_lot_report_data(code: str, building: int | None = None) -> dict:
     deposit_raw = calculate_all_scenarios(price, years=11)
     deposit = slim_deposit(deposit_raw)
 
-    # 5. Финансовые параметры проекта
+    # 5. Инвестиционные метрики (NOI, Cap Rate, CoC, Equity Multiple)
+    metrics = calculate_investment_metrics(lot["area_m2"], price)
+
+    # 6. Финансовые параметры проекта
     finance = load_finance()
 
     return {
         "lot": lot,
         "roi": slim_roi(roi),
+        "metrics": metrics,
         "installment": installment,
         "deposit_comparison": deposit,
         "project": {
@@ -116,8 +121,9 @@ def build_portfolio_data(budget: int) -> dict:
     })
     lots_installment = json.loads(lots_installment_json)
 
-    # ROI для топ лотов (до 5 штук)
+    # ROI + метрики для топ лотов (до 5 штук)
     roi_results = {}
+    metrics_results = {}
     all_codes = set()
 
     for lot_list in [lots_full.get("lots", []), lots_installment.get("lots", [])]:
@@ -130,6 +136,9 @@ def build_portfolio_data(budget: int) -> dict:
                     "price": lot["price_rub"],
                 })
                 roi_results[code] = slim_roi(json.loads(roi_json))
+                metrics_results[code] = calculate_investment_metrics(
+                    lot["area_m2"], lot["price_rub"]
+                )
 
     # Депозит для сравнения (только итоги)
     deposit_raw = calculate_all_scenarios(budget, years=11)
@@ -149,6 +158,7 @@ def build_portfolio_data(budget: int) -> dict:
             "lots": lots_installment,
         },
         "roi": roi_results,
+        "metrics": metrics_results,
         "deposit_comparison": deposit,
         "installment_programs": finance.get("installment_programs", []),
         "project": {

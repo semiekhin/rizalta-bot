@@ -161,9 +161,49 @@ ADVISOR_INSTRUCTION = """
 """
 
 
-LOT_REPORT_PROMPT = """На основе данных по апартаменту напиши ТОЛЬКО рекомендацию: кому подходит этот лот и оптимальную стратегию покупки. 2-3 предложения, без цифр (они уже показаны в карточке). Термин "лот" или "апартамент", не "юнит". НЕ предлагай связаться с менеджером."""
+LOT_REPORT_PROMPT = """Ты — профессиональный инвестиционный аналитик RIZALTA Resort Belokurikha.
 
-PORTFOLIO_PROMPT = """На основе портфельного анализа напиши ТОЛЬКО рекомендацию: какая стратегия лучше и почему. 2-3 предложения, без цифр (они уже показаны в карточке). НЕ предлагай связаться с менеджером."""
+Напиши полноценный инвестиционный отчёт по апартаменту (400-600 слов). НЕ используй # заголовки, используй **жирный текст** для разделов.
+
+Структура отчёта:
+
+**Инвестиционный профиль** — кратко о лоте (площадь, этаж, корпус, ценовая категория)
+
+**Ключевые инвестиционные метрики (2030)** — NOI: {noi} ₽/год, Cap Rate: {cap_rate}%, Cash-on-Cash при 100% оплате: {coc_full}%, Cash-on-Cash при рассрочке 30%: {coc_installment}%. Объясни значение этих метрик для инвестора.
+
+**Доходность за 11 лет** — ROI {roi_pct}%, среднегодовая {avg_annual}%. Структура дохода: аренда vs капитализация. Когда окупается вложение.
+
+**Сценарии входа** — 100% оплата (скидка 5%), рассрочка 12 мес (0%), рассрочка 18 мес (+9%). Equity Multiple для каждого варианта: {equity_multiple}x. Какой вариант оптимален.
+
+**Стратегия покупки** — для какого профиля инвестора подходит: консервативный, сбалансированный, агрессивный. Рекомендуемый сценарий.
+
+**Риски и ограничения** — строительный риск (до сдачи {completion}), ликвидность, зависимость от загрузки.
+
+**Вывод** — итоговая рекомендация в 2-3 предложениях.
+
+Используй термин "апартамент" или "лот", НИКОГДА "юнит". НЕ предлагай связаться с менеджером. Пиши для риэлтора, который покажет этот отчёт клиенту."""
+
+PORTFOLIO_PROMPT = """Ты — профессиональный инвестиционный аналитик RIZALTA Resort Belokurikha.
+
+Напиши полноценный портфельный анализ для бюджета {budget} ₽ (500-800 слов). НЕ используй # заголовки, используй **жирный текст** для разделов.
+
+Структура:
+
+**Профиль клиента** — бюджет, возможности (100% оплата vs рассрочка), инвестиционный горизонт 11 лет.
+
+**Стратегия A: 100% оплата** — какие лоты доступны, скидка 5%, мгновенный доход от аренды. Cap Rate и Cash-on-Cash лучших вариантов.
+
+**Стратегия B: Рассрочка 30%** — какие лоты доступны при ПВ = бюджет, больший выбор, финансовый рычаг. Cash-on-Cash при рассрочке.
+
+**Сравнительная таблица стратегий** — кратко: преимущества и недостатки каждой.
+
+**Сценарии доходности** — базовый (60% загрузка), оптимистичный (70%), консервативный (50%). Как меняется доходность.
+
+**RIZALTA vs Депозит** — сравни доходность RIZALTA с банковским вкладом на те же 11 лет. Где выше доходность, где выше риски.
+
+**Рекомендация** — оптимальная стратегия для этого бюджета, обоснование.
+
+Используй термин "апартамент" или "лот", НИКОГДА "юнит". НЕ предлагай связаться с менеджером. Пиши для риэлтора, который покажет этот анализ клиенту."""
 
 
 def format_lot_summary(data: dict) -> str:
@@ -235,6 +275,18 @@ def format_lot_summary(data: dict) -> str:
         final_18 = i18.get("final_price_30", 0)
         lines.append(f"Рассрочка 18 мес (+9%): ПВ 30% = {fmt(i18.get('pv_30', 0))} ₽, платёж {fmt(i18.get('monthly_30', 0))} ₽/мес, итого {fmt(final_18)} ₽ (переплата {fmt(markup)} ₽)")
 
+    # Investment metrics (2030)
+    metrics = data.get("metrics", {})
+    if metrics:
+        lines.append("")
+        lines.append("ИНВЕСТИЦИОННЫЕ МЕТРИКИ (стабилизированный 2030):")
+        lines.append(f"NOI: {fmt(metrics.get('noi', 0))} ₽/год")
+        lines.append(f"Cap Rate: {metrics.get('cap_rate', 0):.1f}%")
+        lines.append(f"Cash-on-Cash (100% оплата): {metrics.get('coc_full', 0):.1f}%")
+        lines.append(f"Cash-on-Cash (рассрочка 30%): {metrics.get('coc_installment', 0):.1f}%")
+        lines.append(f"Equity Multiple (100%): {metrics.get('equity_multiple_full', 0):.2f}x")
+        lines.append(f"Equity Multiple (рассрочка): {metrics.get('equity_multiple_installment', 0):.2f}x")
+
     lines.append("")
     lines.append("СРАВНЕНИЕ С ДЕПОЗИТОМ (та же сумма на вкладе, 11 лет):")
     if dep_base:
@@ -257,6 +309,8 @@ def format_portfolio_summary(data: dict, budget: int) -> str:
     lines = [f"БЮДЖЕТ КЛИЕНТА: {fmt(budget)} ₽", ""]
 
     # Стратегия A
+    metrics_map = data.get("metrics", {})
+
     sa = data.get("strategy_a", {})
     lots_a = sa.get("lots", {}).get("lots", [])
     lines.append(f"СТРАТЕГИЯ A: {sa.get('name', '100% оплата')}")
@@ -267,7 +321,10 @@ def format_portfolio_summary(data: dict, budget: int) -> str:
             price = lot.get("price_rub", 0)
             roi_data = data.get("roi", {}).get(code, {})
             roi_pct = roi_data.get("roi_pct", 0)
-            lines.append(f"  {code}: {area} м², {fmt(price)} ₽, ROI {roi_pct:.0f}%")
+            m = metrics_map.get(code, {})
+            cap = m.get("cap_rate", 0)
+            coc = m.get("coc_full", 0)
+            lines.append(f"  {code}: {area} м², {fmt(price)} ₽, ROI {roi_pct:.0f}%, Cap Rate {cap:.1f}%, CoC {coc:.1f}%")
     else:
         lines.append("  Нет подходящих лотов в этом бюджете")
 
@@ -285,7 +342,10 @@ def format_portfolio_summary(data: dict, budget: int) -> str:
             price = lot.get("price_rub", 0)
             roi_data = data.get("roi", {}).get(code, {})
             roi_pct = roi_data.get("roi_pct", 0)
-            lines.append(f"  {code}: {area} м², {fmt(price)} ₽, ROI {roi_pct:.0f}%")
+            m = metrics_map.get(code, {})
+            cap = m.get("cap_rate", 0)
+            coc = m.get("coc_installment", 0)
+            lines.append(f"  {code}: {area} м², {fmt(price)} ₽, ROI {roi_pct:.0f}%, Cap Rate {cap:.1f}%, CoC 30% {coc:.1f}%")
     else:
         lines.append("  Нет подходящих лотов")
 
@@ -335,13 +395,24 @@ def stream_lot_report(code: str, building: int | None = None):
     # Шаг 2: отправить данные в карточку (мгновенно)
     yield f'data: {json.dumps({"type": "report_card", "card_type": "lot_report", "data": data}, ensure_ascii=False, default=str)}\n\n'
 
-    # Шаг 3: AI пишет только рекомендацию
-    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую рекомендацию..."}, ensure_ascii=False)}\n\n'
+    # Шаг 3: AI пишет полноценный инвестиционный анализ
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую инвестиционный анализ..."}, ensure_ascii=False)}\n\n'
 
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
     summary = format_lot_summary(data)
-    prompt = LOT_REPORT_PROMPT + "\n\nСВОДКА:\n" + summary
+    metrics = data.get("metrics", {})
+    proj = data.get("project", {})
+    prompt = LOT_REPORT_PROMPT.format(
+        noi=f"{metrics.get('noi', 0):,}".replace(",", " "),
+        cap_rate=metrics.get("cap_rate", 0),
+        coc_full=metrics.get("coc_full", 0),
+        coc_installment=metrics.get("coc_installment", 0),
+        equity_multiple=metrics.get("equity_multiple_full", 0),
+        roi_pct=metrics.get("roi_pct", 0),
+        avg_annual=metrics.get("avg_annual_pct", 0),
+        completion=proj.get("completion", 2027),
+    ) + "\n\nСВОДКА:\n" + summary
 
     try:
         client = get_client()
@@ -350,7 +421,7 @@ def stream_lot_report(code: str, building: int | None = None):
             instructions="Ты финансовый аналитик RIZALTA.",
             input=[{"role": "user", "content": prompt}],
             reasoning={"effort": "low"},
-            max_output_tokens=500,
+            max_output_tokens=4000,
             stream=True,
         )
 
@@ -402,12 +473,12 @@ def stream_portfolio_report(budget: int):
     # Отправить данные в карточку
     yield f'data: {json.dumps({"type": "report_card", "card_type": "portfolio_report", "data": data}, ensure_ascii=False, default=str)}\n\n'
 
-    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую рекомендацию..."}, ensure_ascii=False)}\n\n'
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую портфельный анализ..."}, ensure_ascii=False)}\n\n'
 
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
     summary = format_portfolio_summary(data, budget)
-    prompt = PORTFOLIO_PROMPT + "\n\nСВОДКА:\n" + summary
+    prompt = PORTFOLIO_PROMPT.format(budget=budget_fmt) + "\n\nСВОДКА:\n" + summary
 
     try:
         client = get_client()
@@ -416,7 +487,7 @@ def stream_portfolio_report(budget: int):
             instructions="Ты финансовый аналитик RIZALTA.",
             input=[{"role": "user", "content": prompt}],
             reasoning={"effort": "low"},
-            max_output_tokens=500,
+            max_output_tokens=4000,
             stream=True,
         )
 
