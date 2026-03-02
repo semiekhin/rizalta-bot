@@ -507,7 +507,32 @@ def _build_scenario_from_codes(
     payment_type: "premium" | "full" | "installment"
     """
     lot_map = {l["code"]: l for l in lots_enriched}
-    selected = [lot_map[c] for c in codes if c in lot_map]
+
+    # Budget-guarded selection: take lots in AI order while they fit
+    if payment_type in ("premium", "full"):
+        selected = []
+        spent = 0
+        for c in codes:
+            lot = lot_map.get(c)
+            if not lot:
+                continue
+            cost = int(lot["price_rub"] * 0.95)
+            if spent + cost <= budget:
+                selected.append(lot)
+                spent += cost
+                if payment_type == "premium":
+                    break  # only 1 lot
+    else:  # installment
+        selected = []
+        spent = 0
+        for c in codes:
+            lot = lot_map.get(c)
+            if not lot:
+                continue
+            cost = int(lot["price_rub"] * 0.30)
+            if spent + cost <= budget:
+                selected.append(lot)
+                spent += cost
 
     if not selected:
         return None
