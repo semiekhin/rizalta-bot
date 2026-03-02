@@ -194,6 +194,30 @@ def _load_all_available_lots() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def _enrich_lots(lots: list[dict]) -> list[dict]:
+    """Pre-compute ROI + metrics once for all lots. 1 ROI call per lot (not 3×N)."""
+    enriched = []
+    for lot in lots:
+        area = lot["area_m2"]
+        price = lot["price_rub"]
+        roi = calculate_roi(area, price)
+        metrics = calculate_investment_metrics(area, price)
+        enriched.append({
+            **lot,
+            "_metrics": metrics,  # kept for premium card, not serialized to SSE lots
+            "roi_pct": roi["roi_pct"],
+            "total_profit": roi["total_rental"] + roi["total_growth"],
+            "total_rental": roi["total_rental"],
+            "total_growth": roi["total_growth"],
+            "final_value": roi["final_value"],
+            "noi": metrics["noi"],
+            "cap_rate": metrics["cap_rate"],
+            "coc_full": metrics["coc_full"],
+            "coc_installment": metrics["coc_installment"],
+        })
+    return enriched
+
+
 def _scenario_premium(lots: list[dict], budget: int) -> dict:
     """Scenario 1: One premium lot, 100% payment with 5% discount."""
     max_price = budget / 0.95
@@ -207,21 +231,17 @@ def _scenario_premium(lots: list[dict], budget: int) -> dict:
     discounted = int(price * 0.95)
     remaining = budget - discounted
 
-    roi = calculate_roi(lot["area_m2"], price)
-    metrics = calculate_investment_metrics(lot["area_m2"], price)
-    total_profit = roi["total_rental"] + roi["total_growth"]
-
     return {
         "name": "Один премиальный лот (100%)",
         "lot": lot,
         "discounted_price": discounted,
         "remaining_cash": remaining,
-        "metrics": metrics,
-        "roi_pct": roi["roi_pct"],
-        "total_profit": total_profit,
-        "total_rental": roi["total_rental"],
-        "total_growth": roi["total_growth"],
-        "final_value": roi["final_value"],
+        "metrics": lot["_metrics"],
+        "roi_pct": lot["roi_pct"],
+        "total_profit": lot["total_profit"],
+        "total_rental": lot["total_rental"],
+        "total_growth": lot["total_growth"],
+        "final_value": lot["final_value"],
     }
 
 
@@ -231,20 +251,7 @@ def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
     for lot in lots:
         dp = int(lot["price_rub"] * 0.95)
         if dp <= budget:
-            roi = calculate_roi(lot["area_m2"], lot["price_rub"])
-            metrics = calculate_investment_metrics(lot["area_m2"], lot["price_rub"])
-            candidates.append({
-                **lot,
-                "discounted_price": dp,
-                "roi_pct": roi["roi_pct"],
-                "total_profit": roi["total_rental"] + roi["total_growth"],
-                "total_rental": roi["total_rental"],
-                "total_growth": roi["total_growth"],
-                "final_value": roi["final_value"],
-                "noi": metrics["noi"],
-                "cap_rate": metrics["cap_rate"],
-                "coc_full": metrics["coc_full"],
-            })
+            candidates.append({**lot, "discounted_price": dp})
 
     # Sort by price ASC — pack cheapest first for max lot count (diversification)
     candidates.sort(key=lambda x: x["discounted_price"])
@@ -286,21 +293,11 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
             remaining = int(base * 0.70)
             markup = int(remaining * MARKUP_18M_30_PCT)
 
-            roi = calculate_roi(lot["area_m2"], price)
-            metrics = calculate_investment_metrics(lot["area_m2"], price)
-
             selected.append({
                 **lot,
                 "down_payment": dp,
                 "markup": markup,
                 "total_cost": price + markup,
-                "roi_pct": roi["roi_pct"],
-                "total_profit": roi["total_rental"] + roi["total_growth"],
-                "total_rental": roi["total_rental"],
-                "total_growth": roi["total_growth"],
-                "final_value": roi["final_value"],
-                "noi": metrics["noi"],
-                "coc_installment": metrics["coc_installment"],
             })
             spent += dp
 
@@ -331,7 +328,7 @@ def _scenario_max_leverage(lots: list[dict], budget: int) -> dict:
 
 def build_portfolio_data_v2(budget: int) -> dict:
     """Build data for 3-scenario portfolio analysis (v2)."""
-    lots = _load_all_available_lots()
+    lots = _enrich_lots(_load_all_available_lots())
 
     s_premium = _scenario_premium(lots, budget)
     s_portfolio = _scenario_portfolio_full(lots, budget)
