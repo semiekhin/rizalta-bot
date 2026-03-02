@@ -229,6 +229,115 @@ PORTFOLIO_PROMPT_V2 = """Ты — профессиональный инвест�
 Используй термин "апартамент" или "лот", НИКОГДА "юнит". НЕ предлагай связаться с менеджером. Пиши для риэлтора, который покажет этот анализ клиенту."""
 
 
+# ---------------------------------------------------------------------------
+# Level 3: AI-driven portfolio selection
+# ---------------------------------------------------------------------------
+
+AI_PORTFOLIO_SELECTOR_PROMPT = """Ты — инвестиционный аналитик RIZALTA Resort Belokurikha.
+
+Клиент хочет инвестировать {budget} ₽. Подбери 3 инвестиционных сценария.
+
+{lots_table}
+
+## Правила подбора:
+
+### Сценарий 1 — «Один премиальный лот» (100% оплата, скидка 5%)
+- Один лот, максимально дорогой в пределах бюджета (бюджет / 0.95 = макс. цена)
+- Предпочитай: большую площадь, высокий этаж, корпус 1 (Family) или 2 (Business)
+
+### Сценарий 2 — «Портфель 100%» (несколько лотов, 100% оплата)
+- Набери максимум лотов за 100% оплату (цена × 0.95 за каждый)
+- ОБЯЗАТЕЛЬНО: разные корпуса, разные этажи, разная площадь
+- НЕ БЕРИ 2+ лота с одинаковой площадью и ценой
+- Заполни бюджет: остаток < 10% бюджета
+- Если не влезает больше 1 лота — возьми 1, но отличный от Сценария 1
+
+### Сценарий 3 — «Максимальное плечо» (рассрочка, ПВ 30%)
+- Бюджет = сумма первоначальных взносов (30% от цены каждого лота)
+- Максимизируй количество лотов
+- ОБЯЗАТЕЛЬНО: разные корпуса/этажи/площади (диверсификация)
+- Переплата по рассрочке 18 мес: 9% от (цена - 150000) × 0.70
+
+## Формат ответа — СТРОГО JSON, ничего кроме JSON:
+
+{{
+  "scenario_1": {{
+    "lots": ["КОД"],
+    "reasoning": "Почему выбран именно этот лот (1-2 предложения)"
+  }},
+  "scenario_2": {{
+    "lots": ["КОД1", "КОД2"],
+    "reasoning": "Логика подбора (1-2 предложения)"
+  }},
+  "scenario_3": {{
+    "lots": ["КОД1", "КОД2", "КОД3"],
+    "reasoning": "Логика подбора (1-2 предложения)"
+  }}
+}}
+"""
+
+
+PORTFOLIO_PROMPT_V3 = """Ты — профессиональный инвестиционный аналитик RIZALTA Resort Belokurikha.
+
+AI-аналитик подобрал оптимальные лоты для бюджета {budget} ₽ по 3 сценариям. Напиши инвестиционную стратегию (500-800 слов). НЕ используй # заголовки, используй **жирный текст** для разделов. НЕ используй markdown таблицы с |---|.
+
+Структура:
+
+**Инвестиционный профиль** — бюджет клиента, горизонт 11 лет, три стратегии от консервативной до агрессивной.
+
+**Сценарий 1: Один премиальный лот** — описание лота, ПОЧЕМУ выбран именно этот лот (используй reasoning из данных). Скидка 5% при полной оплате, NOI и Cap Rate, ROI за 11 лет. Плюсы: простота управления. Минусы: весь капитал в одном активе.
+
+**Сценарий 2: Портфель 100% оплата** — какие лоты выбраны и ПОЧЕМУ именно эти (используй reasoning). Диверсификация по корпусам/этажам. Средний ROI, суммарный NOI. Плюсы: разнообразие активов. Минусы: меньшие лоты.
+
+**Сценарий 3: Максимальное плечо (рассрочка)** — сколько лотов при 30% ПВ, ПОЧЕМУ выбраны эти (reasoning). Финансовый рычаг, суммарный портфель, переплата по рассрочке, чистая прибыль. Плюсы: максимум активов, высокий CoC. Минусы: обязательства по рассрочке.
+
+**Сравнение сценариев** — кратко: вложено, количество лотов, суммарный NOI, прибыль за 11 лет, выгода vs депозит.
+
+**RIZALTA vs Депозит** — депозит на 11 лет для сравнения. Преимущество лучшего сценария.
+
+**Рекомендация** — для какого профиля инвестора оптимален каждый: консервативный (1), сбалансированный (2), агрессивный (3).
+
+Используй термин "апартамент" или "лот", НИКОГДА "юнит". НЕ предлагай связаться с менеджером. Пиши для риэлтора, который покажет этот анализ клиенту."""
+
+
+def select_portfolio_lots(budget: int, lots_table: str) -> dict | None:
+    """AI selector: gpt-4o-mini picks lots for 3 scenarios.
+
+    Returns parsed JSON with scenario_1/2/3 (lots + reasoning) or None on error.
+    """
+    client = get_client()
+
+    prompt = AI_PORTFOLIO_SELECTOR_PROMPT.format(
+        budget=f"{budget:,}",
+        lots_table=lots_table,
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Ты инвестиционный аналитик. Отвечай ТОЛЬКО JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=500,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+
+        result = json.loads(response.choices[0].message.content)
+
+        # Basic validation: must have at least one scenario with lots
+        if not any(result.get(f"scenario_{i}", {}).get("lots") for i in (1, 2, 3)):
+            logger.warning("[AI SELECTOR] No scenarios with lots in response")
+            return None
+
+        return result
+
+    except Exception as e:
+        logger.error(f"[AI SELECTOR] Error: {e}")
+        return None
+
+
 def format_lot_summary(data: dict) -> str:
     """Превращает JSON report_builder в читаемую сводку для AI."""
     lot = data["lot"]
@@ -452,6 +561,77 @@ def format_portfolio_summary_v2(data: dict, budget: int) -> str:
     return "\n".join(lines)
 
 
+def format_portfolio_summary_v3(data: dict, budget: int) -> str:
+    """Text summary for v3 portfolio report (3 scenarios + AI reasoning)."""
+    def fmt(v):
+        return f"{int(round(v)):,}".replace(",", " ")
+
+    lines = [f"БЮДЖЕТ КЛИЕНТА: {fmt(budget)} ₽", ""]
+
+    # Scenario 1: Premium
+    sp = data.get("scenario_premium", {})
+    lines.append(f"СЦЕНАРИЙ 1: {sp.get('name', 'Премиальный лот')}")
+    if sp.get("reasoning"):
+        lines.append(f"  AI reasoning: {sp['reasoning']}")
+    lot = sp.get("lot")
+    if lot:
+        lines.append(f"  Лот: {lot['code']}, К{lot.get('building', '?')}, {lot['area_m2']} м², этаж {lot.get('floor', '?')}")
+        lines.append(f"  Цена: {fmt(lot['price_rub'])} ₽, со скидкой 5%: {fmt(sp.get('discounted_price', 0))} ₽")
+        lines.append(f"  Остаток: {fmt(sp.get('remaining_cash', 0))} ₽")
+        m = sp.get("metrics", {})
+        lines.append(f"  NOI: {fmt(m.get('noi', 0))} ₽/год, Cap Rate: {m.get('cap_rate', 0):.1f}%, CoC: {m.get('coc_full', 0):.1f}%")
+        lines.append(f"  ROI 11 лет: {sp.get('roi_pct', 0):.1f}%, прибыль: {fmt(sp.get('total_profit', 0))} ₽")
+        lines.append(f"  vs депозит: +{fmt(sp.get('vs_deposit', 0))} ₽")
+    else:
+        lines.append("  Нет подходящих лотов")
+    lines.append("")
+
+    # Scenario 2: Portfolio 100%
+    sf = data.get("scenario_portfolio", {})
+    lines.append(f"СЦЕНАРИЙ 2: {sf.get('name', 'Портфель 100%')}")
+    if sf.get("reasoning"):
+        lines.append(f"  AI reasoning: {sf['reasoning']}")
+    lots_f = sf.get("lots", [])
+    if lots_f:
+        lines.append(f"  Лотов: {sf.get('lot_count', 0)}, вложено: {fmt(sf.get('total_invested', 0))} ₽")
+        for l in lots_f[:5]:
+            lines.append(f"    {l['code']} К{l.get('building', '?')} эт.{l.get('floor', '?')}: {l['area_m2']} м², {fmt(l['price_rub'])} ₽, ROI {l['roi_pct']:.0f}%")
+        lines.append(f"  Суммарный NOI: {fmt(sf.get('total_noi', 0))} ₽/год")
+        lines.append(f"  Суммарная прибыль: {fmt(sf.get('total_profit', 0))} ₽, средний ROI: {sf.get('avg_roi_pct', 0):.1f}%")
+        lines.append(f"  vs депозит: +{fmt(sf.get('vs_deposit', 0))} ₽")
+    else:
+        lines.append("  Нет подходящих лотов")
+    lines.append("")
+
+    # Scenario 3: Max leverage
+    sl = data.get("scenario_leverage", {})
+    lines.append(f"СЦЕНАРИЙ 3: {sl.get('name', 'Максимальное плечо')}")
+    if sl.get("reasoning"):
+        lines.append(f"  AI reasoning: {sl['reasoning']}")
+    lots_l = sl.get("lots", [])
+    if lots_l:
+        lines.append(f"  Лотов: {sl.get('lot_count', 0)}, ПВ всего: {fmt(sl.get('total_down_payment', 0))} ₽")
+        lines.append(f"  Стоимость портфеля: {fmt(sl.get('total_portfolio_value', 0))} ₽")
+        for l in lots_l[:5]:
+            lines.append(f"    {l['code']} К{l.get('building', '?')} эт.{l.get('floor', '?')}: {fmt(l['price_rub'])} ₽, ПВ {fmt(l['down_payment'])} ₽, CoC {l['coc_installment']:.1f}%")
+        lines.append(f"  Переплата рассрочка: {fmt(sl.get('total_markup', 0))} ₽")
+        lines.append(f"  Суммарный NOI: {fmt(sl.get('total_noi', 0))} ₽/год")
+        lines.append(f"  Чистая прибыль: {fmt(sl.get('net_profit', 0))} ₽")
+        lines.append(f"  vs депозит: +{fmt(sl.get('vs_deposit', 0))} ₽")
+    else:
+        lines.append("  Нет подходящих лотов")
+    lines.append("")
+
+    # Deposit
+    dep = data.get("deposit_comparison", {})
+    dep_base = dep.get("base", {})
+    if dep_base:
+        lines.append("ДЕПОЗИТ ДЛЯ СРАВНЕНИЯ:")
+        lines.append(f"  {fmt(budget)} ₽ на вкладе 11 лет → проценты {fmt(dep_base.get('total_net_interest', 0))} ₽, ROI {dep_base.get('total_roi_pct', 0):.0f}%")
+
+    return "\n".join(lines)
+
+
 def stream_lot_report(code: str, building: int | None = None):
     """Быстрый фин. отчёт по лоту: 1 JSON → 1 вызов AI."""
     from services.report_builder import build_lot_report_data
@@ -544,29 +724,129 @@ def stream_lot_report(code: str, building: int | None = None):
 
 
 def stream_portfolio_report(budget: int):
-    """Портфельный анализ v2: 3 сценария → 1 вызов AI."""
-    from services.report_builder import build_portfolio_data_v2
+    """Level 3: AI selects lots → Python computes math → AI writes analysis.
 
-    yield f'data: {json.dumps({"type": "thinking", "tool": "report_builder", "label": "Подбираю лоты и считаю 3 сценария..."}, ensure_ascii=False)}\n\n'
+    4 steps:
+    1. Build data context (lots + metrics, 0 AI)
+    2. AI selector (gpt-4o-mini) picks lots for 3 scenarios
+    3. Python computes exact scenario math from selected codes
+    4. AI analyst (gpt-5.2) writes investment strategy (streaming)
 
-    try:
-        data = build_portfolio_data_v2(budget)
-    except Exception as e:
-        logger.error(f"[PORTFOLIO] Data build error: {e}")
-        yield f'data: {json.dumps({"type": "error", "content": "Ошибка сбора данных для портфеля"}, ensure_ascii=False)}\n\n'
-        return
+    Fallback: if AI selector fails → algorithmic v2 (build_portfolio_data_v2).
+    """
+    from services.report_builder import (
+        build_portfolio_ai_context,
+        build_portfolio_data_v2,
+        _build_scenario_from_codes,
+    )
+    from services.data_loader import load_finance
 
     budget_fmt = f"{budget:,}".replace(",", " ")
 
-    # Отправить данные в карточку (v2)
+    # ── Step 1: Build data context (instant, 0 AI tokens) ──
+    yield f'data: {json.dumps({"type": "thinking", "tool": "report_builder", "label": "Загружаю данные лотов..."}, ensure_ascii=False)}\n\n'
+
+    try:
+        context = build_portfolio_ai_context(budget)
+    except Exception as e:
+        logger.error(f"[PORTFOLIO] Context build error: {e}")
+        yield f'data: {json.dumps({"type": "error", "content": "Ошибка сбора данных для портфеля"}, ensure_ascii=False)}\n\n'
+        return
+
+    if not context["lots_enriched"]:
+        yield f'data: {json.dumps({"type": "token", "content": "К сожалению, нет доступных лотов для данного бюджета."}, ensure_ascii=False)}\n\n'
+        yield f'data: {json.dumps({"type": "done"})}\n\n'
+        return
+
+    # ── Step 2: AI selector (gpt-4o-mini, ~2 sec) ──
+    yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "AI подбирает оптимальные сценарии..."}, ensure_ascii=False)}\n\n'
+
+    selection = select_portfolio_lots(budget, context["lots_table"])
+
+    if not selection:
+        # FALLBACK: use algorithmic v2
+        logger.warning("[PORTFOLIO] AI selector failed, using algorithmic fallback")
+        yield f'data: {json.dumps({"type": "thinking", "tool": "report_builder", "label": "Подбираю лоты алгоритмически..."}, ensure_ascii=False)}\n\n'
+        try:
+            data = build_portfolio_data_v2(budget)
+        except Exception as e:
+            logger.error(f"[PORTFOLIO] Fallback error: {e}")
+            yield f'data: {json.dumps({"type": "error", "content": "Ошибка сбора данных для портфеля"}, ensure_ascii=False)}\n\n'
+            return
+
+        yield f'data: {json.dumps({"type": "report_card", "card_type": "portfolio_report_v2", "data": data}, ensure_ascii=False, default=str)}\n\n'
+        yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую портфельный анализ..."}, ensure_ascii=False)}\n\n'
+
+        summary = format_portfolio_summary_v2(data, budget)
+        prompt = PORTFOLIO_PROMPT_V2.format(budget=budget_fmt) + "\n\nСВОДКА:\n" + summary
+        yield from _stream_analyst(prompt, data, budget_fmt)
+        return
+
+    # ── Step 3: Python computes scenario math (instant, 0 AI tokens) ──
+    yield f'data: {json.dumps({"type": "thinking", "tool": "report_builder", "label": "Рассчитываю метрики..."}, ensure_ascii=False)}\n\n'
+
+    lots_enriched = context["lots_enriched"]
+    valid_codes = {l["code"] for l in lots_enriched}
+
+    scenario_configs = [
+        ("scenario_1", "premium", "scenario_premium"),
+        ("scenario_2", "full", "scenario_portfolio"),
+        ("scenario_3", "installment", "scenario_leverage"),
+    ]
+
+    scenarios = {}
+    for ai_key, payment_type, data_key in scenario_configs:
+        ai_scenario = selection.get(ai_key, {})
+        codes = [c for c in ai_scenario.get("lots", []) if c in valid_codes]
+        reasoning = ai_scenario.get("reasoning", "")
+
+        if codes:
+            result = _build_scenario_from_codes(lots_enriched, codes, budget, payment_type)
+            if result:
+                result["reasoning"] = reasoning
+                scenarios[data_key] = result
+                continue
+
+        # Empty scenario
+        scenarios[data_key] = {"name": "", "error": "no_lots", "reasoning": reasoning}
+
+    # Deposit comparison + vs_deposit
+    deposit = context["deposit_raw"]
+    dep_base_interest = deposit.get("base", {}).get("total_net_interest", 0) or 0
+
+    for key in scenarios:
+        s = scenarios[key]
+        profit = s.get("total_profit", 0) or 0
+        s["vs_deposit"] = profit - dep_base_interest
+
+    finance = load_finance()
+    data = {
+        "budget": budget,
+        "version": 2,
+        "scenario_premium": scenarios.get("scenario_premium", {}),
+        "scenario_portfolio": scenarios.get("scenario_portfolio", {}),
+        "scenario_leverage": scenarios.get("scenario_leverage", {}),
+        "deposit_comparison": deposit,
+        "project": {
+            "name": finance.get("project", "RIZALTA Resort Belokurikha"),
+            "completion": finance.get("completion_year", 2027),
+        },
+    }
+
+    # Send report card
     yield f'data: {json.dumps({"type": "report_card", "card_type": "portfolio_report_v2", "data": data}, ensure_ascii=False, default=str)}\n\n'
 
+    # ── Step 4: AI analyst (gpt-5.2, streaming) ──
     yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую портфельный анализ..."}, ensure_ascii=False)}\n\n'
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+    summary = format_portfolio_summary_v3(data, budget)
+    prompt = PORTFOLIO_PROMPT_V3.format(budget=budget_fmt) + "\n\nСВОДКА:\n" + summary
+    yield from _stream_analyst(prompt, data, budget_fmt)
 
-    summary = format_portfolio_summary_v2(data, budget)
-    prompt = PORTFOLIO_PROMPT_V2.format(budget=budget_fmt) + "\n\nСВОДКА:\n" + summary
+
+def _stream_analyst(prompt: str, data: dict, budget_fmt: str):
+    """Stream AI analyst response + strategy_data + actions + done."""
+    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
     try:
         client = get_client()
@@ -584,7 +864,7 @@ def stream_portfolio_report(budget: int):
                 yield f'data: {json.dumps({"type": "token", "content": event.delta}, ensure_ascii=False)}\n\n'
 
     except Exception as e:
-        logger.error(f"[PORTFOLIO] AI error: {e}")
+        logger.error(f"[PORTFOLIO] AI analyst error: {e}")
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен"}, ensure_ascii=False)}\n\n'
         return
 

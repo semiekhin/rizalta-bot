@@ -447,3 +447,142 @@ def build_portfolio_data_v2(budget: int) -> dict:
             "completion": finance.get("completion_year", 2027),
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Level 3: AI-driven portfolio selection — data helpers
+# ---------------------------------------------------------------------------
+
+def _build_lots_table(lots: list[dict], budget: int) -> str:
+    """Compact lots table for AI selector (minimal tokens)."""
+    lines = [
+        f"Бюджет: {budget:,} ₽",
+        "Скидка 100%: 5%. Рассрочка ПВ: 30%, переплата: 9% (18 мес).",
+        "",
+        "Код | Корпус | Этаж | Площадь | Цена | NOI/год | Cap% | ROI% | CoC100% | CoC30%",
+        "---|---|---|---|---|---|---|---|---|---",
+    ]
+    for lot in lots:
+        m = lot["_metrics"]
+        lines.append(
+            f"{lot['code']} | К{lot.get('building', '?')} | "
+            f"{lot.get('floor', '?')} | {lot['area_m2']}м² | "
+            f"{lot['price_rub']:,} | {m['noi']:,} | "
+            f"{m['cap_rate']}% | {m['roi_pct']}% | "
+            f"{m['coc_full']}% | {m['coc_installment']}%"
+        )
+    return "\n".join(lines)
+
+
+def build_portfolio_ai_context(budget: int) -> dict:
+    """Prepare all data for AI selector: lots table + enriched lots + deposit."""
+    lots_raw = _load_all_available_lots()
+    lots_enriched = _enrich_lots(lots_raw, budget)
+
+    if not lots_enriched:
+        return {"budget": budget, "lots_table": "", "lots_enriched": [], "deposit_raw": {}}
+
+    lots_table = _build_lots_table(lots_enriched, budget)
+
+    deposit_raw = calculate_all_scenarios(budget, years=11)
+    deposit = slim_deposit(deposit_raw)
+
+    return {
+        "budget": budget,
+        "lots_table": lots_table,
+        "lots_enriched": lots_enriched,
+        "deposit_raw": deposit,
+    }
+
+
+def _build_scenario_from_codes(
+    lots_enriched: list[dict],
+    codes: list[str],
+    budget: int,
+    payment_type: str,
+) -> dict | None:
+    """Build scenario from AI-selected lot codes.
+
+    Returns same shape as _scenario_*() for frontend compatibility.
+    payment_type: "premium" | "full" | "installment"
+    """
+    lot_map = {l["code"]: l for l in lots_enriched}
+    selected = [lot_map[c] for c in codes if c in lot_map]
+
+    if not selected:
+        return None
+
+    if payment_type == "premium":
+        lot = selected[0]
+        price = lot["price_rub"]
+        dp = int(price * 0.95)
+        return {
+            "name": "Один премиальный лот (100%)",
+            "lot": lot,
+            "discounted_price": dp,
+            "remaining_cash": budget - dp,
+            "metrics": lot["_metrics"],
+            "roi_pct": lot["roi_pct"],
+            "total_profit": lot["total_profit"],
+            "total_rental": lot["total_rental"],
+            "total_growth": lot["total_growth"],
+            "final_value": lot["final_value"],
+        }
+
+    elif payment_type == "full":
+        lots = []
+        spent = 0
+        for lot in selected:
+            dp = int(lot["price_rub"] * 0.95)
+            lots.append({**lot, "discounted_price": dp})
+            spent += dp
+        return {
+            "name": "Портфель 100% оплата",
+            "lots": lots,
+            "lot_count": len(lots),
+            "total_invested": spent,
+            "remaining_cash": budget - spent,
+            "total_noi": sum(l["noi"] for l in lots),
+            "total_profit": sum(l["total_profit"] for l in lots),
+            "total_rental": sum(l["total_rental"] for l in lots),
+            "total_growth": sum(l["total_growth"] for l in lots),
+            "avg_roi_pct": round(sum(l["roi_pct"] for l in lots) / len(lots), 1),
+        }
+
+    elif payment_type == "installment":
+        lots = []
+        spent = 0
+        for lot in selected:
+            price = lot["price_rub"]
+            dp = int(price * 0.30)
+            base = price - SERVICE_FEE
+            remaining = int(base * 0.70)
+            markup = int(remaining * MARKUP_18M_30_PCT)
+            lots.append({
+                **lot,
+                "down_payment": dp,
+                "markup": markup,
+                "total_cost": price + markup,
+            })
+            spent += dp
+        total_markup = sum(l["markup"] for l in lots)
+        total_profit = sum(l["total_profit"] for l in lots)
+        return {
+            "name": "Максимальное плечо (рассрочка)",
+            "lots": lots,
+            "lot_count": len(lots),
+            "total_down_payment": spent,
+            "total_portfolio_value": sum(l["price_rub"] for l in lots),
+            "total_markup": total_markup,
+            "total_noi": sum(l["noi"] for l in lots),
+            "total_profit": total_profit,
+            "total_rental": sum(l["total_rental"] for l in lots),
+            "total_growth": sum(l["total_growth"] for l in lots),
+            "net_profit": total_profit - total_markup,
+            "remaining_cash": budget - spent,
+            "avg_coc": round(
+                sum(l["coc_installment"] for l in lots) / len(lots), 1
+            ),
+        }
+
+    return None

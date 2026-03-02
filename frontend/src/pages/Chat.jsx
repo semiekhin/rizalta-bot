@@ -300,6 +300,7 @@ function PortfolioReportCardV2({ data }) {
               <span className="text-rz-cream-muted">Прибыль 11 лет</span>
               <span className="font-bold text-rz-success">{fmt(sp.total_profit)} &#8381; ({sp.roi_pct}%)</span>
             </div>
+            {sp.reasoning && <p className="text-xs text-rz-cream-muted italic mt-1">{sp.reasoning}</p>}
           </div>
         ) : (
           <p className="text-rz-cream-muted text-sm">Нет подходящих лотов в бюджете</p>
@@ -333,6 +334,7 @@ function PortfolioReportCardV2({ data }) {
               <span className="text-rz-cream-muted">Прибыль 11 лет</span>
               <span className="font-bold text-rz-success">{fmt(sf.total_profit)} &#8381;</span>
             </div>
+            {sf.reasoning && <p className="text-xs text-rz-cream-muted italic mt-1">{sf.reasoning}</p>}
           </div>
         ) : (
           <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
@@ -367,6 +369,7 @@ function PortfolioReportCardV2({ data }) {
               <span className="text-rz-cream-muted">Чистая прибыль</span>
               <span className="font-bold text-rz-success">{fmt(sl.net_profit)} &#8381;</span>
             </div>
+            {sl.reasoning && <p className="text-xs text-rz-cream-muted italic mt-1">{sl.reasoning}</p>}
           </div>
         ) : (
           <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
