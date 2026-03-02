@@ -182,8 +182,11 @@ def generate_strategy_pdf(data: dict) -> str | None:
     report_data = data.get("report_data")
 
     try:
-        if report_data and "strategy_a" in report_data:
-            # Portfolio from report_builder
+        if report_data and report_data.get("version") == 2:
+            # Portfolio v2 — 3 scenarios
+            html = _generate_portfolio_report_v2(report_data, data)
+        elif report_data and "strategy_a" in report_data:
+            # Portfolio v1 from report_builder
             html = _generate_portfolio_report_from_builder(report_data, data)
         elif report_data and "lot" in report_data:
             # Lot from report_builder (lot_data already set in data)
@@ -1022,6 +1025,366 @@ def _generate_portfolio_report_from_builder(report_data: dict, data: dict) -> st
     </div>
 
     <div class="disclaimer">Депозит: прогноз ЦБ (ключевая 16.5% → 7%). Источник: cbr.ru</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+
+</body></html>"""
+
+    return html
+
+
+# ─── Portfolio v2 — 3 scenarios ───────────────────────────────────────────────
+
+def _generate_portfolio_report_v2(report_data: dict, data: dict) -> str | None:
+    """Generate 4-page PDF for 3-scenario portfolio analysis."""
+    user_query = _escape_html(data.get("user_query", ""))
+    date_str = datetime.now().strftime("%d.%m.%Y")
+    logo_b64 = load_resource("logo_mono_trim_base64.txt")
+
+    budget = report_data.get("budget", 0)
+    sp = report_data.get("scenario_premium", {})
+    sf = report_data.get("scenario_portfolio", {})
+    sl = report_data.get("scenario_leverage", {})
+    dep = report_data.get("deposit_comparison", {})
+    dep_base_data = dep.get("base", {})
+
+    css = _get_base_css()
+
+    # ── PAGE 1: Title + 3 Scenario Summary ──
+    def scenario_summary_row(name, lot_count, roi_label, vs_dep):
+        vs_str = f"+{fmt(vs_dep)}" if vs_dep and vs_dep > 0 else "—"
+        return f"""<tr>
+  <td style="font-weight: 500;">{name}</td>
+  <td class="num">{lot_count}</td>
+  <td class="num">{roi_label}</td>
+  <td class="num" style="color: #4a7c23; font-weight: 600;">{vs_str}</td>
+</tr>"""
+
+    sp_lots = 1 if sp.get("lot") else 0
+    sf_lots = sf.get("lot_count", 0)
+    sl_lots = sl.get("lot_count", 0)
+
+    sp_roi = f"{sp.get('roi_pct', 0):.0f}%" if sp.get("lot") else "—"
+    sf_roi = f"{sf.get('avg_roi_pct', 0):.0f}%" if sf_lots else "—"
+    sl_roi = f"CoC {sl.get('avg_coc', 0):.0f}%" if sl_lots else "—"
+
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>{css}</style></head><body>
+
+<div class="page">
+  <table class="header-table"><tr><td>
+    {"<img class='logo-header' src='data:image/png;base64," + logo_b64 + "'>" if logo_b64 else ""}
+  </td></tr></table>
+
+  <div class="title-bar">
+    <div class="title-left">Портфельный анализ — 3 сценария</div>
+    <div class="title-right">{date_str} &bull; AI Financial Advisor</div>
+    <div style="clear:both"></div>
+  </div>
+
+  <div class="content">
+    <div class="gold-box" style="margin-top: 40px;">
+      <div class="gold-box-title">БЮДЖЕТ ИНВЕСТОРА</div>
+      <div class="gold-box-value">{fmt(budget)}</div>
+    </div>
+
+    {f'<div style="margin-top: 25px; font-style: italic; color: rgba(49,61,32,0.6); font-size: 12px; border-left: 3px solid #DCB764; padding-left: 14px;">Запрос: &laquo;{user_query}&raquo;</div>' if user_query else ''}
+
+    <div class="section-title" style="margin-top: 30px;">Обзор сценариев</div>
+
+    <table class="data-table">
+      <tr>
+        <th>Сценарий</th>
+        <th style="text-align:right">Лотов</th>
+        <th style="text-align:right">Доходность</th>
+        <th style="text-align:right">vs Депозит</th>
+      </tr>
+      {scenario_summary_row(sp.get("name", "Премиальный лот"), sp_lots, sp_roi, sp.get("vs_deposit"))}
+      {scenario_summary_row(sf.get("name", "Портфель 100%"), sf_lots, sf_roi, sf.get("vs_deposit"))}
+      {scenario_summary_row(sl.get("name", "Макс. плечо"), sl_lots, sl_roi, sl.get("vs_deposit"))}
+    </table>
+
+    <div class="disclaimer">Расчёты носят прогнозный характер и не являются публичной офертой.</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+"""
+
+    # ── PAGE 2: Scenarios 1 + 2 ──
+    html += f"""
+<div class="page page-break">
+  <div class="content" style="padding-top: 35px;">
+    <div class="section-title">Сценарий 1: {sp.get("name", "Премиальный лот")}</div>
+"""
+
+    lot = sp.get("lot")
+    if lot:
+        bname = get_building_name(lot.get("building", 1))
+        m = sp.get("metrics", {})
+        html += f"""
+    <div style="background: white; padding: 14px 18px; margin-bottom: 12px; border-left: 4px solid #DCB764;">
+      <div style="font-weight: 600; font-size: 15px;">{lot.get("code", "")} — {bname}</div>
+      <div style="font-size: 12px; margin-top: 4px; color: rgba(49,61,32,0.7);">
+        {lot.get("area_m2", 0)} м² &bull; этаж {lot.get("floor", "—")} &bull; цена {fmt(lot.get("price_rub", 0))}
+      </div>
+    </div>
+
+    <table class="metrics">
+      <tr>
+        <td class="metric">
+          <div class="metric-value">{fmt(sp.get("discounted_price", 0))}</div>
+          <div class="metric-label">ЦЕНА СО СКИДКОЙ 5%</div>
+        </td>
+        <td class="metric">
+          <div class="metric-value">{fmt(m.get("noi", 0))}</div>
+          <div class="metric-label">NOI / ГОД</div>
+        </td>
+        <td class="metric">
+          <div class="metric-value">{fmt_pct(m.get("cap_rate", 0))}</div>
+          <div class="metric-label">CAP RATE</div>
+        </td>
+        <td class="metric">
+          <div class="metric-value">{fmt_pct(sp.get("roi_pct", 0))}</div>
+          <div class="metric-label">ROI 11 ЛЕТ</div>
+        </td>
+      </tr>
+    </table>
+
+    <div class="green-box">
+      <div style="font-size: 11px; letter-spacing: 2px; opacity: 0.9;">ПРИБЫЛЬ ЗА 11 ЛЕТ</div>
+      <div class="green-box-value">{fmt(sp.get("total_profit", 0))}</div>
+      <div style="font-size: 12px; margin-top: 3px; opacity: 0.8;">vs депозит: +{fmt(sp.get("vs_deposit", 0))}</div>
+    </div>
+"""
+    else:
+        html += '<p style="color: rgba(49,61,32,0.5); margin: 15px 0;">Нет подходящих лотов в бюджете</p>'
+
+    # Scenario 2
+    html += f'<div class="section-title" style="margin-top: 20px;">Сценарий 2: {sf.get("name", "Портфель 100%")}</div>'
+
+    sf_lots_list = sf.get("lots", [])
+    if sf_lots_list:
+        lots_rows = ""
+        for l in sf_lots_list[:8]:
+            lots_rows += f"""<tr>
+  <td style="font-weight: 600;">{l.get("code", "")}</td>
+  <td class="num">{l.get("area_m2", "")} м²</td>
+  <td class="num">{fmt(l.get("price_rub", 0))}</td>
+  <td class="num">{fmt(l.get("discounted_price", 0))}</td>
+  <td class="num" style="color: #4a7c23;">{fmt_pct(l.get("roi_pct", 0))}</td>
+  <td class="num">{fmt(l.get("noi", 0))}</td>
+</tr>"""
+
+        html += f"""
+    <table class="data-table">
+      <tr>
+        <th>Код</th>
+        <th style="text-align:right">Площадь</th>
+        <th style="text-align:right">Цена</th>
+        <th style="text-align:right">Со скидкой</th>
+        <th style="text-align:right">ROI</th>
+        <th style="text-align:right">NOI/год</th>
+      </tr>
+      {lots_rows}
+      <tr class="total">
+        <td colspan="3"><strong>ИТОГО: {sf.get("lot_count", 0)} лотов</strong></td>
+        <td class="num"><strong>{fmt(sf.get("total_invested", 0))}</strong></td>
+        <td class="num"><strong>{fmt_pct(sf.get("avg_roi_pct", 0))}</strong></td>
+        <td class="num"><strong>{fmt(sf.get("total_noi", 0))}</strong></td>
+      </tr>
+    </table>
+
+    <div style="background: rgba(74,124,35,0.08); padding: 10px 16px; margin-top: 8px; font-size: 12px;">
+      Прибыль за 11 лет: <strong>{fmt(sf.get("total_profit", 0))}</strong> &bull; vs депозит: <strong style="color: #4a7c23;">+{fmt(sf.get("vs_deposit", 0))}</strong>
+    </div>
+"""
+    else:
+        html += '<p style="color: rgba(49,61,32,0.5); margin: 15px 0;">Нет подходящих лотов</p>'
+
+    html += """
+    <div class="disclaimer">Скидка 5% при 100% оплате. NOI — стабилизированный год 2030.</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+"""
+
+    # ── PAGE 3: Scenario 3 + Comparison Table ──
+    html += f"""
+<div class="page page-break">
+  <div class="content" style="padding-top: 35px;">
+    <div class="section-title">Сценарий 3: {sl.get("name", "Максимальное плечо")}</div>
+"""
+
+    sl_lots_list = sl.get("lots", [])
+    if sl_lots_list:
+        lots_rows = ""
+        for l in sl_lots_list[:8]:
+            lots_rows += f"""<tr>
+  <td style="font-weight: 600;">{l.get("code", "")}</td>
+  <td class="num">{fmt(l.get("price_rub", 0))}</td>
+  <td class="num">{fmt(l.get("down_payment", 0))}</td>
+  <td class="num">{fmt(l.get("markup", 0))}</td>
+  <td class="num">{fmt_pct(l.get("coc_installment", 0))}</td>
+</tr>"""
+
+        html += f"""
+    <table class="data-table">
+      <tr>
+        <th>Код</th>
+        <th style="text-align:right">Цена</th>
+        <th style="text-align:right">ПВ 30%</th>
+        <th style="text-align:right">Переплата</th>
+        <th style="text-align:right">CoC</th>
+      </tr>
+      {lots_rows}
+      <tr class="total">
+        <td><strong>ИТОГО: {sl.get("lot_count", 0)} лотов</strong></td>
+        <td class="num"><strong>{fmt(sl.get("total_portfolio_value", 0))}</strong></td>
+        <td class="num"><strong>{fmt(sl.get("total_down_payment", 0))}</strong></td>
+        <td class="num"><strong>{fmt(sl.get("total_markup", 0))}</strong></td>
+        <td class="num"><strong>{fmt_pct(sl.get("avg_coc", 0))}</strong></td>
+      </tr>
+    </table>
+
+    <div style="background: rgba(74,124,35,0.08); padding: 10px 16px; margin-top: 8px; font-size: 12px;">
+      Чистая прибыль (за вычетом переплаты): <strong>{fmt(sl.get("net_profit", 0))}</strong> &bull; vs депозит: <strong style="color: #4a7c23;">+{fmt(sl.get("vs_deposit", 0))}</strong>
+    </div>
+"""
+    else:
+        html += '<p style="color: rgba(49,61,32,0.5); margin: 15px 0;">Нет подходящих лотов</p>'
+
+    # Comparison table
+    dep_interest = dep_base_data.get("total_net_interest", 0) or 0
+    dep_roi_pct = dep_base_data.get("total_roi_pct", 0) or 0
+
+    html += f"""
+    <div class="section-title" style="margin-top: 25px;">Сравнение сценариев</div>
+
+    <table class="data-table">
+      <tr>
+        <th>Показатель</th>
+        <th style="text-align:right">Премиум</th>
+        <th style="text-align:right">Портфель</th>
+        <th style="text-align:right">Плечо</th>
+        <th style="text-align:right">Депозит</th>
+      </tr>
+      <tr>
+        <td>Вложено</td>
+        <td class="num">{fmt(sp.get("discounted_price", 0)) if sp.get("lot") else "—"}</td>
+        <td class="num">{fmt(sf.get("total_invested", 0)) if sf_lots_list else "—"}</td>
+        <td class="num">{fmt(sl.get("total_down_payment", 0)) if sl_lots_list else "—"}</td>
+        <td class="num">{fmt(budget)}</td>
+      </tr>
+      <tr>
+        <td>Лотов</td>
+        <td class="num">{1 if sp.get("lot") else 0}</td>
+        <td class="num">{sf.get("lot_count", 0)}</td>
+        <td class="num">{sl.get("lot_count", 0)}</td>
+        <td class="num">—</td>
+      </tr>
+      <tr>
+        <td>NOI / год</td>
+        <td class="num">{fmt(sp.get("metrics", {}).get("noi", 0)) if sp.get("lot") else "—"}</td>
+        <td class="num">{fmt(sf.get("total_noi", 0)) if sf_lots_list else "—"}</td>
+        <td class="num">{fmt(sl.get("total_noi", 0)) if sl_lots_list else "—"}</td>
+        <td class="num">—</td>
+      </tr>
+      <tr>
+        <td>Прибыль 11 лет</td>
+        <td class="num" style="color: #4a7c23;">{fmt(sp.get("total_profit", 0)) if sp.get("lot") else "—"}</td>
+        <td class="num" style="color: #4a7c23;">{fmt(sf.get("total_profit", 0)) if sf_lots_list else "—"}</td>
+        <td class="num" style="color: #4a7c23;">{fmt(sl.get("net_profit", 0)) if sl_lots_list else "—"}</td>
+        <td class="num">{fmt(dep_interest)}</td>
+      </tr>
+      <tr>
+        <td>vs Депозит</td>
+        <td class="num" style="color: #4a7c23; font-weight: 600;">{f"+{fmt(sp.get('vs_deposit', 0))}" if sp.get("lot") else "—"}</td>
+        <td class="num" style="color: #4a7c23; font-weight: 600;">{f"+{fmt(sf.get('vs_deposit', 0))}" if sf_lots_list else "—"}</td>
+        <td class="num" style="color: #4a7c23; font-weight: 600;">{f"+{fmt(sl.get('vs_deposit', 0))}" if sl_lots_list else "—"}</td>
+        <td class="num">—</td>
+      </tr>
+    </table>
+
+    <div class="disclaimer">NOI и CoC — стабилизированный 2030. Переплата = удорожание 9% на остаток после ПВ 30%.</div>
+  </div>
+
+  <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>
+</div>
+"""
+
+    # ── PAGE 4: RIZALTA vs Deposit ──
+    dep_pess = dep.get("pessimistic", {})
+    dep_opt = dep.get("optimistic", {})
+
+    # Find best scenario
+    scenarios_profit = []
+    if sp.get("lot"):
+        scenarios_profit.append((sp.get("name", ""), sp.get("total_profit", 0), sp.get("vs_deposit", 0)))
+    if sf_lots_list:
+        scenarios_profit.append((sf.get("name", ""), sf.get("total_profit", 0), sf.get("vs_deposit", 0)))
+    if sl_lots_list:
+        scenarios_profit.append((sl.get("name", ""), sl.get("net_profit", 0), sl.get("vs_deposit", 0)))
+
+    best = max(scenarios_profit, key=lambda x: x[2]) if scenarios_profit else ("—", 0, 0)
+
+    html += f"""
+<div class="page page-break">
+  <div class="content" style="padding-top: 35px;">
+    <div class="section-title">RIZALTA vs Банковский депозит</div>
+
+    <table class="data-table">
+      <tr>
+        <th>Сценарий депозита</th>
+        <th style="text-align:right">Чистый доход</th>
+        <th style="text-align:right">Налог</th>
+        <th style="text-align:right">Итоговый капитал</th>
+        <th style="text-align:right">ROI</th>
+      </tr>
+      <tr>
+        <td>Пессимистичный</td>
+        <td class="num">{fmt(dep_pess.get("total_net_interest", 0))}</td>
+        <td class="num">включён</td>
+        <td class="num">{fmt(dep_pess.get("final_balance", 0))}</td>
+        <td class="num">{fmt_pct(dep_pess.get("total_roi_pct", 0))}</td>
+      </tr>
+      <tr>
+        <td>Базовый</td>
+        <td class="num">{fmt(dep_interest)}</td>
+        <td class="num">включён</td>
+        <td class="num">{fmt(dep_base_data.get("final_balance", 0))}</td>
+        <td class="num">{fmt_pct(dep_roi_pct)}</td>
+      </tr>
+      <tr>
+        <td>Оптимистичный</td>
+        <td class="num">{fmt(dep_opt.get("total_net_interest", 0))}</td>
+        <td class="num">включён</td>
+        <td class="num">{fmt(dep_opt.get("final_balance", 0))}</td>
+        <td class="num">{fmt_pct(dep_opt.get("total_roi_pct", 0))}</td>
+      </tr>
+    </table>
+
+    <div class="gold-box" style="margin-top: 25px;">
+      <div class="gold-box-title">ЛУЧШИЙ СЦЕНАРИЙ RIZALTA</div>
+      <div class="gold-box-value">+{fmt(best[2])}</div>
+      <div class="gold-box-sub">{best[0]} — выгоднее депозита на {fmt(best[2])}</div>
+    </div>
+
+    <div style="margin-top: 25px; background: white; padding: 18px 22px; border: 2px solid #DCB764;">
+      <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px;">Ключевые преимущества RIZALTA:</div>
+      <div style="font-size: 12px; line-height: 1.8;">
+        • Реальный актив (недвижимость), а не цифры на счёте<br>
+        • Двойной доход: аренда + рост стоимости<br>
+        • Защита от инфляции — стоимость растёт с рынком<br>
+        • Возможность использования (личный отдых)<br>
+        • Финансовый рычаг через рассрочку (сценарий 3)
+      </div>
+    </div>
+
+    <div class="disclaimer">Депозит: прогноз ЦБ (ключевая 16.5% → 7%). Источник: cbr.ru. Расчёт за 11 лет.</div>
   </div>
 
   <div class="footer"><div class="footer-text">R I Z A L T A &nbsp;&nbsp; R E S O R T &nbsp;&nbsp; B E L O K U R I K H A</div></div>

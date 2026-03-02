@@ -33,6 +33,17 @@ function resolveNavigation(to, onNavigate) {
 const fmt = (v) => new Intl.NumberFormat('ru-RU').format(Math.round(v || 0))
 const BNAMES = { 1: 'Family', 2: 'Business', 3: 'Digital' }
 
+function renderText(text) {
+  if (!text) return null
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
 function MetricCell({ label, value, sub, highlight }) {
   return (
     <div className={`rounded-lg p-2 ${highlight ? 'bg-rz-gold/15' : 'bg-rz-green-mid/50'}`}>
@@ -223,6 +234,144 @@ function PortfolioReportCard({ data }) {
         )}
       </div>
 
+      {depBase.total_net_interest != null && (
+        <div className="bg-rz-gold/10 rounded-xl p-3 border border-rz-gold/20">
+          <p className="text-xs text-rz-cream-muted font-medium mb-1">Депозит для сравнения (11 лет)</p>
+          <p className="font-bold">{fmt(depBase.final_balance)} &#8381;</p>
+          <p className="text-xs text-rz-cream-dark">Проценты: {fmt(depBase.total_net_interest)} &#8381; &bull; ROI {(depBase.total_roi_pct || 0).toFixed(0)}%</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ScenarioCard({ title, icon, color, subtitle, vsDeposit, children }) {
+  const borderColor = color === 'gold' ? 'border-rz-gold/30' : color === 'green' ? 'border-rz-success/30' : 'border-rz-cream-muted/30'
+  const titleColor = color === 'gold' ? 'text-rz-gold' : color === 'green' ? 'text-rz-success' : 'text-rz-cream'
+  return (
+    <div className={`border ${borderColor} rounded-xl p-3`}>
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <p className={`text-sm font-bold ${titleColor}`}>{icon} {title}</p>
+          {subtitle && <p className="text-xs text-rz-cream-muted mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+      {vsDeposit != null && (
+        <p className={`text-xs font-bold mt-2 pt-2 border-t ${borderColor} ${vsDeposit > 0 ? 'text-rz-success' : 'text-rz-error'}`}>
+          {vsDeposit > 0 ? '+' : ''}{fmt(vsDeposit)} &#8381; vs депозит
+        </p>
+      )}
+    </div>
+  )
+}
+
+function PortfolioReportCardV2({ data }) {
+  const budget = data.budget || 0
+  const sp = data.scenario_premium || {}
+  const sf = data.scenario_portfolio || {}
+  const sl = data.scenario_leverage || {}
+  const dep = data.deposit_comparison || {}
+  const depBase = dep.base || {}
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-rz-green-mid rounded-xl p-3">
+        <p className="text-xs text-rz-cream-muted">Портфельный анализ — 3 сценария</p>
+        <p className="font-bold text-lg text-rz-gold">{fmt(budget)} &#8381;</p>
+      </div>
+
+      {/* Scenario 1: Premium */}
+      <ScenarioCard title={sp.name || 'Премиальный лот'} icon="◆" color="gold" subtitle={sp.lot ? `${sp.lot.code}, ${sp.lot.area_m2} м², корпус ${sp.lot.building}` : null} vsDeposit={sp.vs_deposit}>
+        {sp.lot ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCell label="Цена (скидка 5%)" value={`${fmt(sp.discounted_price)} \u20BD`} />
+              <MetricCell label="Остаток" value={`${fmt(sp.remaining_cash)} \u20BD`} />
+            </div>
+            {sp.metrics && (
+              <div className="grid grid-cols-3 gap-2">
+                <MetricCell label="NOI / год" value={`${fmt(sp.metrics.noi)} \u20BD`} highlight />
+                <MetricCell label="Cap Rate" value={`${sp.metrics.cap_rate}%`} highlight />
+                <MetricCell label="CoC 100%" value={`${sp.metrics.coc_full}%`} />
+              </div>
+            )}
+            <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
+              <span className="text-rz-cream-muted">Прибыль 11 лет</span>
+              <span className="font-bold text-rz-success">{fmt(sp.total_profit)} &#8381; ({sp.roi_pct}%)</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-rz-cream-muted text-sm">Нет подходящих лотов в бюджете</p>
+        )}
+      </ScenarioCard>
+
+      {/* Scenario 2: Portfolio 100% */}
+      <ScenarioCard title={sf.name || 'Портфель 100%'} icon="◈" color="green" subtitle={sf.lot_count ? `${sf.lot_count} лотов, вложено ${fmt(sf.total_invested)} \u20BD` : null} vsDeposit={sf.vs_deposit}>
+        {sf.lots && sf.lots.length > 0 ? (
+          <div className="space-y-2">
+            <div className="space-y-1">
+              {sf.lots.slice(0, 5).map(l => (
+                <div key={`${l.code}-${l.building}`} className="bg-rz-green-mid/50 rounded-lg p-2 text-sm flex justify-between">
+                  <div>
+                    <span className="font-medium">{l.code}</span>
+                    <span className="text-rz-cream-muted text-xs ml-2">{l.area_m2} м&sup2;</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-rz-gold">{fmt(l.discounted_price)} &#8381;</span>
+                    <span className="text-rz-success text-xs ml-2">ROI {l.roi_pct}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCell label="Суммарный NOI" value={`${fmt(sf.total_noi)} \u20BD/год`} highlight />
+              <MetricCell label="Средний ROI" value={`${sf.avg_roi_pct}%`} />
+            </div>
+            <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
+              <span className="text-rz-cream-muted">Прибыль 11 лет</span>
+              <span className="font-bold text-rz-success">{fmt(sf.total_profit)} &#8381;</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
+        )}
+      </ScenarioCard>
+
+      {/* Scenario 3: Max leverage */}
+      <ScenarioCard title={sl.name || 'Максимальное плечо'} icon="◇" color="default" subtitle={sl.lot_count ? `${sl.lot_count} лотов, портфель ${fmt(sl.total_portfolio_value)} \u20BD` : null} vsDeposit={sl.vs_deposit}>
+        {sl.lots && sl.lots.length > 0 ? (
+          <div className="space-y-2">
+            <div className="space-y-1">
+              {sl.lots.slice(0, 5).map(l => (
+                <div key={`${l.code}-${l.building}`} className="bg-rz-green-mid/50 rounded-lg p-2 text-sm flex justify-between">
+                  <div>
+                    <span className="font-medium">{l.code}</span>
+                    <span className="text-rz-cream-muted text-xs ml-2">ПВ {fmt(l.down_payment)} &#8381;</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-rz-cream-dark">{fmt(l.price_rub)} &#8381;</span>
+                    <span className="text-rz-gold text-xs ml-2">CoC {l.coc_installment}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <MetricCell label="ПВ всего" value={`${fmt(sl.total_down_payment)} \u20BD`} />
+              <MetricCell label="Суммарный NOI" value={`${fmt(sl.total_noi)} \u20BD/год`} highlight />
+              <MetricCell label="Переплата" value={`${fmt(sl.total_markup)} \u20BD`} sub="рассрочка 18м" />
+            </div>
+            <div className="bg-rz-success/10 rounded-lg p-2 flex justify-between text-sm">
+              <span className="text-rz-cream-muted">Чистая прибыль</span>
+              <span className="font-bold text-rz-success">{fmt(sl.net_profit)} &#8381;</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-rz-cream-muted text-sm">Нет подходящих лотов</p>
+        )}
+      </ScenarioCard>
+
+      {/* Deposit baseline */}
       {depBase.total_net_interest != null && (
         <div className="bg-rz-gold/10 rounded-xl p-3 border border-rz-gold/20">
           <p className="text-xs text-rz-cream-muted font-medium mb-1">Депозит для сравнения (11 лет)</p>
@@ -518,7 +667,9 @@ export default function Chat({ lots, onNavigate }) {
                 <div className="flex-1 min-w-0 space-y-2">
                   {msg.reportCard.card_type === 'lot_report'
                     ? <LotReportCard data={msg.reportCard.data} />
-                    : <PortfolioReportCard data={msg.reportCard.data} />}
+                    : msg.reportCard.card_type === 'portfolio_report_v2'
+                      ? <PortfolioReportCardV2 data={msg.reportCard.data} />
+                      : <PortfolioReportCard data={msg.reportCard.data} />}
                   {msg.thinking && (
                     <div className="flex items-center gap-2 text-rz-cream-muted text-sm">
                       <span className="animate-pulse">●</span>
@@ -527,7 +678,7 @@ export default function Chat({ lots, onNavigate }) {
                   )}
                   {msg.content && (
                     <div className="bg-rz-green-light rounded-2xl rounded-tl-none px-4 py-2.5">
-                      <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-line leading-relaxed">{renderText(msg.content)}</p>
                     </div>
                   )}
                 </div>
@@ -544,7 +695,7 @@ export default function Chat({ lots, onNavigate }) {
                     ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
                     : 'bg-rz-green-light rounded-tl-none'
                 }`}>
-                  <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+                  <p className="text-sm whitespace-pre-line leading-relaxed">{renderText(msg.content)}</p>
                   {msg.thinking && (
                     <div className="flex items-center gap-2 text-rz-cream-muted text-sm mt-1">
                       <span className="animate-pulse">●</span>
