@@ -501,38 +501,51 @@ def _build_scenario_from_codes(
     budget: int,
     payment_type: str,
 ) -> dict | None:
-    """Build scenario from AI-selected lot codes.
+    """Build scenario from AI-ranked lot codes.
+
+    AI provides priority order, Python packs greedily within budget.
+    If < 80% budget filled after AI list, Python backfills from remaining lots.
 
     Returns same shape as _scenario_*() for frontend compatibility.
     payment_type: "premium" | "full" | "installment"
     """
     lot_map = {l["code"]: l for l in lots_enriched}
+    multiplier = 0.95 if payment_type in ("premium", "full") else 0.30
 
-    # Budget-guarded selection: take lots in AI order while they fit
-    if payment_type in ("premium", "full"):
-        selected = []
-        spent = 0
-        for c in codes:
-            lot = lot_map.get(c)
-            if not lot:
-                continue
-            cost = int(lot["price_rub"] * 0.95)
+    # Step 1: Take lots in AI priority order while they fit
+    selected = []
+    spent = 0
+    used_codes = set()
+    for c in codes:
+        lot = lot_map.get(c)
+        if not lot:
+            continue
+        cost = int(lot["price_rub"] * multiplier)
+        if spent + cost <= budget:
+            selected.append(lot)
+            spent += cost
+            used_codes.add(c)
+            if payment_type == "premium":
+                break
+
+    # Step 2: Python backfill if < 80% budget used (skip for premium)
+    if payment_type != "premium" and spent < budget * 0.80:
+        remaining = [l for l in lots_enriched if l["code"] not in used_codes]
+        remaining.sort(key=lambda l: (l.get("building", 0), l["price_rub"]))
+
+        for lot in remaining:
+            cost = int(lot["price_rub"] * multiplier)
             if spent + cost <= budget:
+                # Skip if same building+floor already in portfolio
+                if any(
+                    s.get("building") == lot.get("building")
+                    and s.get("floor") == lot.get("floor")
+                    for s in selected
+                ):
+                    continue
                 selected.append(lot)
                 spent += cost
-                if payment_type == "premium":
-                    break  # only 1 lot
-    else:  # installment
-        selected = []
-        spent = 0
-        for c in codes:
-            lot = lot_map.get(c)
-            if not lot:
-                continue
-            cost = int(lot["price_rub"] * 0.30)
-            if spent + cost <= budget:
-                selected.append(lot)
-                spent += cost
+                used_codes.add(lot["code"])
 
     if not selected:
         return None
