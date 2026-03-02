@@ -1,7 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { marked } from 'marked'
-
-marked.setOptions({ breaks: true, gfm: true })
 
 const WELCOME_MSG = {
   role: 'assistant',
@@ -513,7 +510,7 @@ export default function Chat({ lots, onNavigate }) {
                   )}
                   {msg.content && (
                     <div className="bg-rz-green-light rounded-2xl rounded-tl-none px-4 py-2.5">
-                      <div className="ai-message text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content || '') }} />
+                      <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
                     </div>
                   )}
                 </div>
@@ -530,11 +527,7 @@ export default function Chat({ lots, onNavigate }) {
                     ? 'bg-rz-gold text-rz-green-dark rounded-tr-none'
                     : 'bg-rz-green-light rounded-tl-none'
                 }`}>
-                  {msg.role === 'assistant' ? (
-                    <div className="ai-message text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content || '') }} />
-                  ) : (
-                    <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
-                  )}
+                  <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
                   {msg.thinking && (
                     <div className="flex items-center gap-2 text-rz-cream-muted text-sm mt-1">
                       <span className="animate-pulse">●</span>
