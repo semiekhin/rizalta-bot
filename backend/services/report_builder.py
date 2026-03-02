@@ -277,21 +277,79 @@ def _scenario_premium(lots: list[dict], budget: int) -> dict:
 
 
 def _scenario_portfolio_full(lots: list[dict], budget: int) -> dict:
-    """Scenario 2: Multiple lots at 100% payment, cheapest first for max diversification."""
+    """Scenario 2: Multiple lots at 100% payment, diversified portfolio.
+
+    3-step algorithm:
+    1. Greedy pack cheapest first (max lot count)
+    2. Upgrade last lot while remaining > 10% budget
+    3. Deduplicate same (area, price) types, fill freed budget with different types
+    """
     candidates = []
     for lot in lots:
         dp = int(lot["price_rub"] * 0.95)
         if dp <= budget:
             candidates.append({**lot, "discounted_price": dp})
 
-    # Sort by price ASC — pack cheapest first for max lot count (diversification)
     candidates.sort(key=lambda x: x["discounted_price"])
 
+    # Step 1: Greedy pack cheapest first
     selected = []
     spent = 0
     for c in candidates:
         if spent + c["discounted_price"] <= budget:
             selected.append(c)
+            spent += c["discounted_price"]
+
+    if not selected:
+        return {"name": "Портфель 100% оплата", "lots": [], "lot_count": 0, "error": "no_lots"}
+
+    # Step 2: While remaining > 10% budget, upgrade last lot to more expensive
+    for _ in range(len(selected)):
+        remaining = budget - spent
+        if remaining <= budget * 0.10 or not selected:
+            break
+        last = selected[-1]
+        avail = remaining + last["discounted_price"]
+        sel_keys = {(s["code"], s["building"]) for s in selected[:-1]}
+
+        upgrade = None
+        for c in candidates:
+            ck = (c["code"], c["building"])
+            if ck in sel_keys or ck == (last["code"], last["building"]):
+                continue
+            if c["discounted_price"] > last["discounted_price"] and c["discounted_price"] <= avail:
+                upgrade = c  # last match = most expensive that fits
+
+        if upgrade:
+            spent = spent - last["discounted_price"] + upgrade["discounted_price"]
+            selected[-1] = upgrade
+        else:
+            break
+
+    # Step 3: Deduplicate — keep 1 lot per (area, price) type
+    seen_types = {}
+    deduped = []
+    for lot in selected:
+        lt = (lot["area_m2"], lot["price_rub"])
+        if lt in seen_types:
+            spent -= lot["discounted_price"]
+        else:
+            seen_types[lt] = True
+            deduped.append(lot)
+    selected = deduped
+
+    # Fill freed budget with lots of different types (expensive first)
+    sel_keys = {(s["code"], s["building"]) for s in selected}
+    existing_types = {(s["area_m2"], s["price_rub"]) for s in selected}
+    for c in reversed(candidates):
+        ck = (c["code"], c["building"])
+        ct = (c["area_m2"], c["price_rub"])
+        if ck in sel_keys or ct in existing_types:
+            continue
+        if spent + c["discounted_price"] <= budget:
+            selected.append(c)
+            sel_keys.add(ck)
+            existing_types.add(ct)
             spent += c["discounted_price"]
 
     if not selected:

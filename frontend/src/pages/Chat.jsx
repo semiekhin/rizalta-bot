@@ -315,6 +315,7 @@ function PortfolioReportCardV2({ data }) {
                 <div key={`${l.code}-${l.building}`} className="bg-rz-green-mid/50 rounded-lg p-2 text-sm flex justify-between">
                   <div>
                     <span className="font-medium">{l.code}</span>
+                    <span className="text-rz-cream-muted text-xs ml-1">К{l.building}, {l.floor}эт.</span>
                     <span className="text-rz-cream-muted text-xs ml-2">{l.area_m2} м&sup2;</span>
                   </div>
                   <div className="text-right">
@@ -347,6 +348,7 @@ function PortfolioReportCardV2({ data }) {
                 <div key={`${l.code}-${l.building}`} className="bg-rz-green-mid/50 rounded-lg p-2 text-sm flex justify-between">
                   <div>
                     <span className="font-medium">{l.code}</span>
+                    <span className="text-rz-cream-muted text-xs ml-1">К{l.building}, {l.floor}эт.</span>
                     <span className="text-rz-cream-muted text-xs ml-2">ПВ {fmt(l.down_payment)} &#8381;</span>
                   </div>
                   <div className="text-right">
