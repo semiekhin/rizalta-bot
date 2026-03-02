@@ -514,6 +514,25 @@ async def api_strategy_pdf(request: Request):
         return {"ok": False, "error": str(e)}
 
 
+@app.post("/api/portfolio-pdf")
+async def api_portfolio_pdf(request: Request):
+    """Generate portfolio PDF from report data + AI text (chat-style cards)."""
+    from services.portfolio_pdf_generator import generate_portfolio_pdf
+    body = await request.json()
+    data = body.get("data", {})
+    ai_text = body.get("ai_text", "")
+    pdf_bytes = generate_portfolio_pdf(data, ai_text)
+    if not pdf_bytes:
+        raise HTTPException(status_code=500, detail="PDF generation failed")
+    budget = data.get("budget", 0)
+    filename = f"RIZALTA_Portfolio_{budget // 1_000_000}M.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/api/download-compare-pdf")
 async def api_download_compare_pdf(amount: int, years: int = 11, area: float = 26.8):
     """Генерация PDF сравнения Депозит vs RIZALTA."""

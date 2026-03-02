@@ -632,19 +632,39 @@ export default function Chat({ lots, onNavigate }) {
     }
   }
 
-  const downloadStrategyPdf = async (data) => {
+  const downloadPdf = async (msg) => {
     try {
-      const resp = await fetch('/api/strategy-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
+      let resp
+      let filename
+
+      if (msg.reportCard?.card_type === 'portfolio_report_v2') {
+        // Portfolio PDF — new endpoint with chat-style cards
+        const budget = msg.reportCard.data.budget || 0
+        resp = await fetch('/api/portfolio-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: msg.reportCard.data,
+            ai_text: msg.content || '',
+          }),
+        })
+        filename = `RIZALTA_Portfolio_${Math.round(budget / 1_000_000)}M.pdf`
+      } else {
+        // Lot report / agentic — existing strategy-pdf endpoint
+        resp = await fetch('/api/strategy-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg.strategyData),
+        })
+        filename = `RIZALTA_Strategy_${Date.now()}.pdf`
+      }
+
       if (!resp.ok) throw new Error('PDF generation failed')
       const blob = await resp.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `RIZALTA_Strategy_${Date.now()}.pdf`
+      a.download = filename
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {
@@ -745,7 +765,7 @@ export default function Chat({ lots, onNavigate }) {
             {msg.strategyData && (
               <div className="pl-10 mt-2">
                 <button
-                  onClick={() => downloadStrategyPdf(msg.strategyData)}
+                  onClick={() => downloadPdf(msg)}
                   className="flex items-center gap-2 px-4 py-2 bg-rz-gold text-rz-green-dark rounded-lg font-medium hover:bg-rz-gold-light transition-colors text-sm"
                 >
                   <span>📄</span>
