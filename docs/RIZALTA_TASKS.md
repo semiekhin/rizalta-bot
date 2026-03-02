@@ -358,3 +358,18 @@
 4. Обновить карточки Chat.jsx
 5. Адаптировать strategy_pdf_generator.py (PDF)
 6. INVESTMENT_METHODOLOGY.md
+
+## WebApp бэклог (02.03.2026)
+### 🔴 Ближайшие
+1. Фикс AI портфеля: budget fill (≥90%), ценовая консистентность, дедупликация в сценарии 3
+2. Адаптация strategy_pdf_generator под AI-selected данные (портфельный PDF)
+3. Тест лотового PDF с новыми метриками
+
+### 🟡 Средний приоритет
+4. Версия в app.py (0.9.2 → 0.9.5)
+5. История чата (сохранение сессий)
+6. Формат B метрик (IRR, NPV, Sensitivity Analysis)
+
+### 🟢 Nice-to-have
+7. К4 whitelist
+8. Миграция на российский LLM

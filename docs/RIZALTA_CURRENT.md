@@ -377,3 +377,11 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 - Report Cards в чате (LotReportCard, PortfolioReportCard)
 - report_card SSE event — данные как UI-компоненты до AI
 - marked удалён — карточки заменили markdown
+
+## WebApp v0.9.5 (02.03.2026)
+- Инвестиционные метрики: NOI, Cap Rate, Cash-on-Cash, Equity Multiple
+- AI-driven portfolio selection (Level 3): gpt-4o-mini selector + GPT-5.2 analyst
+- 3 инвестиционных сценария: премиальный лот / портфель 100% / макс. плечо
+- UI карточки с метриками и reasoning от AI
+- Полноценные AI промпты 400-800 слов (7 секций)
+- Markdown рендеринг в чате
