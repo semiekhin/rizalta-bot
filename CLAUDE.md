@@ -438,3 +438,11 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **Chat.jsx:** Кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" + PDF download
 - **WEBAPP_ROOT env:** DEV читает файлы из /opt/webapp-dev
 - **POST /api/strategy-pdf:** Эндпоинт генерации инвестиционного PDF
+
+### Сессия 02.03.2026 part 2 (v0.9.3+)
+- **Report Cards в чате:** LotReportCard, PortfolioReportCard — данные как UI-компоненты
+- **report_card SSE event:** бэкенд отправляет данные ДО вызова AI
+- **AI пишет только рекомендацию** — ВРЕМЕННО, нужно вернуть полноценную аналитику
+- **marked удалён** — не работал, карточки заменили markdown
+- **format_lot_summary / format_portfolio_summary** — pre-format данных для AI
+- **Коммиты:** bbaf9a3, f97a1fe, 9bdbeb8, 9dc06b4

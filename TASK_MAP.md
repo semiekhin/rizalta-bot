@@ -137,3 +137,9 @@ sudo systemctl restart webapp-dev.service
 - Разработка webapp параллельна с ботом — docs дополняем, не затираем!
 - Claude читает код через `/api/docs/file` — не нужен копипаст
 - AI: GPT-5.2 для отчётов и agentic loop, gpt-4o-mini для простого чата
+
+### Сессия 02.03.2026 part 2 (v0.9.3+)
+- **Report Cards:** LotReportCard, PortfolioReportCard — UI-компоненты в чате
+- **report_card SSE event** — данные из report_builder до AI
+- **format_lot_summary / format_portfolio_summary** — pre-format
+- **marked удалён** — карточки вместо markdown
