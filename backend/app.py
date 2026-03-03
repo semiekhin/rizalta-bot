@@ -541,12 +541,15 @@ async def api_lot_summary_pdf(request: Request):
     pdf_bytes = generate_lot_summary_pdf(body)
     if not pdf_bytes:
         raise HTTPException(status_code=500, detail="PDF generation failed")
+    import urllib.parse
     code = body.get("lot", {}).get("code", "lot")
     filename = f"RIZALTA_{code}_Summary.pdf"
+    filename_ascii = filename.encode('ascii', 'ignore').decode()
+    filename_utf8 = urllib.parse.quote(filename)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f"attachment; filename=\"{filename_ascii}\"; filename*=UTF-8''{filename_utf8}"},
     )
 
 
