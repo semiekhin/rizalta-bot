@@ -892,60 +892,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
                     </div>
                   </div>
 
-                  {/* 2. Investment Metrics 3x2 */}
-                  {summaryData.roi && (() => {
-                    const r = summaryData.roi
-                    const price = lot.price
-                    const dailyRate = 15000
-                    const occupancy = 0.60
-                    const expenseRatio = 0.50
-                    const grossIncome = dailyRate * (lot.area / 26.8) * 365 * occupancy
-                    const noi = Math.round(grossIncome * (1 - expenseRatio))
-                    const capRate = ((noi / price) * 100).toFixed(1)
-                    const cocFull = ((noi / (price * 0.95)) * 100).toFixed(1)
-                    const cocInstallment = ((noi / (price * 0.3)) * 100).toFixed(1)
-                    const equityMultipleFull = ((r.total_profit + price) / (price * 0.95)).toFixed(2)
-                    const equityMultipleInst = ((r.total_profit + price) / (price * 0.3)).toFixed(2)
-                    return (
-                      <div>
-                        <p className="text-xs text-rz-cream-muted font-medium mb-2">ИНВЕСТИЦИОННЫЕ МЕТРИКИ</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="rounded-lg p-2 bg-rz-gold/15">
-                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Чистый доход / год</p>
-                            <p className="text-sm font-bold text-rz-gold">{formatPrice(noi)} ₽</p>
-                            <p className="text-[10px] text-rz-cream-muted">стабилиз. 2030</p>
-                          </div>
-                          <div className="rounded-lg p-2 bg-rz-gold/15">
-                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Доходность (Cap Rate)</p>
-                            <p className="text-sm font-bold text-rz-gold">{capRate}%</p>
-                            <p className="text-[10px] text-rz-cream-muted">NOI / цена</p>
-                          </div>
-                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
-                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">ROI 11 лет</p>
-                            <p className="text-sm font-bold text-rz-cream">{r.roi_pct}%</p>
-                            <p className="text-[10px] text-rz-cream-muted">~{r.avg_annual_pct}% / год</p>
-                          </div>
-                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
-                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Доход на вложенное (100%)</p>
-                            <p className="text-sm font-bold text-rz-cream">{cocFull}%</p>
-                            <p className="text-[10px] text-rz-cream-muted">скидка 5%</p>
-                          </div>
-                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
-                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Доход на вложенное (30%)</p>
-                            <p className="text-sm font-bold text-rz-cream">{cocInstallment}%</p>
-                            <p className="text-[10px] text-rz-cream-muted">рассрочка</p>
-                          </div>
-                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
-                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Мультипликатор</p>
-                            <p className="text-sm font-bold text-rz-cream">{equityMultipleFull}x</p>
-                            <p className="text-[10px] text-rz-cream-muted">рассрочка {equityMultipleInst}x</p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  {/* 3. Profitability 11 years */}
+                  {/* 2. Profitability 11 years */}
                   {summaryData.roi && (() => {
                     const r = summaryData.roi
                     return (
@@ -1026,13 +973,21 @@ export default function LotDetail({ lot, onBack, onChat }) {
                     const dep = summaryData.deposit
                     const r = summaryData.roi
                     const advantage = r ? r.total_profit - (dep.base?.total_net_interest || 0) : 0
+                    const DEPOSIT_LABELS = {
+                      pessimistic: 'Ставка остаётся высокой',
+                      base: 'Базовый (прогноз ЦБ)',
+                      optimistic: 'Ставка снижается быстро',
+                    }
+                    const DEPOSIT_ORDER = ['pessimistic', 'base', 'optimistic']
                     return (
                       <div>
                         <p className="text-xs text-rz-cream-muted font-medium mb-2">RIZALTA vs ДЕПОЗИТ (11 лет)</p>
                         {r && dep.base && advantage > 0 && (
-                          <div className="bg-rz-gold/15 rounded-xl p-3 border border-rz-gold/30 mb-3">
-                            <p className="font-bold text-rz-gold">✅ RIZALTA выгоднее на {formatPrice(advantage)} ₽</p>
-                            <p className="text-rz-cream-dark text-xs mt-1">по сравнению с базовым сценарием депозита</p>
+                          <div className="bg-rz-gold/20 rounded-xl p-4 border-2 border-rz-gold/50 mb-3">
+                            <p className="text-xl font-bold text-rz-gold">
+                              ✅ RIZALTA выгоднее на {formatPrice(advantage)} ₽
+                            </p>
+                            <p className="text-rz-cream-dark text-sm mt-1">по сравнению с базовым прогнозом ЦБ</p>
                           </div>
                         )}
                         {r && (
@@ -1044,16 +999,20 @@ export default function LotDetail({ lot, onBack, onChat }) {
                             <p className="text-xs text-rz-cream-dark">ROI: {r.roi_pct}% за 11 лет</p>
                           </div>
                         )}
+                        <p className="text-xs text-rz-cream-muted font-medium mb-1 mt-3">Доходность по депозиту за 11 лет:</p>
                         <div className="space-y-2">
-                          {Object.entries(dep).map(([key, d]) => (
-                            <div key={key} className="bg-rz-green-mid rounded-xl p-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-rz-cream-dark">{d.scenario_name}</span>
-                                <span className="font-bold">{formatPrice(d.total_net_interest)} ₽</span>
+                          {DEPOSIT_ORDER.filter(k => dep[k]).map(key => {
+                            const d = dep[key]
+                            return (
+                              <div key={key} className="bg-rz-green-mid rounded-xl p-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-rz-cream-dark">{DEPOSIT_LABELS[key] || d.scenario_name}</span>
+                                  <span className="font-bold">{formatPrice(d.total_net_interest)} ₽</span>
+                                </div>
+                                <p className="text-xs text-rz-cream-muted">ROI: {d.total_roi_pct}%</p>
                               </div>
-                              <p className="text-xs text-rz-cream-muted">ROI: {d.total_roi_pct}%</p>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )

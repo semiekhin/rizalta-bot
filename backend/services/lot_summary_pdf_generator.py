@@ -90,35 +90,6 @@ def _build_header(lot: dict) -> str:
     </div>'''
 
 
-def _build_metrics(roi: dict, lot: dict) -> str:
-    price = lot.get("price", 0)
-    area = lot.get("area", 0)
-    daily_rate = 15000
-    occupancy = 0.60
-    expense_ratio = 0.50
-    gross = daily_rate * (area / 26.8) * 365 * occupancy
-    noi = round(gross * (1 - expense_ratio))
-    cap_rate = round(noi / price * 100, 1) if price else 0
-    coc_full = round(noi / (price * 0.95) * 100, 1) if price else 0
-    coc_inst = round(noi / (price * 0.3) * 100, 1) if price else 0
-    total_profit = roi.get("total_profit", 0)
-    eq_full = round((total_profit + price) / (price * 0.95), 2) if price else 0
-    eq_inst = round((total_profit + price) / (price * 0.3), 2) if price else 0
-
-    return f'''
-    {_section_title("Инвестиционные метрики")}
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
-        {_metric_cell("Чистый доход / год", f"{_fmt(noi)} ₽", "стабилиз. 2030", True)}
-        {_metric_cell("Доходность (Cap Rate)", f"{cap_rate}%", "NOI / цена", True)}
-        {_metric_cell("ROI 11 лет", f"{roi.get('roi_pct', 0)}%", f"~{roi.get('avg_annual_pct', 0)}% / год")}
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-        {_metric_cell("Доход на вложенное (100%)", f"{coc_full}%", "скидка 5%")}
-        {_metric_cell("Доход на вложенное (30%)", f"{coc_inst}%", "рассрочка")}
-        {_metric_cell("Мультипликатор", f"{eq_full}x", f"рассрочка {eq_inst}x")}
-    </div>'''
-
-
 def _build_profitability(roi: dict) -> str:
     return f'''
     {_section_title("Доходность за 11 лет")}
@@ -192,11 +163,22 @@ def _build_deposit(deposit: dict, roi: dict) -> str:
     base_interest = base.get("total_net_interest", 0)
     advantage = total_profit - base_interest
 
+    DEPOSIT_LABELS = {
+        "pessimistic": "Ставка остаётся высокой",
+        "base": "Базовый (прогноз ЦБ)",
+        "optimistic": "Ставка снижается быстро",
+    }
+    DEPOSIT_ORDER = ["pessimistic", "base", "optimistic"]
+
     rows = ""
-    for key, d in deposit.items():
+    for key in DEPOSIT_ORDER:
+        d = deposit.get(key)
+        if not d:
+            continue
+        label = DEPOSIT_LABELS.get(key, d.get("scenario_name", key))
         rows += f'''
         <tr>
-            <td style="padding:7px 10px; font-size:11px; color:{C["text_secondary"]}; border-bottom:1px solid {C["card_border"]};">{d.get("scenario_name", key)}</td>
+            <td style="padding:7px 10px; font-size:11px; color:{C["text_secondary"]}; border-bottom:1px solid {C["card_border"]};">{label}</td>
             <td style="padding:7px 10px; font-size:11px; font-weight:500; text-align:right; color:{C["text"]}; border-bottom:1px solid {C["card_border"]};">{_fmt(d.get("total_net_interest", 0))} ₽</td>
             <td style="padding:7px 10px; font-size:11px; text-align:right; color:{C["text_muted"]}; border-bottom:1px solid {C["card_border"]};">{d.get("total_roi_pct", 0)}%</td>
         </tr>'''
@@ -204,8 +186,9 @@ def _build_deposit(deposit: dict, roi: dict) -> str:
     advantage_html = ""
     if advantage > 0:
         advantage_html = f'''
-        <div style="background:{C["gold"]}; color:{C["bg"]}; padding:10px 16px; border-radius:8px; margin-bottom:10px; font-weight:600; font-size:13px;">
-            ✅ RIZALTA выгоднее на {_fmt(advantage)} ₽
+        <div style="background:{C["gold"]}; color:{C["bg"]}; padding:14px 20px; border-radius:8px; margin-bottom:12px; border:2px solid {C["gold"]};">
+            <div style="font-size:18px; font-weight:700;">✅ RIZALTA выгоднее на {_fmt(advantage)} ₽</div>
+            <div style="font-size:12px; margin-top:4px; opacity:0.8;">по сравнению с базовым прогнозом ЦБ</div>
         </div>'''
 
     return f'''
@@ -218,6 +201,7 @@ def _build_deposit(deposit: dict, roi: dict) -> str:
         </tr></table>
         <div style="font-size:11px; color:{C["text_secondary"]};">ROI: {roi.get("roi_pct", 0)}% за 11 лет</div>
     </div>
+    <div style="font-size:11px; color:{C["text_muted"]}; margin-bottom:6px; font-weight:500;">Доходность по депозиту за 11 лет:</div>
     <table style="width:100%; border-collapse:collapse; background:{C["card_bg"]}; border-radius:8px;">
         <thead>
             <tr style="background:{C["metric_bg"]};">
@@ -310,7 +294,6 @@ def generate_lot_summary_pdf(data: dict) -> bytes | None:
 
     sections = _build_header(lot)
     if roi:
-        sections += _build_metrics(roi, lot)
         sections += _build_profitability(roi)
     if installment:
         sections += _build_payments(installment, lot.get("price", 0))
