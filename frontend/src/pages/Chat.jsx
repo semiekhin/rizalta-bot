@@ -404,10 +404,6 @@ export default function Chat({ lots, onNavigate }) {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState(null)
-  const [showLotInput, setShowLotInput] = useState(false)
-  const [showBudgetInput, setShowBudgetInput] = useState(false)
-  const [lotCode, setLotCode] = useState('')
-  const [budget, setBudget] = useState('')
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
   const abortRef = useRef(null)
@@ -602,24 +598,6 @@ export default function Chat({ lots, onNavigate }) {
     await handleStream({ message: trimmed, history })
   }
 
-  const sendReport = async (mode, code = null, budgetVal = null) => {
-    if (isStreaming) return
-    setShowLotInput(false)
-    setShowBudgetInput(false)
-
-    const userMsg = mode === 'lot_report'
-      ? `Фин. отчёт по лоту ${code}`
-      : `Портфель на ${(budgetVal / 1000000).toFixed(0)} млн ₽`
-
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }])
-
-    const body = { message: userMsg, history: [], mode }
-    if (code) body.lot_code = code
-    if (budgetVal) body.budget = parseInt(budgetVal)
-
-    await handleStream(body)
-  }
-
   const handleSubmit = (e) => {
     e.preventDefault()
     sendMessage(input)
@@ -779,80 +757,6 @@ export default function Chat({ lots, onNavigate }) {
         {/* Report buttons + quick actions after welcome */}
         {messages.length === 1 && !isStreaming && (
           <>
-            <div className="flex gap-3 pl-10">
-              <button
-                onClick={() => { setShowLotInput(true); setShowBudgetInput(false) }}
-                className="flex-1 bg-rz-green-light border border-rz-gold/30 rounded-xl p-3 text-left hover:border-rz-gold transition"
-              >
-                <div className="text-rz-gold font-semibold text-sm">Фин. отчёт по лоту</div>
-                <div className="text-rz-cream-dark text-xs mt-1">ROI, рассрочка, сравнение с депозитом</div>
-              </button>
-              <button
-                onClick={() => { setShowBudgetInput(true); setShowLotInput(false) }}
-                className="flex-1 bg-rz-green-light border border-rz-gold/30 rounded-xl p-3 text-left hover:border-rz-gold transition"
-              >
-                <div className="text-rz-gold font-semibold text-sm">Портфель по бюджету</div>
-                <div className="text-rz-cream-dark text-xs mt-1">Подбор лотов и стратегий</div>
-              </button>
-            </div>
-
-            {showLotInput && (
-              <div className="ml-10 p-3 bg-rz-green-mid rounded-xl border border-rz-gold/20">
-                <label className="text-rz-cream text-sm">Код лота:</label>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    value={lotCode}
-                    onChange={e => setLotCode(e.target.value.toUpperCase())}
-                    placeholder="Например В818"
-                    className="flex-1 bg-rz-green-dark text-rz-cream rounded-lg px-3 py-2 border border-rz-cream-muted/30 focus:border-rz-gold outline-none text-sm"
-                    autoFocus
-                    onKeyDown={e => { if (e.key === 'Enter' && lotCode.trim()) sendReport('lot_report', lotCode.trim()) }}
-                  />
-                  <button
-                    onClick={() => lotCode.trim() && sendReport('lot_report', lotCode.trim())}
-                    className="bg-rz-gold text-rz-green-dark font-semibold rounded-lg px-4 py-2 text-sm"
-                  >
-                    Сформировать
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {showBudgetInput && (
-              <div className="ml-10 p-3 bg-rz-green-mid rounded-xl border border-rz-gold/20">
-                <label className="text-rz-cream text-sm">Бюджет клиента:</label>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="number"
-                    value={budget}
-                    onChange={e => setBudget(e.target.value)}
-                    placeholder="15000000"
-                    className="flex-1 bg-rz-green-dark text-rz-cream rounded-lg px-3 py-2 border border-rz-cream-muted/30 focus:border-rz-gold outline-none text-sm"
-                    autoFocus
-                    onKeyDown={e => { if (e.key === 'Enter' && budget) sendReport('portfolio', null, budget) }}
-                  />
-                  <button
-                    onClick={() => budget && sendReport('portfolio', null, budget)}
-                    className="bg-rz-gold text-rz-green-dark font-semibold rounded-lg px-4 py-2 text-sm"
-                  >
-                    Подобрать
-                  </button>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  {[5, 10, 15, 20, 30, 50].map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setBudget(m * 1000000)}
-                      className="text-xs bg-rz-green-dark text-rz-cream-dark rounded px-2 py-1 hover:text-rz-gold transition"
-                    >
-                      {m} млн
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-wrap gap-2 pl-10">
               {quickActions.map((qa, i) => (
                 <button
