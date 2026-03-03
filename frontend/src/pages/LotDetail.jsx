@@ -1127,8 +1127,37 @@ export default function LotDetail({ lot, onBack, onChat }) {
 
                   {/* PDF buttons */}
                   <div className="space-y-2 pt-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const resp = await fetch('/api/lot-summary-pdf', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              lot: { code: lot.code, building: lot.building, area: lot.area, floor: lot.floor, price: lot.price },
+                              roi: summaryData.roi,
+                              installment: summaryData.installment,
+                              deposit: summaryData.deposit,
+                              mgp: summaryData.mgp,
+                              mortgage: summaryData.mortgage,
+                            }),
+                          })
+                          if (!resp.ok) throw new Error('PDF failed')
+                          const blob = await resp.blob()
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `RIZALTA_${lot.code}_Summary.pdf`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        } catch (e) { console.error('Summary PDF error:', e) }
+                      }}
+                      className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors"
+                    >
+                      📄 Скачать полный отчёт
+                    </button>
                     <button onClick={() => window.open(`/api/payment-pdf?price=${lot.price}&code=${encodeURIComponent(lot.code)}`, '_blank')}
-                      className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+                      className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green transition-colors">
                       📄 PDF вариантов оплаты
                     </button>
                     <button onClick={() => window.open(`/api/download-compare-pdf?amount=${lot.price}&years=11&area=${lot.area}`, '_blank')}

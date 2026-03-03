@@ -533,6 +533,23 @@ async def api_portfolio_pdf(request: Request):
     )
 
 
+@app.post("/api/lot-summary-pdf")
+async def api_lot_summary_pdf(request: Request):
+    """Generate comprehensive lot summary PDF (all 7 sections)."""
+    from services.lot_summary_pdf_generator import generate_lot_summary_pdf
+    body = await request.json()
+    pdf_bytes = generate_lot_summary_pdf(body)
+    if not pdf_bytes:
+        raise HTTPException(status_code=500, detail="PDF generation failed")
+    code = body.get("lot", {}).get("code", "lot")
+    filename = f"RIZALTA_{code}_Summary.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/api/download-compare-pdf")
 async def api_download_compare_pdf(amount: int, years: int = 11, area: float = 26.8):
     """Генерация PDF сравнения Депозит vs RIZALTA."""
