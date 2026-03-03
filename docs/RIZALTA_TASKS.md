@@ -2,6 +2,15 @@
 
 ## ✅ Выполнено
 
+### 01.03.2026: Custom installment fix + status filter + pagination/sort
+- Custom installment: проверка building==1 (К3 лоты не затрагиваются)
+- units_db.py: status='available' добавлен во все 9 SQL-запросов
+- Пагинация floors_range: noop → kp_show_more
+- Сортировка building_all: floor,code → area_m2,price_rub
+- OpenAI API ключ заменён (новый аккаунт)
+- Крон парсера отключён на 3-4 дня, 4 лота К3 sold вручную
+- Версия: 2.7.1
+
 ### 24.02.2026: Интеграция Корпуса 3 «Digital» в штатный режим
 - К3 полностью унифицирован с К1/К2 через общий flow (kp.py, units_db.py)
 - Парсер rclick подхватывает К3 автоматически (120 лотов в properties.db)

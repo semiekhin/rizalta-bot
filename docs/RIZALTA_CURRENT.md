@@ -1,8 +1,46 @@
 # Текущий статус RIZALTA
 
-📅 **Последняя сессия:** 24.02.2026
-🏷️ **Версия:** 2.7.0
-🏷️ **Версия webapp:** 0.8.5
+📅 **Последняя сессия:** 01.03.2026
+🏷️ **Версия:** 2.7.1
+🏷️ **Версия webapp:** 0.9.5
+
+## ✅ Что сделано (01.03.2026)
+
+### OpenAI API ключ
+- Заменён в обоих окружениях (DEV + PROD) — новый аккаунт OpenAI
+- VECTOR_STORE_ID и ASSISTANT_ID не используются (нигде в коде) — можно удалить из .env
+
+### Custom Installment: фикс для Корпуса 3
+- **Проблема:** CUSTOM_INSTALLMENT_UNITS содержит коды (В327, В615 и др.) которые совпадают между К1 и К3 — лоты К3 ошибочно получали ограниченное КП (только 50% ПВ)
+- **Решение:** добавлена проверка building==1 во все 3 места (kp_pdf_generator.py:231, kp.py:230, kp.py:733)
+- **Файлы:** services/kp_pdf_generator.py, handlers/kp.py
+
+### Фильтр status=available во всех запросах units_db.py
+- **Проблема:** только get_building_stats() фильтровал по status — остальные 8 функций возвращали все лоты включая sold
+- **Решение:** добавлен AND status='available' в 9 SQL-запросов (get_all_available_lots, get_lots_by_building, get_lots_by_floor, get_lots_filtered, get_lot_by_code x2, get_lots_by_code, get_lot_by_area, get_available_floors)
+- **Файл:** services/units_db.py
+
+### Пагинация и сортировка
+- **Баг 1:** Кнопка "ещё N лотов" в handle_kp_floors_range (Верхние/Нижние/Средние) имела callback_data="noop" — не работала пагинация
+- **Решение:** заменено на _search_cache + kp_show_more (как в других обработчиках)
+- **Баг 2:** handle_kp_building_all (Все лоты корпуса) сортировал по floor,code вместо area_m2,price_rub
+- **Решение:** ORDER BY area_m2, price_rub в get_lots_by_building()
+- **Файлы:** handlers/kp.py, services/units_db.py
+
+### Временные изменения (раскомментировать в понедельник 03.03)
+- ⚠️ Крон парсера закомментирован (DEV 6:00 + PROD 3:00) — crontab -e раскомментировать
+- 4 лота К3 вручную sold: В121, В123, В327, В427 — парсер перезапишет при включении
+
+## 🔄 Текущее состояние
+
+- **PROD:** работает ✅ v2.7.1
+- **DEV:** работает ✅ v2.7.1
+- **Корпус 1 «Family»:** ~256 лотов (properties.db, building=1)
+- **Корпус 2 «Business»:** ~104 лота (properties.db, building=2), скрыт
+- **Корпус 3 «Digital»:** ~116 available / 4 sold вручную (properties.db, building=3) — ✅ ШТАТНЫЙ РЕЖИМ
+- **Mini App Vercel:** работает ✅
+- **WebApp:** webapp.rizaltaservice.ru ✅
+- **⚠️ Крон парсера:** ОТКЛЮЧЁН до понедельника 03.03
 
 ## ✅ Что сделано (24.02.2026)
 
