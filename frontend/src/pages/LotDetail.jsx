@@ -43,6 +43,11 @@ export default function LotDetail({ lot, onBack, onChat }) {
   const [mortgageTariff, setMortgageTariff] = useState('base')
   const [mortgageTerm, setMortgageTerm] = useState(360)
 
+  // Summary
+  const [showSummary, setShowSummary] = useState(false)
+  const [summaryData, setSummaryData] = useState(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+
   if (!lot) {
     return (
       <div className="min-h-screen bg-rz-green text-rz-cream flex items-center justify-center pb-20">
@@ -193,6 +198,49 @@ export default function LotDetail({ lot, onBack, onChat }) {
     setMortgageLoading(false)
   }
 
+  // === Summary ===
+  const handleSummary = async () => {
+    setShowSummary(true)
+    setSummaryLoading(true)
+    setSummaryData(null)
+    try {
+      const [roiRes, installmentRes, depositRes, mgpRes, mortgageRes] = await Promise.all([
+        fetch('/api/calculate-roi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ area: lot.area, price: lot.price })
+        }).then(r => r.json()),
+        fetch('/api/installment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price: lot.price })
+        }).then(r => r.json()),
+        fetch('/api/compare-deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: lot.price, years: 11, scenario: 'all' })
+        }).then(r => r.json()),
+        fetch(`/api/mgp/calculate?area=${lot.area}`).then(r => r.json()),
+        fetch('/api/mortgage/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price: lot.price, down_payment_pct: 30, tariff: 'base', loan_term_months: 360 })
+        }).then(r => r.json()),
+      ])
+      setSummaryData({
+        roi: roiRes.ok ? roiRes.data : null,
+        installment: installmentRes.ok ? installmentRes.data : null,
+        deposit: depositRes.ok ? depositRes.data : null,
+        mgp: mgpRes.ok ? mgpRes : null,
+        mortgage: mortgageRes.ok ? mortgageRes.data : null,
+      })
+    } catch (e) {
+      console.error('Summary load error:', e)
+      setSummaryData({ error: true })
+    }
+    setSummaryLoading(false)
+  }
+
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-20">
       {/* Header */}
@@ -255,6 +303,9 @@ export default function LotDetail({ lot, onBack, onChat }) {
         <div className="space-y-2 pt-2">
           <button onClick={() => setShowKP(true)} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
             📄 Получить КП
+          </button>
+          <button onClick={handleSummary} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+            📊 Инвестиционная сводка
           </button>
           <button onClick={handleInstallment} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             💳 Варианты оплаты
@@ -803,6 +854,302 @@ export default function LotDetail({ lot, onBack, onChat }) {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Summary Modal */}
+      {showSummary && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[90vh] overflow-auto pb-24">
+            <div className="sticky top-0 bg-rz-green-light px-4 py-3 border-b border-rz-green-mid flex justify-between items-center z-10">
+              <h2 className="font-bold text-lg">📊 Инвестиционная сводка</h2>
+              <button onClick={() => setShowSummary(false)} className="text-rz-cream-dark text-xl">✕</button>
+            </div>
+            <div className="p-4 space-y-4">
+              {summaryLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-8 h-8 border-4 border-rz-gold border-t-transparent rounded-full animate-spin"/>
+                </div>
+              ) : summaryData?.error ? (
+                <p className="text-rz-error text-center">Ошибка загрузки данных</p>
+              ) : summaryData ? (
+                <>
+                  {/* 1. Header */}
+                  <div className="bg-rz-green-mid rounded-xl p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-xl text-rz-gold">{lot.code}</p>
+                        <p className="text-sm text-rz-cream-dark">
+                          Корпус {lot.building} «{{1:'Family',2:'Business',3:'Digital'}[lot.building] || ''}» • {lot.area} м² • этаж {lot.floor}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-xl">{formatPrice(lot.price)} ₽</p>
+                        <p className="text-xs text-rz-cream-muted">{formatPrice(pricePerM2)} ₽/м²</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Investment Metrics 3x2 */}
+                  {summaryData.roi && (() => {
+                    const r = summaryData.roi
+                    const price = lot.price
+                    const dailyRate = 15000
+                    const occupancy = 0.60
+                    const expenseRatio = 0.50
+                    const grossIncome = dailyRate * (lot.area / 26.8) * 365 * occupancy
+                    const noi = Math.round(grossIncome * (1 - expenseRatio))
+                    const capRate = ((noi / price) * 100).toFixed(1)
+                    const cocFull = ((noi / (price * 0.95)) * 100).toFixed(1)
+                    const cocInstallment = ((noi / (price * 0.3)) * 100).toFixed(1)
+                    const equityMultipleFull = ((r.total_profit + price) / (price * 0.95)).toFixed(2)
+                    const equityMultipleInst = ((r.total_profit + price) / (price * 0.3)).toFixed(2)
+                    return (
+                      <div>
+                        <p className="text-xs text-rz-cream-muted font-medium mb-2">ИНВЕСТИЦИОННЫЕ МЕТРИКИ</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="rounded-lg p-2 bg-rz-gold/15">
+                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Чистый доход / год</p>
+                            <p className="text-sm font-bold text-rz-gold">{formatPrice(noi)} ₽</p>
+                            <p className="text-[10px] text-rz-cream-muted">стабилиз. 2030</p>
+                          </div>
+                          <div className="rounded-lg p-2 bg-rz-gold/15">
+                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Доходность (Cap Rate)</p>
+                            <p className="text-sm font-bold text-rz-gold">{capRate}%</p>
+                            <p className="text-[10px] text-rz-cream-muted">NOI / цена</p>
+                          </div>
+                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
+                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">ROI 11 лет</p>
+                            <p className="text-sm font-bold text-rz-cream">{r.roi_pct}%</p>
+                            <p className="text-[10px] text-rz-cream-muted">~{r.avg_annual_pct}% / год</p>
+                          </div>
+                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
+                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Доход на вложенное (100%)</p>
+                            <p className="text-sm font-bold text-rz-cream">{cocFull}%</p>
+                            <p className="text-[10px] text-rz-cream-muted">скидка 5%</p>
+                          </div>
+                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
+                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Доход на вложенное (30%)</p>
+                            <p className="text-sm font-bold text-rz-cream">{cocInstallment}%</p>
+                            <p className="text-[10px] text-rz-cream-muted">рассрочка</p>
+                          </div>
+                          <div className="rounded-lg p-2 bg-rz-green-mid/50">
+                            <p className="text-[10px] uppercase tracking-wide text-rz-cream-muted">Мультипликатор</p>
+                            <p className="text-sm font-bold text-rz-cream">{equityMultipleFull}x</p>
+                            <p className="text-[10px] text-rz-cream-muted">рассрочка {equityMultipleInst}x</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* 3. Profitability 11 years */}
+                  {summaryData.roi && (() => {
+                    const r = summaryData.roi
+                    return (
+                      <div className="bg-rz-success/15 rounded-xl p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-sm text-rz-success font-medium">Доходность за 11 лет</p>
+                          <p className="text-2xl font-bold text-rz-success">{r.roi_pct}%</p>
+                        </div>
+                        <p className="text-xs text-rz-cream-dark">~{r.avg_annual_pct}% годовых</p>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="bg-rz-green-mid/50 rounded-lg p-2">
+                            <p className="text-xs text-rz-cream-muted">Аренда</p>
+                            <p className="text-sm font-bold text-rz-gold">{formatPrice(r.total_rental)} ₽</p>
+                          </div>
+                          <div className="bg-rz-green-mid/50 rounded-lg p-2">
+                            <p className="text-xs text-rz-cream-muted">Рост стоимости</p>
+                            <p className="text-sm font-bold text-rz-gold">{formatPrice(r.total_growth)} ₽</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-rz-success/20 flex justify-between">
+                          <div>
+                            <p className="text-xs text-rz-cream-muted">Общая прибыль</p>
+                            <p className="font-bold text-rz-gold">{formatPrice(r.total_profit)} ₽</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-rz-cream-muted">Стоимость в 2035</p>
+                            <p className="font-bold">{formatPrice(r.final_value)} ₽</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* 4. Payment options */}
+                  {summaryData.installment && (() => {
+                    const d = summaryData.installment
+                    return (
+                      <div>
+                        <p className="text-xs text-rz-cream-muted font-medium mb-2">ВАРИАНТЫ ОПЛАТЫ</p>
+                        <div className="space-y-3">
+                          <div className="bg-rz-success/15 rounded-xl p-3">
+                            <p className="text-sm font-bold text-rz-success mb-1">💰 100% оплата (скидка 5%)</p>
+                            <p className="text-lg font-bold">{formatPrice(Math.round(lot.price * 0.95))} ₽</p>
+                            <p className="text-xs text-rz-cream-muted">Экономия: {formatPrice(Math.round(lot.price * 0.05))} ₽</p>
+                          </div>
+                          <div className="border border-rz-success/30 rounded-xl p-3">
+                            <p className="text-sm font-bold text-rz-success mb-2">12 месяцев (0%)</p>
+                            <div className="space-y-1.5 text-sm">
+                              <div className="flex justify-between"><span className="text-rz-cream-dark">ПВ 30%</span><span>{formatPrice(d.i12.pv_30)} ₽ → {formatPrice(d.i12.monthly_30)} ₽/мес</span></div>
+                              <div className="flex justify-between"><span className="text-rz-cream-dark">ПВ 40%</span><span>{formatPrice(d.i12.pv_40)} ₽ → 11×200К + {formatPrice(d.i12.last_40)} ₽</span></div>
+                              <div className="flex justify-between"><span className="text-rz-cream-dark">ПВ 50%</span><span>{formatPrice(d.i12.pv_50)} ₽ → 11×100К + {formatPrice(d.i12.last_50)} ₽</span></div>
+                            </div>
+                          </div>
+                          <div className="border border-rz-gold/30 rounded-xl p-3">
+                            <p className="text-sm font-bold text-rz-gold mb-2">18 месяцев</p>
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <div className="flex justify-between"><span className="text-rz-cream-dark">ПВ 30% (+9%)</span><span>{formatPrice(d.i18.pv_30)} ₽</span></div>
+                                <p className="text-rz-cream-muted text-xs">18 × {formatPrice(d.i18.monthly_30)} ₽ → Итого: {formatPrice(d.i18.final_price_30)} ₽</p>
+                              </div>
+                              <div>
+                                <div className="flex justify-between"><span className="text-rz-cream-dark">ПВ 40% (+7%)</span><span>{formatPrice(d.i18.pv_40)} ₽</span></div>
+                                <p className="text-rz-cream-muted text-xs">8×250К, 9-й: {formatPrice(d.i18.payment_9)} ₽, 8×250К, 18-й: {formatPrice(d.i18.last_40)} ₽</p>
+                              </div>
+                              <div>
+                                <div className="flex justify-between"><span className="text-rz-cream-dark">ПВ 50% (+4%)</span><span>{formatPrice(d.i18.pv_50)} ₽</span></div>
+                                <p className="text-rz-cream-muted text-xs">8×150К, 9-й: {formatPrice(d.i18.payment_9)} ₽, 8×150К, 18-й: {formatPrice(d.i18.last_50)} ₽</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* 5. Deposit comparison */}
+                  {summaryData.deposit && (() => {
+                    const dep = summaryData.deposit
+                    const r = summaryData.roi
+                    const advantage = r ? r.total_profit - (dep.base?.total_net_interest || 0) : 0
+                    return (
+                      <div>
+                        <p className="text-xs text-rz-cream-muted font-medium mb-2">RIZALTA vs ДЕПОЗИТ (11 лет)</p>
+                        {r && dep.base && advantage > 0 && (
+                          <div className="bg-rz-gold/15 rounded-xl p-3 border border-rz-gold/30 mb-3">
+                            <p className="font-bold text-rz-gold">✅ RIZALTA выгоднее на {formatPrice(advantage)} ₽</p>
+                            <p className="text-rz-cream-dark text-xs mt-1">по сравнению с базовым сценарием депозита</p>
+                          </div>
+                        )}
+                        {r && (
+                          <div className="bg-rz-success/15 rounded-xl p-3 mb-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium text-rz-success">🏠 RIZALTA</span>
+                              <span className="font-bold text-rz-success text-lg">{formatPrice(r.total_profit)} ₽</span>
+                            </div>
+                            <p className="text-xs text-rz-cream-dark">ROI: {r.roi_pct}% за 11 лет</p>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          {Object.entries(dep).map(([key, d]) => (
+                            <div key={key} className="bg-rz-green-mid rounded-xl p-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-rz-cream-dark">{d.scenario_name}</span>
+                                <span className="font-bold">{formatPrice(d.total_net_interest)} ₽</span>
+                              </div>
+                              <p className="text-xs text-rz-cream-muted">ROI: {d.total_roi_pct}%</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* 6. MGP */}
+                  {summaryData.mgp && summaryData.mgp.years && (
+                    <div>
+                      <p className="text-xs text-rz-cream-muted font-medium mb-2">МИНИМАЛЬНЫЙ ГАРАНТИРОВАННЫЙ ПЛАТЁЖ</p>
+                      <div className="overflow-x-auto rounded-xl border border-rz-green-mid">
+                        <table className="w-full text-xs min-w-[320px]">
+                          <thead>
+                            <tr className="bg-rz-green-mid text-rz-cream-dark">
+                              <th className="py-2 px-2 text-left font-medium">Год</th>
+                              <th className="py-2 px-2 text-right font-medium">Номерной, ₽</th>
+                              <th className="py-2 px-2 text-right font-medium">Коммерч., ₽</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryData.mgp.years.map((yr, i) => (
+                              <tr key={yr.year} className={i % 2 === 0 ? 'bg-rz-green-light' : 'bg-rz-green-mid/50'}>
+                                <td className="py-1.5 px-2 font-medium">{yr.year}</td>
+                                <td className="py-1.5 px-2 text-right text-rz-gold">{formatPrice(yr.nominal)} ₽</td>
+                                <td className="py-1.5 px-2 text-right text-rz-cream-dark">{formatPrice(yr.commercial)} ₽</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-rz-green-mid font-bold">
+                              <td className="py-2 px-2">Итого</td>
+                              <td className="py-2 px-2 text-right text-rz-gold">{formatPrice(summaryData.mgp.total_nominal)} ₽</td>
+                              <td className="py-2 px-2 text-right text-rz-cream-dark">{formatPrice(summaryData.mgp.total_commercial)} ₽</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 7. Mortgage */}
+                  {summaryData.mortgage && (
+                    <div>
+                      <p className="text-xs text-rz-cream-muted font-medium mb-2">ИПОТЕКА (Совкомбанк)</p>
+                      <div className="bg-rz-green-mid rounded-xl p-4 space-y-2">
+                        <p className="text-xs text-rz-cream-muted">Базовый тариф • ПВ 30% • 30 лет</p>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-rz-cream-dark">Первонач. взнос</span>
+                          <span className="font-bold">{formatPrice(summaryData.mortgage.down_payment)} ₽</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-rz-cream-dark">Сумма кредита</span>
+                          <span className="font-bold">{formatPrice(summaryData.mortgage.loan_amount)} ₽</span>
+                        </div>
+                        <div className="border-t border-rz-green-light pt-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-rz-cream-dark">Платёж (льготный)</span>
+                            <span className="font-bold text-rz-gold">{formatPrice(summaryData.mortgage.grace_payment)} ₽/мес</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-rz-cream-dark">Платёж (после)</span>
+                          <span className="font-bold">{formatPrice(summaryData.mortgage.regular_payment)} ₽/мес</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-rz-cream-dark">Ставка</span>
+                          <span>{summaryData.mortgage.rate_after_grace}% годовых</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PDF buttons */}
+                  <div className="space-y-2 pt-2">
+                    <button onClick={() => window.open(`/api/payment-pdf?price=${lot.price}&code=${encodeURIComponent(lot.code)}`, '_blank')}
+                      className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+                      📄 PDF вариантов оплаты
+                    </button>
+                    <button onClick={() => window.open(`/api/download-compare-pdf?amount=${lot.price}&years=11&area=${lot.area}`, '_blank')}
+                      className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green transition-colors">
+                      📄 PDF сравнение с депозитом
+                    </button>
+                    <button onClick={() => window.open(`/api/mgp/pdf?code=${encodeURIComponent(lot.code)}&area=${lot.area}&building=${lot.building}`, '_blank')}
+                      className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green transition-colors">
+                      📄 PDF расчёт МГП
+                    </button>
+                    <button onClick={() => window.open(`/api/mortgage/pdf?price=${lot.price}&down_payment_pct=30&tariff=base&loan_term_months=360`, '_blank')}
+                      className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green transition-colors">
+                      📄 PDF ипотека
+                    </button>
+                    <button onClick={() => window.open(`/api/download-xlsx/${encodeURIComponent(lot.code)}?building=${lot.building}`, '_blank')}
+                      className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green transition-colors">
+                      📥 Скачать Excel
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
