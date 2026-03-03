@@ -1,6 +1,7 @@
 """Lot summary PDF generator — all 7 sections from investment summary modal.
 
-Uses wkhtmltopdf with RIZALTA branding (Montserrat, green/gold/cream).
+Uses wkhtmltopdf with RIZALTA dark theme (Montserrat, green/gold/cream).
+Matches portfolio_pdf_generator.py visual style.
 """
 
 import os
@@ -11,21 +12,23 @@ from datetime import date
 
 logger = logging.getLogger(__name__)
 
-COLORS = {
-    "bg": "#F6F0E3",
-    "header_bg": "#313D20",
-    "gold": "#DCB764",
-    "text": "#313D20",
-    "text_light": "#F6F0E3",
-    "text_muted": "#6B7A5E",
-    "success": "#4a7c23",
-    "card_bg": "#FFFFFF",
-    "border": "rgba(49,61,32,0.15)",
-    "stripe": "rgba(49,61,32,0.04)",
+RIZALTA_COLORS = {
+    "bg": "#263524",
+    "card_bg": "#2F4A2D",
+    "card_border": "#3A5C38",
+    "text": "#F2EBD9",
+    "text_secondary": "#C8BBAA",
+    "text_muted": "#A89880",
+    "gold": "#D4A84B",
+    "green_highlight": "#5B8C5A",
+    "metric_bg": "#1C2A1B",
 }
+
+C = RIZALTA_COLORS
 
 
 def _fmt(n) -> str:
+    """Format number with space thousands separator."""
     if n is None:
         return "—"
     try:
@@ -48,8 +51,19 @@ def _load_fonts() -> str:
     return font_face
 
 
+def _metric_cell(label: str, value: str, sub: str = "", highlight: bool = False) -> str:
+    bg = C["metric_bg"] if highlight else C["card_bg"]
+    color = C["gold"] if highlight else C["text"]
+    sub_html = f'<div style="font-size:9px; color:{C["text_muted"]}; margin-top:2px;">{sub}</div>' if sub else ""
+    return f'''<div style="background:{bg}; padding:10px; border-radius:8px; text-align:center;">
+        <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:{C["text_muted"]};">{label}</div>
+        <div style="font-size:15px; font-weight:600; color:{color}; margin:3px 0;">{value}</div>
+        {sub_html}
+    </div>'''
+
+
 def _section_title(text: str) -> str:
-    return f'<div style="font-size:15px; font-weight:600; color:{COLORS["text"]}; margin:24px 0 10px; padding-bottom:5px; border-bottom:2px solid {COLORS["gold"]};">{text}</div>'
+    return f'<div style="font-size:14px; font-weight:600; color:{C["gold"]}; margin:20px 0 10px; padding-bottom:5px; border-bottom:2px solid {C["gold"]};">{text}</div>'
 
 
 def _build_header(lot: dict) -> str:
@@ -60,19 +74,19 @@ def _build_header(lot: dict) -> str:
     price = lot.get("price", 0)
     price_m2 = round(price / area) if area else 0
     return f'''
-    <div style="background:{COLORS["header_bg"]}; color:{COLORS["text_light"]}; padding:20px 30px; border-radius:8px; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-                <div style="font-size:22px; font-weight:600; color:{COLORS["gold"]};">{lot.get("code", "")}</div>
-                <div style="font-size:13px; color:{COLORS["text_light"]}; opacity:0.8; margin-top:4px;">
+    <div style="background:{C["card_bg"]}; border:1px solid {C["card_border"]}; border-radius:12px; padding:20px; margin-bottom:16px;">
+        <table style="width:100%;"><tr>
+            <td style="vertical-align:top;">
+                <div style="font-size:22px; font-weight:600; color:{C["gold"]};">{lot.get("code", "")}</div>
+                <div style="font-size:13px; color:{C["text_secondary"]}; margin-top:4px;">
                     Корпус {b} «{name}» · {area} м² · этаж {lot.get("floor", "")}
                 </div>
-            </div>
-            <div style="text-align:right;">
-                <div style="font-size:20px; font-weight:600;">{_fmt(price)} ₽</div>
-                <div style="font-size:11px; opacity:0.7;">{_fmt(price_m2)} ₽/м²</div>
-            </div>
-        </div>
+            </td>
+            <td style="vertical-align:top; text-align:right;">
+                <div style="font-size:20px; font-weight:600; color:{C["text"]};">{_fmt(price)} ₽</div>
+                <div style="font-size:11px; color:{C["text_muted"]};">{_fmt(price_m2)} ₽/м²</div>
+            </td>
+        </tr></table>
     </div>'''
 
 
@@ -91,66 +105,48 @@ def _build_metrics(roi: dict, lot: dict) -> str:
     eq_full = round((total_profit + price) / (price * 0.95), 2) if price else 0
     eq_inst = round((total_profit + price) / (price * 0.3), 2) if price else 0
 
-    def cell(label, value, sub="", highlight=False):
-        bg = COLORS["gold"] if highlight else COLORS["card_bg"]
-        color = COLORS["text"] if highlight else COLORS["text"]
-        return f'''
-        <td style="background:{bg}; padding:10px; border:1px solid {COLORS["border"]}; text-align:center; width:33%;">
-            <div style="font-size:9px; text-transform:uppercase; color:{COLORS["text_muted"]}; letter-spacing:0.5px;">{label}</div>
-            <div style="font-size:16px; font-weight:600; color:{color}; margin:4px 0;">{value}</div>
-            <div style="font-size:9px; color:{COLORS["text_muted"]};">{sub}</div>
-        </td>'''
-
     return f'''
     {_section_title("Инвестиционные метрики")}
-    <table style="width:100%; border-collapse:collapse;">
-        <tr>
-            {cell("Чистый доход / год", f"{_fmt(noi)} ₽", "стабилиз. 2030", True)}
-            {cell("Доходность (Cap Rate)", f"{cap_rate}%", "NOI / цена", True)}
-            {cell("ROI 11 лет", f"{roi.get('roi_pct', 0)}%", f"~{roi.get('avg_annual_pct', 0)}% / год")}
-        </tr>
-        <tr>
-            {cell("Доход на вложенное (100%)", f"{coc_full}%", "скидка 5%")}
-            {cell("Доход на вложенное (30%)", f"{coc_inst}%", "рассрочка")}
-            {cell("Мультипликатор", f"{eq_full}x", f"рассрочка {eq_inst}x")}
-        </tr>
-    </table>'''
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+        {_metric_cell("Чистый доход / год", f"{_fmt(noi)} ₽", "стабилиз. 2030", True)}
+        {_metric_cell("Доходность (Cap Rate)", f"{cap_rate}%", "NOI / цена", True)}
+        {_metric_cell("ROI 11 лет", f"{roi.get('roi_pct', 0)}%", f"~{roi.get('avg_annual_pct', 0)}% / год")}
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+        {_metric_cell("Доход на вложенное (100%)", f"{coc_full}%", "скидка 5%")}
+        {_metric_cell("Доход на вложенное (30%)", f"{coc_inst}%", "рассрочка")}
+        {_metric_cell("Мультипликатор", f"{eq_full}x", f"рассрочка {eq_inst}x")}
+    </div>'''
 
 
 def _build_profitability(roi: dict) -> str:
     return f'''
     {_section_title("Доходность за 11 лет")}
-    <div style="background:{COLORS["success"]}; color:white; padding:14px 20px; border-radius:8px; margin-bottom:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:14px; font-weight:500;">Доходность за 11 лет</span>
-            <span style="font-size:24px; font-weight:600;">{roi.get("roi_pct", 0)}%</span>
+    <div style="background:rgba(91,140,90,0.15); border:1px solid {C["green_highlight"]}; border-radius:12px; padding:16px; margin-bottom:12px;">
+        <table style="width:100%;"><tr>
+            <td><div style="font-size:14px; font-weight:500; color:{C["green_highlight"]};">Доходность за 11 лет</div>
+                <div style="font-size:12px; color:{C["text_secondary"]};">~{roi.get("avg_annual_pct", 0)}% годовых</div></td>
+            <td style="text-align:right;"><div style="font-size:28px; font-weight:600; color:{C["green_highlight"]};">{roi.get("roi_pct", 0)}%</div></td>
+        </tr></table>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+            <div style="background:{C["metric_bg"]}; border-radius:8px; padding:10px;">
+                <div style="font-size:10px; color:{C["text_muted"]};">Аренда</div>
+                <div style="font-size:14px; font-weight:600; color:{C["gold"]};">{_fmt(roi.get("total_rental", 0))} ₽</div>
+            </div>
+            <div style="background:{C["metric_bg"]}; border-radius:8px; padding:10px;">
+                <div style="font-size:10px; color:{C["text_muted"]};">Рост стоимости</div>
+                <div style="font-size:14px; font-weight:600; color:{C["gold"]};">{_fmt(roi.get("total_growth", 0))} ₽</div>
+            </div>
         </div>
-        <div style="font-size:12px; opacity:0.85;">~{roi.get("avg_annual_pct", 0)}% годовых</div>
-    </div>
-    <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
-        <tr>
-            <td style="background:{COLORS["card_bg"]}; padding:10px 14px; border:1px solid {COLORS["border"]}; width:50%;">
-                <div style="font-size:10px; color:{COLORS["text_muted"]};">Аренда</div>
-                <div style="font-size:15px; font-weight:600; color:{COLORS["text"]};">{_fmt(roi.get("total_rental", 0))} ₽</div>
-            </td>
-            <td style="background:{COLORS["card_bg"]}; padding:10px 14px; border:1px solid {COLORS["border"]}; width:50%;">
-                <div style="font-size:10px; color:{COLORS["text_muted"]};">Рост стоимости</div>
-                <div style="font-size:15px; font-weight:600; color:{COLORS["text"]};">{_fmt(roi.get("total_growth", 0))} ₽</div>
-            </td>
-        </tr>
-    </table>
-    <table style="width:100%; border-collapse:collapse;">
-        <tr>
-            <td style="background:{COLORS["card_bg"]}; padding:10px 14px; border:1px solid {COLORS["border"]}; width:50%;">
-                <div style="font-size:10px; color:{COLORS["text_muted"]};">Общая прибыль</div>
-                <div style="font-size:15px; font-weight:600; color:{COLORS["gold"]};">{_fmt(roi.get("total_profit", 0))} ₽</div>
-            </td>
-            <td style="background:{COLORS["card_bg"]}; padding:10px 14px; border:1px solid {COLORS["border"]}; width:50%;">
-                <div style="font-size:10px; color:{COLORS["text_muted"]};">Стоимость в 2035</div>
-                <div style="font-size:15px; font-weight:600; color:{COLORS["text"]};">{_fmt(roi.get("final_value", 0))} ₽</div>
-            </td>
-        </tr>
-    </table>'''
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid {C["card_border"]};">
+            <table style="width:100%;"><tr>
+                <td><div style="font-size:10px; color:{C["text_muted"]};">Общая прибыль</div>
+                    <div style="font-size:15px; font-weight:600; color:{C["gold"]};">{_fmt(roi.get("total_profit", 0))} ₽</div></td>
+                <td style="text-align:right;"><div style="font-size:10px; color:{C["text_muted"]};">Стоимость в 2035</div>
+                    <div style="font-size:15px; font-weight:600; color:{C["text"]};">{_fmt(roi.get("final_value", 0))} ₽</div></td>
+            </tr></table>
+        </div>
+    </div>'''
 
 
 def _build_payments(inst: dict, price: int) -> str:
@@ -160,25 +156,28 @@ def _build_payments(inst: dict, price: int) -> str:
     i18 = inst.get("i18", {})
 
     def row(label, value):
-        return f'<tr><td style="padding:5px 10px; font-size:11px; color:{COLORS["text_muted"]};">{label}</td><td style="padding:5px 10px; font-size:11px; font-weight:500; text-align:right;">{value}</td></tr>'
+        return f'''<tr>
+            <td style="padding:4px 0; font-size:11px; color:{C["text_secondary"]};">{label}</td>
+            <td style="padding:4px 0; font-size:11px; font-weight:500; text-align:right; color:{C["text"]};">{value}</td>
+        </tr>'''
 
     return f'''
     {_section_title("Варианты оплаты")}
-    <div style="background:{COLORS["success"]}; color:white; padding:12px 16px; border-radius:8px; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:600;">💰 100% оплата (скидка 5%)</div>
-        <div style="font-size:18px; font-weight:600; margin-top:4px;">{_fmt(price_100)} ₽</div>
-        <div style="font-size:11px; opacity:0.85;">Экономия: {_fmt(saving)} ₽</div>
+    <div style="background:rgba(91,140,90,0.15); border:1px solid {C["green_highlight"]}; border-radius:12px; padding:14px; margin-bottom:10px;">
+        <div style="font-size:13px; font-weight:600; color:{C["green_highlight"]};">100% оплата (скидка 5%)</div>
+        <div style="font-size:18px; font-weight:600; color:{C["text"]}; margin-top:4px;">{_fmt(price_100)} ₽</div>
+        <div style="font-size:11px; color:{C["text_muted"]};">Экономия: {_fmt(saving)} ₽</div>
     </div>
-    <div style="background:{COLORS["card_bg"]}; border:2px solid {COLORS["success"]}; border-radius:8px; padding:12px; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:600; color:{COLORS["success"]}; margin-bottom:8px;">12 месяцев (0%)</div>
+    <div style="background:{C["card_bg"]}; border:1px solid {C["green_highlight"]}; border-radius:12px; padding:14px; margin-bottom:10px;">
+        <div style="font-size:13px; font-weight:600; color:{C["green_highlight"]}; margin-bottom:8px;">12 месяцев (0%)</div>
         <table style="width:100%; border-collapse:collapse;">
             {row("ПВ 30%", f"{_fmt(i12.get('pv_30', 0))} ₽ → {_fmt(i12.get('monthly_30', 0))} ₽/мес")}
             {row("ПВ 40%", f"{_fmt(i12.get('pv_40', 0))} ₽ → 11×200К + {_fmt(i12.get('last_40', 0))} ₽")}
             {row("ПВ 50%", f"{_fmt(i12.get('pv_50', 0))} ₽ → 11×100К + {_fmt(i12.get('last_50', 0))} ₽")}
         </table>
     </div>
-    <div style="background:{COLORS["card_bg"]}; border:2px solid {COLORS["gold"]}; border-radius:8px; padding:12px; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:600; color:{COLORS["gold"]}; margin-bottom:8px;">18 месяцев</div>
+    <div style="background:{C["card_bg"]}; border:1px solid {C["gold"]}; border-radius:12px; padding:14px; margin-bottom:10px;">
+        <div style="font-size:13px; font-weight:600; color:{C["gold"]}; margin-bottom:8px;">18 месяцев</div>
         <table style="width:100%; border-collapse:collapse;">
             {row("ПВ 30% (+9%)", f"{_fmt(i18.get('pv_30', 0))} ₽ · 18 × {_fmt(i18.get('monthly_30', 0))} ₽ → {_fmt(i18.get('final_price_30', 0))} ₽")}
             {row("ПВ 40% (+7%)", f"{_fmt(i18.get('pv_40', 0))} ₽ · 8×250К + {_fmt(i18.get('last_40', 0))} ₽")}
@@ -197,34 +196,34 @@ def _build_deposit(deposit: dict, roi: dict) -> str:
     for key, d in deposit.items():
         rows += f'''
         <tr>
-            <td style="padding:7px 10px; font-size:11px; border-bottom:1px solid {COLORS["border"]};">{d.get("scenario_name", key)}</td>
-            <td style="padding:7px 10px; font-size:11px; font-weight:500; text-align:right; border-bottom:1px solid {COLORS["border"]};">{_fmt(d.get("total_net_interest", 0))} ₽</td>
-            <td style="padding:7px 10px; font-size:11px; text-align:right; border-bottom:1px solid {COLORS["border"]};">{d.get("total_roi_pct", 0)}%</td>
+            <td style="padding:7px 10px; font-size:11px; color:{C["text_secondary"]}; border-bottom:1px solid {C["card_border"]};">{d.get("scenario_name", key)}</td>
+            <td style="padding:7px 10px; font-size:11px; font-weight:500; text-align:right; color:{C["text"]}; border-bottom:1px solid {C["card_border"]};">{_fmt(d.get("total_net_interest", 0))} ₽</td>
+            <td style="padding:7px 10px; font-size:11px; text-align:right; color:{C["text_muted"]}; border-bottom:1px solid {C["card_border"]};">{d.get("total_roi_pct", 0)}%</td>
         </tr>'''
 
     advantage_html = ""
     if advantage > 0:
         advantage_html = f'''
-        <div style="background:{COLORS["gold"]}; color:{COLORS["text"]}; padding:10px 16px; border-radius:8px; margin-bottom:10px; font-weight:600;">
+        <div style="background:{C["gold"]}; color:{C["bg"]}; padding:10px 16px; border-radius:8px; margin-bottom:10px; font-weight:600; font-size:13px;">
             ✅ RIZALTA выгоднее на {_fmt(advantage)} ₽
         </div>'''
 
     return f'''
     {_section_title("RIZALTA vs Депозит (11 лет)")}
     {advantage_html}
-    <div style="background:{COLORS["success"]}; color:white; padding:10px 16px; border-radius:8px; margin-bottom:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:13px; font-weight:500;">🏠 RIZALTA</span>
-            <span style="font-size:18px; font-weight:600;">{_fmt(total_profit)} ₽</span>
-        </div>
-        <div style="font-size:11px; opacity:0.85;">ROI: {roi.get("roi_pct", 0)}% за 11 лет</div>
+    <div style="background:rgba(91,140,90,0.15); border:1px solid {C["green_highlight"]}; border-radius:8px; padding:12px; margin-bottom:10px;">
+        <table style="width:100%;"><tr>
+            <td><span style="font-size:13px; font-weight:500; color:{C["green_highlight"]};">🏠 RIZALTA</span></td>
+            <td style="text-align:right;"><span style="font-size:18px; font-weight:600; color:{C["green_highlight"]};">{_fmt(total_profit)} ₽</span></td>
+        </tr></table>
+        <div style="font-size:11px; color:{C["text_secondary"]};">ROI: {roi.get("roi_pct", 0)}% за 11 лет</div>
     </div>
-    <table style="width:100%; border-collapse:collapse; background:{COLORS["card_bg"]}; border-radius:8px;">
+    <table style="width:100%; border-collapse:collapse; background:{C["card_bg"]}; border-radius:8px;">
         <thead>
-            <tr style="background:{COLORS["header_bg"]}; color:{COLORS["text_light"]};">
-                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:left;">Сценарий</th>
-                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right;">Доход</th>
-                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right;">ROI</th>
+            <tr style="background:{C["metric_bg"]};">
+                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:left; color:{C["text_muted"]};">Сценарий</th>
+                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right; color:{C["text_muted"]};">Доход</th>
+                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right; color:{C["text_muted"]};">ROI</th>
             </tr>
         </thead>
         <tbody>{rows}</tbody>
@@ -237,55 +236,63 @@ def _build_mgp(mgp: dict) -> str:
         return ""
     rows = ""
     for i, yr in enumerate(years):
-        bg = COLORS["stripe"] if i % 2 == 1 else COLORS["card_bg"]
+        bg = C["metric_bg"] if i % 2 == 1 else C["card_bg"]
         rows += f'''
         <tr style="background:{bg};">
-            <td style="padding:5px 10px; font-size:11px; font-weight:500;">{yr.get("year", "")}</td>
-            <td style="padding:5px 10px; font-size:11px; font-weight:500; text-align:right; color:{COLORS["gold"]};">{_fmt(yr.get("nominal", 0))} ₽</td>
-            <td style="padding:5px 10px; font-size:11px; text-align:right;">{_fmt(yr.get("commercial", 0))} ₽</td>
+            <td style="padding:5px 10px; font-size:11px; font-weight:500; color:{C["text"]};">{yr.get("year", "")}</td>
+            <td style="padding:5px 10px; font-size:11px; font-weight:500; text-align:right; color:{C["gold"]};">{_fmt(yr.get("nominal", 0))} ₽</td>
+            <td style="padding:5px 10px; font-size:11px; text-align:right; color:{C["text_secondary"]};">{_fmt(yr.get("commercial", 0))} ₽</td>
         </tr>'''
 
     return f'''
     {_section_title("Минимальный гарантированный платёж")}
-    <table style="width:100%; border-collapse:collapse; background:{COLORS["card_bg"]}; border-radius:8px;">
+    <table style="width:100%; border-collapse:collapse; border-radius:8px; overflow:hidden;">
         <thead>
-            <tr style="background:{COLORS["header_bg"]}; color:{COLORS["text_light"]};">
-                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:left;">Год</th>
-                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right;">Номерной, ₽</th>
-                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right;">Коммерч., ₽</th>
+            <tr style="background:{C["metric_bg"]};">
+                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:left; color:{C["text_muted"]};">Год</th>
+                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right; color:{C["text_muted"]};">Номерной, ₽</th>
+                <th style="padding:8px 10px; font-size:10px; font-weight:500; text-align:right; color:{C["text_muted"]};">Коммерч., ₽</th>
             </tr>
         </thead>
         <tbody>{rows}</tbody>
         <tfoot>
-            <tr style="background:{COLORS["gold"]};">
-                <td style="padding:7px 10px; font-size:11px; font-weight:600;">Итого</td>
-                <td style="padding:7px 10px; font-size:11px; font-weight:600; text-align:right;">{_fmt(mgp.get("total_nominal", 0))} ₽</td>
-                <td style="padding:7px 10px; font-size:11px; font-weight:600; text-align:right;">{_fmt(mgp.get("total_commercial", 0))} ₽</td>
+            <tr style="background:{C["gold"]};">
+                <td style="padding:7px 10px; font-size:11px; font-weight:600; color:{C["bg"]};">Итого</td>
+                <td style="padding:7px 10px; font-size:11px; font-weight:600; text-align:right; color:{C["bg"]};">{_fmt(mgp.get("total_nominal", 0))} ₽</td>
+                <td style="padding:7px 10px; font-size:11px; font-weight:600; text-align:right; color:{C["bg"]};">{_fmt(mgp.get("total_commercial", 0))} ₽</td>
             </tr>
         </tfoot>
     </table>'''
 
 
 def _build_mortgage(mort: dict) -> str:
+    def row(label, value, bold=False, gold=False):
+        weight = "600" if bold else "400"
+        color = C["gold"] if gold else C["text"]
+        return f'''<tr>
+            <td style="padding:5px 0; font-size:12px; color:{C["text_secondary"]};">{label}</td>
+            <td style="padding:5px 0; font-size:{'14px' if gold else '12px'}; font-weight:{weight}; text-align:right; color:{color};">{value}</td>
+        </tr>'''
+
     return f'''
     {_section_title("Ипотека (Совкомбанк)")}
-    <div style="background:{COLORS["card_bg"]}; border:1px solid {COLORS["border"]}; border-radius:8px; padding:14px;">
-        <div style="font-size:11px; color:{COLORS["text_muted"]}; margin-bottom:8px;">Базовый тариф · ПВ 30% · 30 лет</div>
+    <div style="background:{C["card_bg"]}; border:1px solid {C["card_border"]}; border-radius:12px; padding:16px;">
+        <div style="font-size:11px; color:{C["text_muted"]}; margin-bottom:10px;">Базовый тариф · ПВ 30% · 30 лет</div>
         <table style="width:100%; border-collapse:collapse;">
-            <tr><td style="padding:5px 0; font-size:12px; color:{COLORS["text_muted"]};">Первонач. взнос</td><td style="padding:5px 0; font-size:12px; font-weight:600; text-align:right;">{_fmt(mort.get("down_payment", 0))} ₽</td></tr>
-            <tr><td style="padding:5px 0; font-size:12px; color:{COLORS["text_muted"]};">Сумма кредита</td><td style="padding:5px 0; font-size:12px; font-weight:600; text-align:right;">{_fmt(mort.get("loan_amount", 0))} ₽</td></tr>
-            <tr style="border-top:1px solid {COLORS["border"]};">
-                <td style="padding:8px 0 5px; font-size:12px; color:{COLORS["text_muted"]};">Платёж (льготный)</td>
-                <td style="padding:8px 0 5px; font-size:14px; font-weight:600; text-align:right; color:{COLORS["gold"]};">{_fmt(mort.get("grace_payment", 0))} ₽/мес</td>
-            </tr>
-            <tr><td style="padding:5px 0; font-size:12px; color:{COLORS["text_muted"]};">Платёж (после)</td><td style="padding:5px 0; font-size:12px; font-weight:600; text-align:right;">{_fmt(mort.get("regular_payment", 0))} ₽/мес</td></tr>
-            <tr><td style="padding:5px 0; font-size:12px; color:{COLORS["text_muted"]};">Ставка</td><td style="padding:5px 0; font-size:12px; text-align:right;">{mort.get("rate_after_grace", "")}% годовых</td></tr>
+            {row("Первонач. взнос", f"{_fmt(mort.get('down_payment', 0))} ₽", bold=True)}
+            {row("Сумма кредита", f"{_fmt(mort.get('loan_amount', 0))} ₽", bold=True)}
+        </table>
+        <div style="border-top:1px solid {C["card_border"]}; margin:6px 0;"></div>
+        <table style="width:100%; border-collapse:collapse;">
+            {row("Платёж (льготный)", f"{_fmt(mort.get('grace_payment', 0))} ₽/мес", bold=True, gold=True)}
+            {row("Платёж (после)", f"{_fmt(mort.get('regular_payment', 0))} ₽/мес", bold=True)}
+            {row("Ставка", f"{mort.get('rate_after_grace', '')}% годовых")}
         </table>
     </div>'''
 
 
 def generate_lot_summary_pdf(data: dict) -> bytes | None:
-    """Generate comprehensive lot summary PDF.
+    """Generate comprehensive lot summary PDF (dark theme).
 
     Expects: { lot, roi, installment, deposit, mgp, mortgage }
     Returns PDF bytes or None.
@@ -320,68 +327,31 @@ def generate_lot_summary_pdf(data: dict) -> bytes | None:
 <meta charset="utf-8">
 <style>
     {font_face}
-    @page {{ size: A4; margin: 0; }}
+    @page {{ size: A4; margin: 20mm 15mm; }}
     body {{
         font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
-        background: {COLORS["bg"]};
-        color: {COLORS["text"]};
-        font-size: 12px;
-        line-height: 1.4;
+        background: {C["bg"]};
+        color: {C["text"]};
+        font-size: 14px;
+        line-height: 1.5;
         margin: 0;
-        padding: 0;
-    }}
-    .page {{
-        width: 210mm;
-        min-height: 297mm;
-        background: {COLORS["bg"]};
-        position: relative;
-    }}
-    .header-bar {{
-        background: {COLORS["header_bg"]};
-        padding: 30px 40px 20px;
-    }}
-    .title-bar {{
-        background: {COLORS["gold"]};
-        padding: 12px 40px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }}
-    .content {{
-        padding: 10px 40px 30px;
-    }}
-    .footer {{
-        background: {COLORS["header_bg"]};
-        text-align: center;
-        padding: 14px;
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-    }}
-    .footer-text {{
-        font-size: 10px;
-        color: {COLORS["text_light"]};
-        letter-spacing: 4px;
+        padding: 20px;
     }}
 </style>
 </head>
 <body>
-<div class="page">
-    <div class="header-bar">
-        <div style="font-size:22px; font-weight:600; color:{COLORS["gold"]};">RIZALTA Resort Belokurikha</div>
-        <div style="font-size:12px; color:{COLORS["text_light"]}; opacity:0.7; margin-top:4px;">Инвестиционный анализ</div>
-    </div>
-    <div class="title-bar">
-        <div style="font-size:16px; font-weight:500; color:{COLORS["text"]};">Инвестиционная сводка · {code}</div>
-        <div style="font-size:11px; color:{COLORS["text"]};">{today}</div>
-    </div>
-    <div class="content">
-        {sections}
-    </div>
-    <div class="footer">
-        <div class="footer-text">R I Z A L T A &nbsp; R E S O R T &nbsp; B E L O K U R I K H A</div>
-    </div>
+
+<div style="text-align:center; margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid {C["gold"]};">
+    <div style="font-size:24px; font-weight:700; color:{C["gold"]};">RIZALTA Resort Belokurikha</div>
+    <div style="font-size:14px; color:{C["text_secondary"]}; margin-top:4px;">Инвестиционная сводка · {code}</div>
 </div>
+
+{sections}
+
+<div style="text-align:center; color:{C["text_muted"]}; font-size:11px; margin-top:24px; padding-top:12px; border-top:1px solid {C["card_border"]};">
+    RIZALTA Resort Belokurikha · Инвестиционная сводка · {today}
+</div>
+
 </body>
 </html>'''
 
@@ -392,21 +362,19 @@ def generate_lot_summary_pdf(data: dict) -> bytes | None:
 
         pdf_path = html_path.replace('.html', '.pdf')
 
-        subprocess.run(
+        result = subprocess.run(
             [
                 'wkhtmltopdf',
-                '--page-size', 'A4',
-                '--orientation', 'Portrait',
-                '--margin-top', '0',
-                '--margin-bottom', '0',
-                '--margin-left', '0',
-                '--margin-right', '0',
                 '--enable-local-file-access',
-                '--disable-smart-shrinking',
-                '--quiet',
+                '--encoding', 'utf-8',
+                '--page-size', 'A4',
+                '--margin-top', '10mm',
+                '--margin-bottom', '10mm',
+                '--margin-left', '10mm',
+                '--margin-right', '10mm',
+                '--no-stop-slow-scripts',
                 html_path, pdf_path,
             ],
-            check=True,
             capture_output=True,
             timeout=30,
         )
@@ -418,7 +386,7 @@ def generate_lot_summary_pdf(data: dict) -> bytes | None:
             os.unlink(pdf_path)
             return pdf_bytes
 
-        logger.error("[LOT SUMMARY PDF] wkhtmltopdf failed")
+        logger.error(f"[LOT SUMMARY PDF] wkhtmltopdf failed: {result.stderr.decode()}")
         os.unlink(html_path)
         return None
 
