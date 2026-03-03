@@ -304,7 +304,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
           <button onClick={() => setShowKP(true)} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
             📄 Получить КП
           </button>
-          <button onClick={handleSummary} className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors">
+          <button onClick={handleSummary} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             📊 Инвестиционная сводка
           </button>
           <button onClick={handleInstallment} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
