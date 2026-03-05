@@ -461,3 +461,89 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 ### ✅ GitHub CDN кеш
 - raw.githubusercontent.com отдаёт стейл (кеш месяцами)
 - Решение: использовать GitHub API `https://api.github.com/repos/.../contents/docs/FILE`
+
+---
+
+## ✅ Что сделано 04.03.2026 (сессия 2) — Фикс планировки в PDF траншевой ипотеки
+
+### Проблема
+- Планировка не отображалась в PDF траншевой ипотеки
+- Причина 1: Pillow не был установлен в venv (`/opt/bot-dev/venv/`) — только в системном Python
+- Причина 2: Лишняя перекодировка JPEG→PNG через PIL теряла качество; после фикса PIL — планировка была тусклой
+
+### Решение
+- Установлен Pillow в venv: `/opt/bot-dev/venv/bin/pip install Pillow`
+- `download_image_b64()` упрощена — качаем сырые байты без PIL (как в `kp_pdf_generator.py`)
+- Добавлен CSS filter на `.layout-img`: `filter: contrast(1.8) brightness(0.95)`
+
+### Файлы
+- `services/tranche_mortgage_pdf_generator.py`
+
+### Коммит
+- `b9b57c5` — fix: tranche mortgage PDF layout - PIL venv fix + contrast filter (v2.7.2)
+
+### ⚠️ При деплое в PROD
+- Установить Pillow в PROD venv: `/opt/bot/venv/bin/pip install Pillow`
+
+---
+
+## ✅ Что сделано 05.03.2026 — Фикс планировки PDF (продолжение)
+
+### Гипотезы и попытки
+- wkhtmltopdf плохо рендерит base64 (131KB) — теория подтвердилась частично
+- CSS filter `contrast(3) brightness(1.15)` — wkhtmltopdf игнорирует CSS filters
+- Увеличение размера планировки → документ уезжал на 2 страницы
+
+### Изменения в коде
+- `download_image_b64()` переработана: скачивает изображение во временный файл → возвращает путь
+- HTML: `src="file://{tmp_path}"` вместо `data:image/jpeg;base64,...`
+- Добавлен флаг `--disable-smart-shrinking` в wkhtmltopdf
+
+### Результат
+- ⚠️ Планировка по-прежнему не отображается в PDF
+- Причина не установлена — продолжить диагностику в следующей сессии
+
+### Версия
+- DEV: v2.7.2
+- PROD: v2.7.1 (траншевая ипотека не задеплоена)
+
+## ✅ Что сделано 05.03.2026 — Фикс PDF + Деплой в PROD
+
+📅 **Последняя сессия:** 05.03.2026
+🔖 **Версия:** 2.7.2
+
+### Фикс планировки в PDF траншевой ипотеки
+- **Причина бага:** float-based CSS (`.lot-body` с `overflow:hidden`) + `file:///tmp/...` пути в async-контексте
+- **Решение 1:** Заменили float на table-layout (`<table class="lot-body-table">`)
+- **Решение 2:** base64 inline image (`data:image/jpeg;base64,...`) вместо temp файлов — как в `kp_pdf_generator.py`
+- **Файл:** `services/tranche_mortgage_pdf_generator.py`
+- **Коммиты DEV:** `422efc2`, `a5466de`, `61da939`
+
+### Улучшение типографики PDF
+- `.lot-label`: 13px → 16px, font-weight 600
+- `.lot-value`: 13px → 17px, font-weight 700
+- `.lot-value-big`: 15px → 19px, font-weight 700
+- `.lot-row` padding: 6px → 14px
+- "мес" → "мес." (8 вхождений)
+
+### Деплой траншевой ипотеки в PROD
+- Скопированы: `services/tranche_mortgage_calculator.py`, `services/tranche_mortgage_pdf_generator.py`, `handlers/tranche_mortgage.py`, `data/tranche_mortgage_config.json`
+- `app.py` PROD: добавлены callbacks `tmort_pdf_` и `tmort_` (точечно, не копированием)
+- `handlers/kp.py` PROD: добавлена кнопка «🏗 Траншевая ипотека» (строки 243, 749)
+- Pillow установлен в PROD venv
+- **Коммит PROD:** `69a6784`
+
+### Переименование кнопки ипотеки
+- «🏦 Ипотека» → «🏦 Ипотека СОВКОМБАНК 4.4%» в DEV и PROD `handlers/kp.py`
+- **Коммиты:** DEV `1881413`, PROD `69a6784`
+
+### Диагностика Mini App → DEV бота
+- Mini App открывается с `rizalta-miniapp.vercel.app?env=dev`
+- При `?env=dev` запросы идут на `/api-dev/miniapp-action` (Vercel), а не на DEV сервер
+- В итоге «В работу» из Mini App всегда вызывает PROD бота — это ожидаемое поведение
+- Решение: деплоить в PROD, тестировать через PROD бота (@RealtMeAI_bot)
+
+## 📊 Текущее состояние
+- **PROD:** работает ✅ v2.7.2
+- **DEV:** работает ✅ v2.7.2
+- **Траншевая ипотека:** в PROD ✅
