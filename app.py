@@ -1050,6 +1050,23 @@ async def process_callback(callback: Dict[str, Any]):
         term = int(parts[4])
         await handle_mortgage_menu(chat_id, code, building, dp, tariff, term)
 
+    # === TRANCHE MORTGAGE (Траншевая ипотека) ===
+    elif data.startswith("tmort_pdf_"):
+        # tmort_pdf_{code}_{building}
+        from handlers.tranche_mortgage import handle_tranche_mortgage_pdf
+        parts = data.replace("tmort_pdf_", "").split("_")
+        code = parts[0]
+        building = int(parts[1])
+        await handle_tranche_mortgage_pdf(chat_id, code, building)
+
+    elif data.startswith("tmort_"):
+        # tmort_{code}_{building}
+        from handlers.tranche_mortgage import handle_tranche_mortgage_menu
+        parts = data.replace("tmort_", "").split("_")
+        code = parts[0]
+        building = int(parts[1])
+        await handle_tranche_mortgage_menu(chat_id, code, building)
+
     elif data.startswith("compare_lot_back_"):
         from handlers.compare import handle_compare_lot
         parts = data.split("_")

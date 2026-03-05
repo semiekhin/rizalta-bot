@@ -239,7 +239,8 @@ async def handle_nav_lot(chat_id: int, code: str, building: int = None, mode: st
     inline_buttons.append([{"text": "📊 Расчёт МГП", "callback_data": f"mgp_calc_{lot['code']}_{lot['building']}_{int(lot['area']*10)}"}])
     inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
-        [{"text": "🏦 Ипотека", "callback_data": f"mortgage_{lot['code']}_{lot['building']}"}],
+        [{"text": "🏦 Ипотека СОВКОМБАНК 4.4%", "callback_data": f"mortgage_{lot['code']}_{lot['building']}"}],
+        [{"text": "🏗 Траншевая ипотека", "callback_data": f"tmort_{lot['code']}_{lot['building']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}_{int(lot['area']*10)}"}],
         [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": f"{cb}_menu"}],
@@ -744,7 +745,8 @@ async def handle_kp_lot(chat_id: int, code: str, building: int = None):
     inline_buttons.append([{"text": "📊 Расчёт МГП", "callback_data": f"mgp_calc_{lot['code']}_{lot['building']}_{int(lot['area']*10)}"}])
     inline_buttons.extend([
         [{"text": "💳 Варианты оплаты", "callback_data": f"calc_finance_code_{lot['code']}_{lot['building']}"}],
-        [{"text": "🏦 Ипотека", "callback_data": f"mortgage_{lot['code']}_{lot['building']}"}],
+        [{"text": "🏦 Ипотека СОВКОМБАНК 4.4%", "callback_data": f"mortgage_{lot['code']}_{lot['building']}"}],
+        [{"text": "🏗 Траншевая ипотека", "callback_data": f"tmort_{lot['code']}_{lot['building']}"}],
         [{"text": "📈 Сравнить с депозитом", "callback_data": f"compare_lot_{lot['code']}_{lot['building']}_{lot['price']//1000}_{int(lot['area']*10)}"}],
         [{"text": "✅ Записаться на показ", "callback_data": "online_show"}],
         [{"text": "🔙 К поиску", "callback_data": "kp_menu"}],
