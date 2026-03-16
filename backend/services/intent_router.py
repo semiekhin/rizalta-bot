@@ -54,10 +54,19 @@ def quick_classify_navigation(text: str) -> dict | None:
         "show_schedule": {"message": "Ваше расписание:", "to": "/secretary"},
     }
 
+    # Question words that indicate content questions (→ chat/RAG, not navigation)
+    RAG_QUESTION_PATTERNS = re.compile(
+        r'(какие|каков|что |как |когда|условия|расторж|штраф|неустойк|пункт|статья|гарантий|оплат|передач|приёмк|приемк|срок|обязан|ответствен)',
+    )
+
     text_lower = text.lower().strip()
 
     for pattern, intent in NAVIGATION_PATTERNS:
         if re.search(pattern, text_lower):
+            # If "documents" intent but message looks like a question about content → skip to chat (RAG)
+            if intent == "send_documents" and RAG_QUESTION_PATTERNS.search(text_lower):
+                return None
+
             action = NAVIGATION_ACTIONS[intent]
             return {
                 "type": "action",
