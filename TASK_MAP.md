@@ -1,6 +1,6 @@
 # RIZALTA WebApp — Карта задач для 1Code
 
-## ТЕКУЩИЙ СТАТУС: v0.9.7 (16.03.2026)
+## ТЕКУЩИЙ СТАТУС: v0.9.8 (16.03.2026)
 
 **КРИТИЧНО:** Код в /opt/bot и /opt/bot-dev НЕ ТРОГАЕМ. Только читаем файлы.
 
@@ -99,33 +99,27 @@
 - **Chat.jsx cleanup:** Удалены кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" (-96 строк)
 - **Git tag:** v0.9.7-lot-summary
 
-## 🔜 БЭКЛОГ (актуализирован 02.03.2026 part 4)
+### Сессия 16.03.2026 (v0.9.7 → v0.9.8) — Транш. ипотека + YandexGPT
+- **Траншевая ипотека:** калькулятор + PDF + модалка в LotDetail (4 сценария ПВ)
+- **Редизайн меню лота:** grid 2×5, 3D-эффект, уникальные иконки
+- **YandexGPT интеграция:** свободный чат → YandexGPT, расчёты → GPT-5.2
+- **Проверена совместимость:** YandexGPT OpenAI-compatible API + function calling
+- **Git tag:** v0.9.8
 
-### Приоритет 🔴 — Этап 1: Портфельный калькулятор
+## 🔜 БЭКЛОГ (актуализирован 16.03.2026)
 
-1. **Portfolio.jsx** — новый экран, ввод бюджета → 3 сценария (Python)
-2. Перенос карточек из Chat.jsx (PortfolioReportCardV2, ScenarioCard, MetricCell)
-3. Кнопка "Инвестиционный портфель" в Home.jsx
-4. PDF → /api/portfolio-pdf
-5. Убрать портфельные кнопки из Chat.jsx
+### Приоритет 🔴 (ближайшие)
+1. **Полная миграция на YandexGPT** — agentic loop через совместимый endpoint. Function calling проверен.
+2. **RAG с документами** — ДДУ, аренда, аналитика через Vector Store API
+3. **PDF из чата** — кнопка "Скачать PDF" после генерации отчёта
 
-### Приоритет 🟡 — Этап 2: Инвестиционная сводка по лоту
-
-6. LotSummary — все калькуляторы на одной странице
-7. Кнопка в LotDetail.jsx
-8. PDF полной сводки
-
-### Приоритет 🟡 — Этап 3: Чат-консьерж
-
-9. System prompt: ДДУ + договор аренды + RIZALTA_KNOWLEDGE.md
-10. Статистика лотов в реальном времени
-11. Убрать отчётные функции из чата
+### Приоритет 🟡 (средний)
+4. Портфельный калькулятор — ДЕПРИОРИТИЗИРОВАН
+5. Расширить system prompt YandexGPT
 
 ### Приоритет 🟢 (nice-to-have)
-
-12. К4 whitelist
-13. Миграция на российский LLM
-14. Деплой v0.9.6 в PROD
+6. К4 whitelist
+7. Деплой v0.9.8 в PROD
 ---
 
 ## 🏷️ GIT ТЕГИ
@@ -148,9 +142,7 @@
 | v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
 | v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |
 | v0.9.7-lot-summary | Инвестиционная сводка по лоту (modal + PDF) + Chat cleanup |
-| v0.9.4 | Investment metrics (NOI, Cap Rate, CoC, Equity Multiple) |
-| v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
-| v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |
+| v0.9.8 | Транш. ипотека + YandexGPT + menu redesign |
 
 ---
 
@@ -178,7 +170,7 @@ sudo systemctl restart webapp-dev.service
 - `rizalta_finance.json` и `instructions.txt` — копии из бота, NOT in git
 - Разработка webapp параллельна с ботом — docs дополняем, не затираем!
 - Claude читает код через `/api/docs/file` — не нужен копипаст
-- AI: GPT-5.2 для отчётов и agentic loop, gpt-4o-mini для простого чата
+- AI: GPT-5.2 для отчётов и agentic loop, YandexGPT для простого чата
 
 ### Сессия 02.03.2026 part 2 (v0.9.3+)
 - **Report Cards:** LotReportCard, PortfolioReportCard — UI-компоненты в чате

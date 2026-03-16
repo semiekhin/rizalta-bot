@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.9.7** (Инвестиционная сводка по лоту + PDF + Chat cleanup)
+**v0.9.8** (Траншевая ипотека + YandexGPT консьерж + UI redesign)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -108,6 +108,9 @@ git add -A && git commit -m "описание" && git push origin webapp
 │       ├── kp_pdf_generator.py      # PDF КП (wkhtmltopdf)
 │       ├── payment_pdf_generator.py # PDF вариантов оплаты
 │       ├── lot_summary_pdf_generator.py # PDF инвест-сводки по лоту (dark branding: #263524/#D4A84B)
+│       ├── tranche_mortgage_calculator.py  # Калькулятор траншевой ипотеки
+│       ├── tranche_mortgage_pdf_generator.py # PDF траншевой ипотеки
+│       ├── yandex_chat.py                  # YandexGPT API для свободного чата
 │       ├── calc_xlsx_generator.py   # Excel ROI
 │       ├── investment_calc.py       # Investment calculations
 │       ├── calc_universal.py        # Universal calculator
@@ -235,6 +238,11 @@ GET  /api/payment-pdf                 # ?price=&code=
 POST /api/strategy-pdf                # PDF инвестиционного отчёта (из strategy_data)
 POST /api/lot-summary-pdf             # PDF инвестиционной сводки по лоту (RFC 5987 filename)
 
+# Траншевая ипотека
+POST /api/tranche-mortgage/calculate    # {price, down_payment_pct?}
+POST /api/tranche-mortgage/all          # {price} → все 4 сценария
+GET  /api/tranche-mortgage/pdf          # ?code=В708&building=1
+
 # Заявки (реальные уведомления TG + Email)
 POST /api/book-showing                # {name, phone, lot_code, comment}
 
@@ -289,9 +297,11 @@ BOT_EMAIL
 SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASSWORD
 MANAGER_CHAT_ID
 OPENAI_API_KEY
-OPENAI_MODEL          # gpt-5.2 (для отчётов и agentic), gpt-4o-mini (для чата)
+OPENAI_MODEL          # gpt-5.2 (для отчётов и agentic)
 OPENAI_MAX_TOKENS
 SHOWS_GROUP_ID
+YANDEX_API_KEY
+YANDEX_FOLDER_ID
 
 # Пути
 WEBAPP_DB=./webapp.db
@@ -339,6 +349,7 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=<относительн�
 | v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
 | v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |
 | v0.9.7 | Инвестиционная сводка по лоту (modal + PDF) + Chat cleanup |
+| v0.9.8 | Транш. ипотека + YandexGPT + menu redesign |
 
 ## Команды
 ```bash
@@ -368,30 +379,20 @@ curl -s http://127.0.0.1:8003/api/health
 curl -s http://127.0.0.1:8004/api/health
 ```
 
-## TODO (актуализировано 02.03.2026 part 4)
+## TODO (актуализировано 16.03.2026)
 
-### ✅ Этап 2 — Инвестиционная сводка по лоту (ВЫПОЛНЕНО v0.9.7)
-- Модалка "📊 Инвестиционная сводка" в LotDetail.jsx
-- Фронтенд-агрегация: Promise.all по 5 существующим API (roi, installment, compare-deposit, mgp, mortgage)
-- PDF полной сводки: POST /api/lot-summary-pdf (dark RIZALTA branding: #263524 bg, #D4A84B gold)
-- Cyrillic filename encoding via RFC 5987
-- Chat.jsx cleanup: удалены кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" (-96 строк)
+### 🔴 Ближайшие
+1. **Полная миграция на YandexGPT** — agentic loop через OpenAI-совместимый endpoint (https://llm.api.cloud.yandex.net/v1). Function calling проверен, работает.
+2. **RAG с документами** — ДДУ (ddu.pdf), аренда (arenda.pdf), аналитика CoreXP через Vector Store API Яндекса
+3. **PDF из чата** — кнопка "Скачать PDF" после генерации отчёта
 
-### 🟡 Этап 1 — Портфельный калькулятор (отдельный экран) — ДЕПРИОРИТИЗИРОВАН
-- Менеджеры предпочитают составлять портфели вручную
-- Код ready: portfolio_pdf_generator.py, /api/portfolio-pdf, Python round-robin
-- Можно реализовать при наличии запроса
-
-### 🟢 Этап 3 — Чат-консьерж
-10. Добавить в system prompt: ДДУ (ddu.pdf), договор аренды (arenda.pdf), RIZALTA_KNOWLEDGE.md
-11. Статистика лотов в реальном времени (мин/макс цена, доступность по корпусам)
-12. Убрать stream_lot_report, stream_portfolio_report, report_card из чата
-13. Оставить: stream_chat_response + intent_router + навигация
+### 🟡 Средний приоритет
+4. Портфельный калькулятор (отдельный экран) — ДЕПРИОРИТИЗИРОВАН, код ready
+5. Чат-консьерж: расширить system prompt статистикой лотов real-time
 
 ### 🟢 Nice-to-have
-14. К4 whitelist
-15. Миграция на российский LLM
-16. Деплой v0.9.6 в PROD (после тестирования)
+6. К4 whitelist (инфраструктура готова)
+7. Деплой v0.9.8 в PROD
 
 ## ⚠️ ПРАВИЛА РАЗРАБОТКИ
 
@@ -510,3 +511,16 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **Chat.jsx cleanup:** Удалены кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" (-96 строк)
 - **Этап 1 (Portfolio screen) деприоритизирован** — менеджеры составляют портфели вручную
 - **Git tag:** v0.9.7-lot-summary
+
+### Сессия 16.03.2026 (v0.9.7 → v0.9.8) — Траншевая ипотека + YandexGPT
+- **tranche_mortgage_calculator.py** — калькулятор из бота (3 транша, 20 лет, SERVICE_FEE 150K)
+- **tranche_mortgage_config.json** — 4 ПВ (20.1-50.1%), 3 ценовых диапазона
+- **tranche_mortgage_pdf_generator.py** — PDF генератор из бота (адаптирован: ресурсы из backend/resources/, лот из properties.db)
+- **POST /api/tranche-mortgage/calculate, /all, /pdf** — 3 новых endpoint
+- **LotDetail.jsx:** кнопка "🏗 Транш. ипотека Сбербанк" + модалка 4 сценария + PDF
+- **LotDetail.jsx:** редизайн меню — grid 2×5 с 3D-эффектом, уникальные иконки
+- **Переименования:** "Ипотека" → "Ипотека Совкомбанк", "Траншевая ипотека" → "Транш. ипотека Сбербанк"
+- **yandex_chat.py** — интеграция YandexGPT для свободного чата (Путь 3)
+- **ai_chat.py:** роутер _needs_tools() — простые вопросы → YandexGPT, расчёты → GPT-5.2
+- **_get_lots_stats()** — статистика лотов из properties.db для YandexGPT system prompt
+- **Коммиты:** 6762ff0, 36b7d4a, 91a9628, 3b98a72, 95937f1, 1b41568, 30405c3
