@@ -524,3 +524,60 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **ai_chat.py:** роутер _needs_tools() — простые вопросы → YandexGPT, расчёты → GPT-5.2
 - **_get_lots_stats()** — статистика лотов из properties.db для YandexGPT system prompt
 - **Коммиты:** 6762ff0, 36b7d4a, 91a9628, 3b98a72, 95937f1, 1b41568, 30405c3
+### Сессия 16.03.2026 (v0.9.7 → v0.9.8) — Миграция на YandexGPT + RAG
+
+#### Миграция AI на YandexGPT
+- **ai_chat.py:** Полная миграция agentic loop с OpenAI Responses API → Chat Completions API через YandexGPT OpenAI-совместимый endpoint (`https://llm.api.cloud.yandex.net/v1`)
+- **Модель:** `gpt-oss-120b/latest` (OpenAI GPT OSS 120B через Yandex Cloud) — без модерации, function calling, streaming
+- **Один клиент:** `get_client()` с `base_url` + `x-folder-id` header — все 4 пути (chat, agentic, lot report, portfolio report)
+- **`call_yandex_gpt()` из yandex_chat.py** больше не используется в ai_chat.py (нативный API имел проблемы с модерацией)
+- **TOOLS:** Responses API format → Chat Completions format (`CHAT_TOOLS` с `function.name` nested)
+- **Tool results:** `function_call_output` → `{"role": "tool", "tool_call_id": ...}`
+- **Streaming:** `event.type == 'response.output_text.delta'` → `chunk.choices[0].delta.content`
+- **Убрано:** `reasoning={"effort": "high"}`, `max_output_tokens` → `max_tokens`
+
+#### RAG с документами
+- **Новый файл: `backend/services/rag_service.py`** — PDF extraction (pymupdf) + TF-IDF поиск (scikit-learn)
+- **Документы:** `/opt/bot-dev/docs/ddu.pdf` (11 стр, ~12K токенов), `/opt/bot-dev/docs/arenda.pdf` (54 стр, ~44K токенов)
+- **487 чанков** (~600 символов, перекрытие 100) с метаданными (source, page)
+- **`_needs_documents()`** в ai_chat.py — ключевые слова: дду, договор, аренд, расторж, штраф, неустойк, гарантий и т.д.
+- **`_build_rag_context()`** → search_documents(query, top_k=5) → inject в system prompt
+- **RAG-режим:** лёгкий system prompt + контекст из документов, non-stream → fake-stream клиенту
+- **`rag_service.init()`** вызывается в app.py lifespan при старте
+
+#### Фикс intent router
+- **`_needs_tools()`:** Парные ключевые слова (найд+лот, какие+апартамент, свободн+лот и т.д.) вместо точных подстрок
+- **`intent_router.py`:** `send_documents` intent пропускает вопросы о содержании документов (вопросительные паттерны + дду/договор → чат/RAG)
+
+#### Тестирование моделей YandexGPT
+- `yandexgpt/latest` — агрессивная модерация юридических тем, непригоден для RAG
+- `yandexgpt-5-pro/latest` — модерация через нативный API, без модерации через OpenAI-compatible
+- **`gpt-oss-120b/latest`** — ✅ streaming, ✅ function calling, ✅ tool role, ✅ без модерации
+- Нативный Yandex API (`/foundationModels/v1/completion`) модерирует жёстче чем OpenAI-compatible (`/v1/chat/completions`)
+
+#### Env переменные (добавлены)
+```
+YANDEX_API_KEY=...          # уже был
+YANDEX_FOLDER_ID=...        # уже был
+YANDEX_MODEL=gpt://b1giu7d61rvmondibc51/gpt-oss-120b/latest
+RAG_DOCS_DIR=/opt/bot-dev/docs
+```
+
+#### Зависимости (добавлены в venv)
+- PyMuPDF (pymupdf) — PDF extraction
+- scikit-learn — TF-IDF vectorizer + cosine similarity
+- ⚠️ Устанавливать через `python3 -m pip` (шебанг venv pip сломан, указывает на PROD)
+
+#### Коммиты (1Code)
+- b0801a6 — Full migration ai_chat.py to YandexGPT Chat Completions API
+- 5d98cea — Fix _needs_tools() keyword pairs
+- 3742e42 — RAG service (rag_service.py + ai_chat.py integration)
+- 68350dd — Intent router: skip send_documents for content questions
+- aa23138 — RAG debug logging
+- 737bd5e — RAG debug with print()
+- 804f18c — RAG prompt reframing
+- eb30ae3 — Sanitize RAG user message
+- 166dc6e — Two-phase RAG with retry
+- 864d18a — Switch RAG to yandexgpt-5-pro
+- 7a18783 — RAG via OpenAI-compatible client
+- 11436f7 — All paths to gpt-oss-120b, remove call_yandex_gpt

@@ -188,3 +188,11 @@ sudo systemctl restart webapp-dev.service
 - **PDF v2:** 4-страничный портфельный PDF с 3 сценариями + сравнительная таблица
 - **Budget guard:** Python валидация бюджета после AI selection
 - **INVESTMENT_METHODOLOGY.md:** документация формул и методики
+
+### Сессия 16.03.2026 (v0.9.7 → v0.9.8) — YandexGPT Migration + RAG
+- **AI миграция:** OpenAI Responses API → YandexGPT Chat Completions API (OpenAI-compatible)
+- **Модель:** gpt-oss-120b/latest (без модерации, function calling, streaming)
+- **RAG:** rag_service.py — PDF extraction + TF-IDF поиск по ddu.pdf и arenda.pdf (487 чанков)
+- **Фиксы:** _needs_tools() парные ключевые слова, intent_router пропускает вопросы о документах в чат
+- **Env:** YANDEX_MODEL, RAG_DOCS_DIR добавлены
+- **Зависимости:** PyMuPDF, scikit-learn (в venv)
