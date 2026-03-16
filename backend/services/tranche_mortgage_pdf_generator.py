@@ -1,7 +1,9 @@
-"""Tranche mortgage PDF generator — all scenarios for a lot.
+"""
+Генератор PDF для траншевой ипотеки RIZALTA.
+Все 4 сценария ПВ в одном файле + планировка лота.
 
-Uses wkhtmltopdf with RIZALTA dark theme (Montserrat, green/gold/cream).
-Matches lot_summary_pdf_generator.py visual style.
+v1.1 (03.03.2026)
+Adapted for webapp: resources from backend/resources/, lot from properties.db
 """
 
 import os
@@ -9,51 +11,46 @@ import sqlite3
 import subprocess
 import tempfile
 import logging
-from datetime import date
+from pathlib import Path
+from typing import Dict, Any, List, Optional
 
 from services.tranche_mortgage_calculator import calc_all_scenarios
 
 logger = logging.getLogger(__name__)
 
-RIZALTA_COLORS = {
-    "bg": "#263524",
-    "card_bg": "#2F4A2D",
-    "card_border": "#3A5C38",
-    "text": "#F2EBD9",
-    "text_secondary": "#C8BBAA",
-    "text_muted": "#A89880",
-    "gold": "#D4A84B",
-    "green_highlight": "#5B8C5A",
-    "metric_bg": "#1C2A1B",
-}
-
-C = RIZALTA_COLORS
+BASE_DIR = Path(__file__).parent.parent
+RESOURCES_DIR = BASE_DIR / "resources"
 
 
-def _fmt(n) -> str:
-    if n is None:
-        return "—"
+def load_resource(filename: str) -> str:
+    path = RESOURCES_DIR / filename
+    return path.read_text().strip() if path.exists() else ""
+
+
+def fmt(value: int) -> str:
+    return f"{value:,}".replace(",", " ")
+
+
+def get_building_name(building: int) -> str:
+    names = {1: "Family", 2: "Business", 3: "Digital"}
+    return names.get(building, "Family")
+
+
+def download_image_b64(url: str) -> str:
+    """Скачивает изображение и возвращает base64-строку."""
+    if not url:
+        return ""
     try:
-        return f"{int(round(n)):,}".replace(",", " ")
-    except (ValueError, TypeError):
-        return str(n)
+        import requests, base64
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        return base64.b64encode(resp.content).decode()
+    except Exception as e:
+        logger.warning(f"[TRANCHE PDF] Image download error: {e}")
+        return ""
 
 
-def _load_fonts() -> str:
-    webapp_root = os.getenv("WEBAPP_ROOT", ".")
-    font_face = ""
-    for weight, name in [(400, "montserrat_regular_base64.txt"),
-                         (500, "montserrat_medium_base64.txt"),
-                         (600, "montserrat_semibold_base64.txt")]:
-        path = os.path.join(webapp_root, "backend/resources", name)
-        if os.path.exists(path):
-            with open(path) as f:
-                b64 = f.read().strip()
-            font_face += f"@font-face {{ font-family: 'Montserrat'; font-weight: {weight}; src: url(data:font/ttf;base64,{b64}) format('truetype'); }}\n"
-    return font_face
-
-
-def _get_lot(code: str, building: int = None) -> dict | None:
+def _get_lot(code: str, building: int = None) -> Optional[Dict[str, Any]]:
     """Get lot from properties.db."""
     db_path = os.getenv("PROPERTIES_DB", "/opt/bot/properties.db")
     if not os.path.exists(db_path):
@@ -86,57 +83,191 @@ def _get_lot(code: str, building: int = None) -> dict | None:
     }
 
 
-def _build_scenario_card(sc: dict) -> str:
-    """Build HTML card for one tranche scenario."""
-    tp = sc["tranche_period"]
-    tp3 = sc["term_months"] - 2 * tp
+def _scenario_html(calc: Dict[str, Any]) -> str:
+    """HTML блок одного сценария ПВ."""
+    tp = calc["tranche_period"]
+    remaining_months = calc["term_months"] - 2 * tp
+
     return f'''
-    <div style="background:{C["card_bg"]}; border:1px solid {C["card_border"]}; border-radius:12px; padding:16px; margin-bottom:12px;">
-        <table style="width:100%;"><tr>
-            <td><span style="font-size:16px; font-weight:600; color:{C["gold"]};">ПВ {sc["down_payment_pct"]}%</span></td>
-            <td style="text-align:right;"><span style="font-size:13px; color:{C["text_secondary"]};">Ставка {sc["rate"]}%</span></td>
-        </tr></table>
-        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-            <tr>
-                <td style="padding:5px 0; font-size:12px; color:{C["text_secondary"]};">Первоначальный взнос</td>
-                <td style="padding:5px 0; font-size:12px; font-weight:600; text-align:right; color:{C["text"]};">{_fmt(sc["down_payment"])} ₽</td>
-            </tr>
-            <tr>
-                <td style="padding:5px 0; font-size:12px; color:{C["text_secondary"]};">Сумма ипотеки</td>
-                <td style="padding:5px 0; font-size:12px; font-weight:600; text-align:right; color:{C["text"]};">{_fmt(sc["mortgage_total"])} ₽</td>
-            </tr>
-        </table>
-        <div style="border-top:1px solid {C["card_border"]}; margin:10px 0; padding-top:10px;">
-            <table style="width:100%; border-collapse:collapse;">
-                <tr>
-                    <td style="width:33%; text-align:center; vertical-align:top;">
-                        <div style="background:{C["metric_bg"]}; border-radius:8px; padding:10px; margin:0 3px;">
-                            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:{C["text_muted"]};">1 транш</div>
-                            <div style="font-size:10px; color:{C["text_secondary"]};">({tp} мес.)</div>
-                            <div style="font-size:14px; font-weight:600; color:{C["gold"]}; margin-top:4px;">{_fmt(sc["ep_1"])} ₽</div>
-                        </div>
-                    </td>
-                    <td style="width:33%; text-align:center; vertical-align:top;">
-                        <div style="background:{C["metric_bg"]}; border-radius:8px; padding:10px; margin:0 3px;">
-                            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:{C["text_muted"]};">2 транш</div>
-                            <div style="font-size:10px; color:{C["text_secondary"]};">({tp} мес.)</div>
-                            <div style="font-size:14px; font-weight:600; color:{C["gold"]}; margin-top:4px;">{_fmt(sc["ep_2"])} ₽</div>
-                        </div>
-                    </td>
-                    <td style="width:33%; text-align:center; vertical-align:top;">
-                        <div style="background:{C["metric_bg"]}; border-radius:8px; padding:10px; margin:0 3px;">
-                            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:{C["text_muted"]};">3 транш</div>
-                            <div style="font-size:10px; color:{C["text_secondary"]};">({tp3} мес.)</div>
-                            <div style="font-size:14px; font-weight:600; color:{C["gold"]}; margin-top:4px;">{_fmt(sc["ep_3"])} ₽</div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
+    <div class="scenario">
+        <div class="scenario-header">
+            <span class="scenario-badge">ПВ {calc['down_payment_pct']}%</span>
+            <span class="scenario-badge">Ставка {calc['rate']}%</span>
+        </div>
+        <div class="scenario-body">
+            <div class="scenario-row">
+                <span class="scenario-label">Первоначальный взнос</span>
+                <span class="scenario-value">{fmt(calc['down_payment'])} ₽</span>
+            </div>
+            <div class="scenario-row">
+                <span class="scenario-label">Сумма ипотеки</span>
+                <span class="scenario-value-highlight">{fmt(calc['mortgage_total'])} ₽</span>
+            </div>
+            <div class="scenario-tranches">
+                <div class="tranche-item">
+                    <div class="tranche-label">1 транш ({tp} мес.)</div>
+                    <div class="tranche-ep">{fmt(calc['ep_1'])} ₽/мес.</div>
+                </div>
+                <div class="tranche-item">
+                    <div class="tranche-label">2 транш ({tp} мес.)</div>
+                    <div class="tranche-ep">{fmt(calc['ep_2'])} ₽/мес.</div>
+                </div>
+                <div class="tranche-item">
+                    <div class="tranche-label">3 транш ({remaining_months} мес.)</div>
+                    <div class="tranche-ep">{fmt(calc['ep_3'])} ₽/мес.</div>
+                </div>
+            </div>
         </div>
     </div>'''
 
 
-def generate_tranche_mortgage_pdf(code: str, building: int = None) -> bytes | None:
+def generate_html(lot: Dict[str, Any], scenarios: List[Dict[str, Any]]) -> str:
+    logo_b64 = load_resource("logo_mono_trim_base64.txt")
+    font_regular = load_resource("montserrat_regular_base64.txt")
+    font_medium = load_resource("montserrat_medium_base64.txt")
+    font_semibold = load_resource("montserrat_semibold_base64.txt")
+
+    building_name = get_building_name(lot["building"])
+    price_m2 = int(lot["price"] / lot["area"])
+
+    # Планировка
+    layout_b64 = ""
+    if lot.get("layout_url"):
+        layout_b64 = download_image_b64(lot["layout_url"])
+
+    layout_img = ""
+    if layout_b64:
+        layout_img = f'<img class="layout-img" src="data:image/jpeg;base64,{layout_b64}">'
+
+    # Блоки сценариев
+    scenarios_html = ""
+    for sc in scenarios:
+        if sc:
+            scenarios_html += _scenario_html(sc)
+
+    html = f'''<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+@font-face {{ font-family: 'Montserrat'; src: url(data:font/truetype;base64,{font_regular}) format('truetype'); font-weight: 400; }}
+@font-face {{ font-family: 'Montserrat'; src: url(data:font/truetype;base64,{font_medium}) format('truetype'); font-weight: 500; }}
+@font-face {{ font-family: 'Montserrat'; src: url(data:font/truetype;base64,{font_semibold}) format('truetype'); font-weight: 600; }}
+
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color: #313D20; font-size: 14px; line-height: 1.4; }}
+
+.header-table {{ width: 100%; height: 120px; background: #313D20; }}
+.header-table td {{ text-align: center; vertical-align: middle; }}
+.logo-header {{ height: 80px; }}
+
+.title-bar {{ background: #DCB764; padding: 12px 40px; overflow: hidden; }}
+.title-left {{ float: left; font-size: 20px; font-weight: 600; color: #313D20; }}
+.title-right {{ float: right; font-size: 14px; font-weight: 500; color: #313D20; line-height: 26px; }}
+
+.main {{ padding: 20px 40px; }}
+
+/* Лот + планировка */
+.lot-section {{ background: white; margin-bottom: 18px; overflow: hidden; }}
+.lot-header {{ background: #313D20; padding: 12px 20px; }}
+.lot-title {{ font-size: 16px; font-weight: 500; color: #F6F0E3; }}
+.lot-body {{ padding: 15px 20px; }}
+.lot-body-table {{ width: 100%; border-collapse: collapse; }}
+.lot-info {{ width: 58%; vertical-align: top; padding-right: 15px; }}
+.lot-layout {{ width: 42%; vertical-align: middle; text-align: center; }}
+.layout-img {{ width: 100%; display: block; max-height: 230px; object-fit: contain; }}
+.lot-row {{ padding: 14px 0; border-bottom: 1px solid rgba(49,61,32,0.12); overflow: hidden; }}
+.lot-row:last-child {{ border-bottom: none; }}
+.lot-label {{ float: left; font-size: 16px; font-weight: 600; }}
+.lot-value {{ float: right; font-weight: 700; font-size: 17px; }}
+.lot-value-big {{ float: right; font-weight: 700; font-size: 19px; color: #DCB764; }}
+
+/* Сценарии */
+.scenarios-header {{ background: #313D20; padding: 12px 20px; margin-bottom: 0; }}
+.scenarios-title {{ font-size: 16px; font-weight: 500; color: #F6F0E3; }}
+
+.scenario {{ background: white; margin-bottom: 2px; padding: 0; }}
+.scenario-header {{ background: #F6F0E3; padding: 10px 20px; }}
+.scenario-badge {{ display: inline-block; background: #313D20; color: #F6F0E3; padding: 3px 10px; margin-right: 8px; font-size: 12px; font-weight: 500; }}
+.scenario-body {{ padding: 10px 20px 14px 20px; }}
+.scenario-row {{ overflow: hidden; padding: 4px 0; }}
+.scenario-label {{ float: left; font-size: 13px; }}
+.scenario-value {{ float: right; font-weight: 600; font-size: 13px; }}
+.scenario-value-highlight {{ float: right; font-weight: 600; font-size: 14px; color: #DCB764; }}
+
+.scenario-tranches {{ margin-top: 8px; overflow: hidden; }}
+.tranche-item {{ float: left; width: 33.33%; text-align: center; background: #F6F0E3; padding: 8px 5px; }}
+.tranche-label {{ font-size: 11px; color: #313D20; margin-bottom: 4px; }}
+.tranche-ep {{ font-size: 15px; font-weight: 600; color: #313D20; }}
+
+.disclaimer {{ padding: 12px 20px; text-align: center; margin-top: 15px; }}
+.disclaimer-text {{ font-size: 11px; color: #313D20; opacity: 0.6; }}
+
+.footer {{ background: #313D20; text-align: center; padding: 15px; margin-top: 15px; }}
+.footer-text {{ font-size: 11px; color: #F6F0E3; letter-spacing: 3px; }}
+</style>
+</head>
+<body>
+
+<table class="header-table"><tr><td>
+{"<img class='logo-header' src='data:image/png;base64," + logo_b64 + "'>" if logo_b64 else ""}
+</td></tr></table>
+
+<div class="title-bar">
+    <div class="title-left">Траншевая ипотека</div>
+    <div class="title-right">3 транша &bull; 20 лет</div>
+</div>
+
+<div class="main">
+    <div class="lot-section">
+        <div class="lot-header">
+            <div class="lot-title">Лот {lot['code']} &bull; Корпус {lot['building']} &laquo;{building_name}&raquo;</div>
+        </div>
+        <div class="lot-body">
+            <table class="lot-body-table"><tr>
+            <td class="lot-info">
+                <div class="lot-row">
+                    <span class="lot-label">Площадь</span>
+                    <span class="lot-value">{lot['area']} м&sup2;</span>
+                </div>
+                <div class="lot-row">
+                    <span class="lot-label">Этаж</span>
+                    <span class="lot-value">{lot['floor']}</span>
+                </div>
+                <div class="lot-row">
+                    <span class="lot-label">Цена за м&sup2;</span>
+                    <span class="lot-value">{fmt(price_m2)} &#8381;</span>
+                </div>
+                <div class="lot-row">
+                    <span class="lot-label">Стоимость</span>
+                    <span class="lot-value-big">{fmt(lot['price'])} &#8381;</span>
+                </div>
+            </td>
+            <td class="lot-layout">
+                {layout_img}
+            </td></tr></table>
+        </div>
+    </div>
+
+    <div class="scenarios-header">
+        <div class="scenarios-title">Варианты расчёта</div>
+    </div>
+
+    {scenarios_html}
+
+    <div class="disclaimer">
+        <div class="disclaimer-text">⚠ Расчёт является предварительным и носит информационный характер. Точные условия кредитования уточняйте в банке.</div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="footer-text">RIZALTA RESORT BELOKURIKHA</div>
+</div>
+
+</body></html>'''
+
+    return html
+
+
+def generate_tranche_mortgage_pdf(code: str, building: int = None) -> Optional[bytes]:
     """Generate tranche mortgage PDF for a lot.
 
     Looks up lot in properties.db, calculates all scenarios, generates PDF.
@@ -151,103 +282,37 @@ def generate_tranche_mortgage_pdf(code: str, building: int = None) -> bytes | No
     if not valid:
         return None
 
-    font_face = _load_fonts()
-    today = date.today().strftime('%d.%m.%Y')
-
-    building_names = {1: "Family", 2: "Business", 3: "Digital"}
-    bname = building_names.get(lot["building"], "")
-    price_m2 = round(lot["price"] / lot["area"]) if lot["area"] else 0
-
-    cards = "".join(_build_scenario_card(sc) for sc in valid)
-
-    html = f'''<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-    {font_face}
-    @page {{ size: A4; margin: 20mm 15mm; }}
-    body {{
-        font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
-        background: {C["bg"]};
-        color: {C["text"]};
-        font-size: 14px;
-        line-height: 1.5;
-        margin: 0;
-        padding: 20px;
-    }}
-</style>
-</head>
-<body>
-
-<div style="text-align:center; margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid {C["gold"]};">
-    <div style="font-size:24px; font-weight:700; color:{C["gold"]};">RIZALTA Resort Belokurikha</div>
-    <div style="font-size:14px; color:{C["text_secondary"]}; margin-top:4px;">Траншевая ипотека · {code}</div>
-</div>
-
-<div style="background:{C["card_bg"]}; border:1px solid {C["card_border"]}; border-radius:12px; padding:20px; margin-bottom:16px;">
-    <table style="width:100%;"><tr>
-        <td style="vertical-align:top;">
-            <div style="font-size:22px; font-weight:600; color:{C["gold"]};">{code}</div>
-            <div style="font-size:13px; color:{C["text_secondary"]}; margin-top:4px;">
-                Корпус {lot["building"]} «{bname}» · {lot["area"]} м² · этаж {lot["floor"]}
-            </div>
-        </td>
-        <td style="vertical-align:top; text-align:right;">
-            <div style="font-size:20px; font-weight:600; color:{C["text"]};">{_fmt(lot["price"])} ₽</div>
-            <div style="font-size:11px; color:{C["text_muted"]};">{_fmt(price_m2)} ₽/м²</div>
-        </td>
-    </tr></table>
-</div>
-
-<div style="font-size:12px; color:{C["text_muted"]}; margin-bottom:16px; text-align:center;">
-    3 транша · 20 лет · Сервисный сбор 150 000 ₽
-</div>
-
-{cards}
-
-<div style="text-align:center; color:{C["text_muted"]}; font-size:11px; margin-top:24px; padding-top:12px; border-top:1px solid {C["card_border"]};">
-    Расчёт предварительный. Точные условия уточняйте в банке.<br>
-    RIZALTA Resort Belokurikha · {today}
-</div>
-
-</body>
-</html>'''
+    html = generate_html(lot, valid)
 
     try:
-        with tempfile.NamedTemporaryFile(suffix='.html', delete=False, mode='w', encoding='utf-8') as f:
+        tmp = tempfile.mkdtemp()
+        html_path = os.path.join(tmp, f"tranche_{code}.html")
+        pdf_path = os.path.join(tmp, f"tranche_{code}.pdf")
+
+        with open(html_path, "w", encoding="utf-8") as f:
             f.write(html)
-            html_path = f.name
 
-        pdf_path = html_path.replace('.html', '.pdf')
+        subprocess.run([
+            "wkhtmltopdf",
+            "--quiet",
+            "--page-size", "A4",
+            "--margin-top", "0",
+            "--margin-bottom", "0",
+            "--margin-left", "0",
+            "--margin-right", "0",
+            "--enable-local-file-access",
+            "--disable-smart-shrinking",
+            html_path,
+            pdf_path
+        ], check=True, capture_output=True, timeout=30)
 
-        result = subprocess.run(
-            [
-                'wkhtmltopdf',
-                '--enable-local-file-access',
-                '--encoding', 'utf-8',
-                '--page-size', 'A4',
-                '--margin-top', '10mm',
-                '--margin-bottom', '10mm',
-                '--margin-left', '10mm',
-                '--margin-right', '10mm',
-                '--no-stop-slow-scripts',
-                html_path, pdf_path,
-            ],
-            capture_output=True,
-            timeout=30,
-        )
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
 
-        if os.path.exists(pdf_path):
-            with open(pdf_path, 'rb') as f:
-                pdf_bytes = f.read()
-            os.unlink(html_path)
-            os.unlink(pdf_path)
-            return pdf_bytes
-
-        logger.error(f"[TRANCHE PDF] wkhtmltopdf failed: {result.stderr.decode()}")
         os.unlink(html_path)
-        return None
+        os.unlink(pdf_path)
+        os.rmdir(tmp)
+        return pdf_bytes
 
     except Exception as e:
         logger.error(f"[TRANCHE PDF] Error: {e}")
