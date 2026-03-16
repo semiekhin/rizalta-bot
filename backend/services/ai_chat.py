@@ -11,6 +11,7 @@ from services.data_loader import load_finance, load_instructions
 from services.tool_definitions import TOOLS, execute_tool
 from services.yandex_chat import call_yandex_gpt
 from services.intent_router import extract_lot_code
+from services.rag_service import search_documents
 
 logger = logging.getLogger(__name__)
 
@@ -735,9 +736,44 @@ def _get_lots_stats() -> str:
         return ""
 
 
+def _needs_documents(message: str) -> bool:
+    """Check if message is about contracts/documents (ДДУ, аренда)."""
+    text = message.lower()
+    DOC_KEYWORDS = [
+        'дду', 'договор', 'аренд', 'подписан', 'расторж',
+        'условия договор', 'оплат по договор',
+        'штраф', 'неустойк', 'передач', 'приёмк', 'приемк',
+        'гарантий', 'гарантия', 'залог', 'обременен',
+        'регистрац', 'собственност', 'право собствен',
+        'застройщик', 'долевое участие', 'долевого',
+    ]
+    return any(kw in text for kw in DOC_KEYWORDS)
+
+
+def _build_rag_context(message: str) -> str:
+    """Search documents and format context block for system prompt."""
+    results = search_documents(message, top_k=5)
+    if not results:
+        return ""
+
+    lines = ["\n\n=== КОНТЕКСТ ИЗ ДОКУМЕНТОВ (отвечай только на основе этих данных) ==="]
+    for r in results:
+        lines.append(f"\n[Источник: {r['source']}, стр. {r['page']}]")
+        lines.append(r["text"])
+    lines.append("\n===")
+    return "\n".join(lines)
+
+
 def _stream_yandex_response(message: str, history: list[dict]):
     """Stream response from YandexGPT for simple chat questions (no tools)."""
     system_prompt = build_system_prompt() + _get_lots_stats()
+
+    # RAG: inject document context if question is about contracts
+    if _needs_documents(message):
+        rag_context = _build_rag_context(message)
+        if rag_context:
+            system_prompt += rag_context
+            logger.info(f"[RAG] Injected document context for: {message[:50]}...")
 
     messages = []
     if history:

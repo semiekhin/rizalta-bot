@@ -28,6 +28,7 @@ from services.compare_pdf_generator import generate_compare_pdf
 from services.notifications import notify_showing_request
 from services.ai_chat import stream_chat_with_tools, stream_lot_report, stream_portfolio_report
 from services.intent_router import quick_classify_navigation
+from services import rag_service
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
@@ -95,6 +96,7 @@ async def lifespan(app_instance):
     seed_token()
     init_secretary_db()
     init_rclick_table()
+    rag_service.init()
     yield
 
 
