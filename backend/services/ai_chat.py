@@ -802,17 +802,21 @@ def _stream_yandex_response(message: str, history: list[dict]):
 
     try:
         if rag_mode:
+            # RAG uses yandexgpt-5-pro for better document comprehension
+            pro_model = os.getenv("YANDEX_MODEL_PRO", "gpt://b1giu7d61rvmondibc51/yandexgpt-5-pro/latest")
+            print(f"[DEBUG] RAG using model: {pro_model}")
+
             # Phase 1: non-stream call with sanitized message
             sanitized = f"На основе справочных материалов выше, ответь на вопрос сотрудника: {message}"
             messages.append({"role": "user", "content": sanitized})
-            text = call_yandex_gpt(system_prompt, messages)
+            text = call_yandex_gpt(system_prompt, messages, model_uri=pro_model)
             print(f"[DEBUG] RAG response (first 120): {text[:120]}")
 
             # Phase 2: retry if moderation triggered
             if any(m in text.lower() for m in REFUSAL_MARKERS):
                 print(f"[DEBUG] RAG moderation hit, retrying with neutral phrasing")
                 messages[-1]["content"] = f"Перескажи информацию из справочных материалов, которая относится к теме: {message}"
-                text = call_yandex_gpt(system_prompt, messages)
+                text = call_yandex_gpt(system_prompt, messages, model_uri=pro_model)
                 print(f"[DEBUG] RAG retry response (first 120): {text[:120]}")
 
             # Phase 3: fake-stream the result to client
@@ -820,7 +824,7 @@ def _stream_yandex_response(message: str, history: list[dict]):
             for i in range(0, len(text), chunk_size):
                 yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
         else:
-            # Regular chat — non-stream call + fake-stream
+            # Regular chat — yandexgpt/latest
             messages.append({"role": "user", "content": message})
             text = call_yandex_gpt(system_prompt, messages)
             chunk_size = 4

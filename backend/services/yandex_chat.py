@@ -9,12 +9,13 @@ logger = logging.getLogger(__name__)
 YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
 
-def call_yandex_gpt(system_prompt: str, messages: list[dict]) -> str:
+def call_yandex_gpt(system_prompt: str, messages: list[dict], model_uri: str | None = None) -> str:
     """Call YandexGPT API and return response text.
 
     Args:
         system_prompt: System instruction text.
         messages: List of {"role": "user"/"assistant", "content": "..."}.
+        model_uri: Optional model URI override (e.g. gpt://folder/yandexgpt-5-pro/latest).
 
     Returns:
         Response text from YandexGPT.
@@ -25,7 +26,8 @@ def call_yandex_gpt(system_prompt: str, messages: list[dict]) -> str:
     if not api_key or not folder_id:
         raise RuntimeError("YANDEX_API_KEY or YANDEX_FOLDER_ID not set in .env")
 
-    model_uri = f"gpt://{folder_id}/yandexgpt"
+    if not model_uri:
+        model_uri = f"gpt://{folder_id}/yandexgpt"
 
     yandex_messages = [{"role": "system", "text": system_prompt}]
     for msg in messages:
