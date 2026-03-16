@@ -748,14 +748,14 @@ def _needs_documents(message: str) -> bool:
         'застройщик', 'долевое участие', 'долевого',
     ]
     result = any(kw in text for kw in DOC_KEYWORDS)
-    logger.info(f"[RAG] _needs_documents('{message[:60]}...') = {result}")
+    print(f"[DEBUG] _needs_documents('{message[:60]}') = {result}")
     return result
 
 
 def _build_rag_context(message: str) -> str:
     """Search documents and format context block for system prompt."""
     results = search_documents(message, top_k=5)
-    logger.info(f"[RAG] search_documents returned {len(results)} chunks")
+    print(f"[DEBUG] search_documents returned {len(results)} chunks")
     if not results:
         return ""
 
@@ -783,7 +783,7 @@ def _stream_yandex_response(message: str, history: list[dict]):
         rag_context = _build_rag_context(message)
         if rag_context:
             system_prompt += rag_context
-            logger.info(f"[RAG] Injected document context for: {message[:50]}...")
+            print(f"[DEBUG] RAG injected {len(rag_context)} chars into prompt for: {message[:50]}")
 
     messages = []
     if history:
@@ -819,13 +819,15 @@ def stream_chat_with_tools(message: str, history: list[dict]):
     - {"type": "done"}
     - {"type": "error", "content": "..."}
     """
+    print(f"[DEBUG] stream_chat_with_tools: '{message[:60]}'")
+
     # Simple chat → YandexGPT v1/completion (no tools, no agentic loop)
     if not _needs_tools(message):
-        logger.info("[AI CHAT] Routing to YandexGPT (simple chat)")
+        print("[DEBUG] Routing → YandexGPT (simple chat)")
         yield from _stream_yandex_response(message, history)
         return
 
-    logger.info("[AI CHAT] Routing to YandexGPT agentic loop (tools needed)")
+    print("[DEBUG] Routing → YandexGPT agentic loop (tools needed)")
     model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
 

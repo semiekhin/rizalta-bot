@@ -97,11 +97,11 @@ async def lifespan(app_instance):
     init_secretary_db()
     init_rclick_table()
     try:
-        logging.info("[STARTUP] Initializing RAG service...")
+        print("[STARTUP] Initializing RAG service...")
         rag_service.init()
-        logging.info("[STARTUP] RAG service initialized OK")
+        print(f"[STARTUP] RAG service initialized OK — {len(rag_service._chunks)} chunks")
     except Exception as e:
-        logging.error(f"[STARTUP] RAG init failed (non-fatal): {e}")
+        print(f"[STARTUP] RAG init failed (non-fatal): {e}")
     yield
 
 
