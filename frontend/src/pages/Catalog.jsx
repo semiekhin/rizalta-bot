@@ -105,7 +105,7 @@ export default function Catalog({ lots, stats, loading, onSelectLot }) {
       <div className="bg-rz-gold px-4 py-3 flex justify-between items-center sticky top-0 z-40">
         <div>
           <h1 className="font-bold text-lg text-rz-green-dark">RIZALTA</h1>
-          <p className="text-xs text-rz-green-dark/70">Каталог апартаментов</p>
+          <p className="text-xs text-rz-green-dark/70">Каталог лотов</p>
         </div>
         <div className="flex items-center gap-3">
           <button

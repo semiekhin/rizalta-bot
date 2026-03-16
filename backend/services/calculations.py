@@ -412,7 +412,7 @@ def generate_finance_text(unit_code: str, finance: dict) -> str:
     
     unit = get_unit_by_code(finance, unit_code)
     if not unit:
-        return f"⚠️ Юнит {unit_code} не найден в конфигурации."
+        return f"⚠️ Лот {unit_code} не найден в конфигурации."
     
     title = unit.get("title", f"Гостиничный номер {unit_code}")
     area = unit.get("area_m2", "?")

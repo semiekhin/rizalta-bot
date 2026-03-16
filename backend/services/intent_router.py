@@ -45,7 +45,7 @@ def quick_classify_navigation(text: str) -> dict | None:
     ]
 
     NAVIGATION_ACTIONS = {
-        "open_shahmatka": {"message": "Каталог апартаментов RIZALTA:", "to": "/lots"},
+        "open_shahmatka": {"message": "Каталог лотов RIZALTA:", "to": "/lots"},
         "send_presentation": {"message": "Презентации проекта RIZALTA:", "to": "/presentations"},
         "send_documents": {"message": "Документы проекта RIZALTA:", "to": "/documents"},
         "show_media": {"message": "Видеоматериалы о проекте:", "to": "/media"},

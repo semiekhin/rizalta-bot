@@ -271,7 +271,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
         <button onClick={onBack} className="text-rz-cream-dark hover:text-rz-cream transition-colors">
           ← Назад
         </button>
-        <h1 className="font-bold">Апартамент {lot.code}</h1>
+        <h1 className="font-bold">Лот {lot.code}</h1>
       </div>
 
       {/* Image */}
@@ -797,10 +797,6 @@ export default function LotDetail({ lot, onBack, onChat }) {
                   <div className="flex justify-between text-sm">
                     <span className="text-rz-cream-dark">Первонач. взнос</span>
                     <span className="font-bold">{formatPrice(mortgageData.down_payment)} ₽</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-rz-cream-dark">Удорожание ({mortgageData.markup_pct}%)</span>
-                    <span>{formatPrice(mortgageData.markup)} ₽</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-rz-cream-dark">Сумма кредита</span>

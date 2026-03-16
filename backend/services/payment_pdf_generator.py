@@ -17,7 +17,7 @@ def generate_payment_pdf(price: int, code: str = "") -> str:
     i12 = data["i12"]
     i18 = data["i18"]
 
-    title_suffix = f" — Апартамент {code}" if code else ""
+    title_suffix = f" — Лот {code}" if code else ""
 
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">

@@ -263,7 +263,7 @@ def _generate_lot_report(data: dict) -> str | None:
   <div class="content">
     <div style="background: white; margin-top: 15px;">
       <div style="background: #313D20; padding: 14px 22px; overflow: hidden;">
-        <div style="float: left; font-size: 22px; font-weight: 500; color: #F6F0E3;">Апартамент {code}</div>
+        <div style="float: left; font-size: 22px; font-weight: 500; color: #F6F0E3;">Лот {code}</div>
         <div style="float: right; font-size: 24px; font-weight: 600; color: #DCB764;">{fmt(price)}</div>
         <div style="clear:both"></div>
       </div>
@@ -648,7 +648,7 @@ def _generate_portfolio_report(data: dict) -> str | None:
     html += f"""
 <div class="page page-break">
   <div class="content" style="padding-top: 35px;">
-    <div class="section-title">Подобранные апартаменты</div>
+    <div class="section-title">Подобранные лоты</div>
 
     <table class="data-table">
       <tr>
@@ -939,7 +939,7 @@ def _generate_portfolio_report_from_builder(report_data: dict, data: dict) -> st
     html += f"""
 <div class="page page-break">
   <div class="content" style="padding-top: 35px;">
-    <div class="section-title">Подобранные апартаменты</div>
+    <div class="section-title">Подобранные лоты</div>
 
     <table class="data-table">
       <tr>

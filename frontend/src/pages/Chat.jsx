@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 
 const WELCOME_MSG = {
   role: 'assistant',
-  content: 'Здравствуйте! Я AI-консультант RIZALTA. Помогу подобрать апартамент, рассчитать доходность или ответить на вопросы об инвестициях. Что вас интересует?'
+  content: 'Здравствуйте! Я AI-консультант RIZALTA. Помогу подобрать лот, рассчитать доходность или ответить на вопросы об инвестициях. Что вас интересует?'
 }
 
 // Map navigate "to" paths to internal screen names
@@ -651,8 +651,8 @@ export default function Chat({ lots, onNavigate }) {
   }
 
   const quickActions = [
-    { label: 'Подобрать апартамент', action: () => onNavigate('lots') },
-    { label: 'Доходность', query: 'Какая доходность у апартаментов RIZALTA?' },
+    { label: 'Подобрать лот', action: () => onNavigate('lots') },
+    { label: 'Доходность', query: 'Какая доходность у лотов RIZALTA?' },
     { label: 'Условия рассрочки', query: 'Расскажи про условия рассрочки' },
   ]
 

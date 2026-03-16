@@ -63,7 +63,7 @@ export default function Booking({ onBack }) {
         ) : (
           <>
             <p className="text-rz-cream-dark text-sm mb-6">
-              Оставьте заявку и мы проведём для вас онлайн-показ апартаментов RIZALTA в Белокурихе
+              Оставьте заявку и мы проведём для вас онлайн-показ лотов RIZALTA в Белокурихе
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
