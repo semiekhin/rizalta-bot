@@ -1,12 +1,16 @@
 """AI Chat service — OpenAI streaming with function calling for RIZALTA webapp."""
 
 import os
+import re
 import json
+import sqlite3
 import logging
 from openai import OpenAI
 
 from services.data_loader import load_finance, load_instructions
 from services.tool_definitions import TOOLS, execute_tool
+from services.yandex_chat import call_yandex_gpt
+from services.intent_router import extract_lot_code
 
 logger = logging.getLogger(__name__)
 
@@ -647,10 +651,92 @@ def stream_portfolio_report(budget: int):
     yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
 
 
-def stream_chat_with_tools(message: str, history: list[dict]):
-    """Generator yielding SSE events. GPT-5.2 Responses API with agentic loop.
+def _needs_tools(message: str) -> bool:
+    """Check if message likely needs GPT-5.2 tools (lot lookup, calculations)."""
+    # Has lot code (А210, В712, К3-А101) → needs get_lot_details
+    if extract_lot_code(message):
+        return True
 
-    Flow: up to MAX_ROUNDS of tool calls, then stream final text answer.
+    text = message.lower()
+    TOOL_KEYWORDS = [
+        'рассчита', 'посчита', 'калькулят',
+        'roi', 'доходност', 'окупаемост',
+        'рассрочк',
+        'ипотек',
+        'депозит', 'сравн',
+        'мгп', 'гарантирован',
+        'подбер', 'подобр',
+        'найд лот', 'поиск лот', 'покаж лот',
+        'какие лоты', 'какие апартамент', 'свободн',
+        'бюджет',
+    ]
+    return any(kw in text for kw in TOOL_KEYWORDS)
+
+
+def _get_lots_stats() -> str:
+    """Get lot statistics from properties.db for YandexGPT system prompt."""
+    db_path = os.getenv("PROPERTIES_DB", "/opt/bot/properties.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT building, COUNT(*), MIN(price_rub), MAX(price_rub)
+            FROM units
+            WHERE status = 'available'
+            GROUP BY building
+        """)
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            return ""
+
+        building_names = {1: "Family", 2: "Business", 3: "Digital"}
+        lines = ["\n\nСТАТИСТИКА ЛОТОВ (актуальная):"]
+        total = 0
+        for building, count, min_price, max_price in rows:
+            name = building_names.get(building, f"К{building}")
+            lines.append(
+                f"- Корпус {building} ({name}): {count} свободных, "
+                f"от {min_price:,.0f} до {max_price:,.0f} ₽"
+            )
+            total += count
+        lines.append(f"- Всего свободных: {total}")
+        return "\n".join(lines)
+    except Exception as e:
+        logger.error(f"[LOTS STATS] Error: {e}")
+        return ""
+
+
+def _stream_yandex_response(message: str, history: list[dict]):
+    """Stream response from YandexGPT for simple chat questions (no tools)."""
+    system_prompt = build_system_prompt() + _get_lots_stats()
+
+    messages = []
+    if history:
+        for msg in history[-20:]:
+            messages.append({"role": msg["role"], "content": msg.get("content", "")})
+    messages.append({"role": "user", "content": message})
+
+    try:
+        text = call_yandex_gpt(system_prompt, messages)
+
+        # Fake streaming — YandexGPT v1/completion is non-streaming
+        chunk_size = 4
+        for i in range(0, len(text), chunk_size):
+            yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
+
+        yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
+
+    except Exception as e:
+        logger.error(f"[YANDEX CHAT] Error: {e}")
+        yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен, попробуйте позже"}, ensure_ascii=False)}\n\n'
+
+
+def stream_chat_with_tools(message: str, history: list[dict]):
+    """Generator yielding SSE events.
+
+    Routes: simple questions → YandexGPT, tool queries → GPT-5.2 agentic loop.
 
     SSE event types:
     - {"type": "token", "content": "..."}
@@ -660,6 +746,13 @@ def stream_chat_with_tools(message: str, history: list[dict]):
     - {"type": "done"}
     - {"type": "error", "content": "..."}
     """
+    # Simple chat → YandexGPT (no tools, no agentic loop)
+    if not _needs_tools(message):
+        logger.info(f"[AI CHAT] Routing to YandexGPT (simple chat)")
+        yield from _stream_yandex_response(message, history)
+        return
+
+    logger.info(f"[AI CHAT] Routing to GPT-5.2 (tools needed)")
     model = os.getenv("OPENAI_MODEL", "gpt-5.2")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
 
