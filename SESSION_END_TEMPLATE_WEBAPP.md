@@ -4,11 +4,13 @@
 
 ---
 
-## 📝 ШАГ 1: Обновить документацию
+## 📝 ШАГ 1: Подготовить обновления документации
 
-### 1.1 Webapp-специфичные docs (ветка `webapp`):
+Claude выдаёт в чат **полный обновлённый контент** для:
 
-**`/opt/webapp-dev/CLAUDE.md`** — обновить:
+### 1.1 Webapp docs (обновляет 1Code → push → webhook → DEV автоматически):
+
+**`CLAUDE.md`** — обновить:
 - Версию webapp
 - Структуру (если менялись файлы)
 - API endpoints (если добавлялись/менялись)
@@ -17,7 +19,7 @@
 - TODO (актуализировать)
 - Добавить секцию сессии
 
-**`/opt/webapp-dev/TASK_MAP.md`** — обновить:
+**`TASK_MAP.md`** — обновить:
 - Версию в шапке
 - Перенести выполненное в ✅ ВЫПОЛНЕНО
 - Актуализировать 🔜 БЭКЛОГ
@@ -25,59 +27,49 @@
 
 ### 1.2 Общие docs (bot-dev/docs/) — ⚠️ ДОПОЛНЯТЬ, НЕ ЗАТИРАТЬ:
 
-**`/opt/bot-dev/docs/RIZALTA_CURRENT.md`** — добавить/обновить секцию `## WebApp`:
-- Версия, что сделано в этой сессии
-
-**`/opt/bot-dev/docs/RIZALTA_TASKS.md`** — добавить/обновить секцию `## WebApp`:
-- Выполненные, новые, изменённые приоритеты
+**`/opt/bot-dev/docs/RIZALTA_CURRENT.md`** — добавить/обновить секцию `## WebApp`
+**`/opt/bot-dev/docs/RIZALTA_TASKS.md`** — добавить/обновить секцию `## WebApp`
 
 ⚠️ Эти файлы редактирует и бот-чат — дополняем свою секцию, чужое НЕ трогаем!
 
 ---
 
-## 📤 ШАГ 2: Скопировать общие docs в PROD
+## 📤 ШАГ 2: Sergio передаёт контент в 1Code
 
+1. Claude выдал обновлённые CLAUDE.md и TASK_MAP.md
+2. Sergio копирует контент в 1Code
+3. 1Code коммитит и пушит в ветку `webapp`:
 ```bash
-cp /opt/bot-dev/docs/RIZALTA_CURRENT.md /opt/bot/docs/
-cp /opt/bot-dev/docs/RIZALTA_TASKS.md /opt/bot/docs/
+git add CLAUDE.md TASK_MAP.md
+git commit -m "docs: session [ДАТА] - [краткое описание]"
+git push origin webapp
 ```
+4. Webhook автоматически обновляет `/opt/webapp-dev/` (2-3 сек)
+5. Ссылки `/api/docs/file` сразу отдают актуальное
 
 ---
 
-## 📦 ШАГ 3: Коммит 3 репо
+## 📤 ШАГ 3: Общие docs — на сервере вручную
 
 ```bash
-bash /opt/webapp-dev/session-end.sh
+# Обновить общие docs в bot-dev (ДОПОЛНИТЬ секцию ## WebApp)
+nano /opt/bot-dev/docs/RIZALTA_CURRENT.md
+nano /opt/bot-dev/docs/RIZALTA_TASKS.md
+
+# Скопировать в PROD
+cp /opt/bot-dev/docs/RIZALTA_CURRENT.md /opt/bot/docs/
+cp /opt/bot-dev/docs/RIZALTA_TASKS.md /opt/bot/docs/
+
+# Закоммитить оба репо
+cd /opt/bot-dev && git add docs/ && git commit -m "docs: webapp session [ДАТА]" && git push
+cd /opt/bot && git add docs/ && git commit -m "docs: webapp session [ДАТА]" && git push
 ```
 
-Или вручную:
-
-```bash
-# 1. WebApp (ветка webapp)
-cd /opt/webapp-dev
-git add -A
-git commit -m "docs: session [ДАТА] - [краткое описание]"
-git push origin webapp
-
-# 2. Bot DEV (общие docs)
-cd /opt/bot-dev
-git add docs/
-git commit -m "docs: webapp session [ДАТА] - [краткое описание]"
-git push
-
-# 3. Bot PROD (копия общих docs)
-cd /opt/bot
-git add docs/
-git commit -m "docs: webapp session [ДАТА] - [краткое описание]"
-git push
-```
+Или: `bash /opt/webapp-dev/session-end.sh` (коммитит bot-dev + bot)
 
 ---
 
 ## 📋 ШАГ 4: Выдать КОМПАКТНЫЙ промпт для нового webapp-чата
-
-⚠️ Промпт — КОМПАКТНЫЙ. Вся детальная информация в CLAUDE.md и TASK_MAP.md на сервере.
-Claude в новом чате сам прочитает их через API.
 
 ```
 # ⚠️ ВНИМАНИЕ: Два параллельных чата!
@@ -91,12 +83,7 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=TASK_MAP.md
 Шаблон завершения:
 https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEBAPP.md
 
-[⚠️ Если доки не обновились — описать что нужно обновить]
-
 Первая задача — [описание следующей задачи].
-
-[Ссылки на код для анализа, если нужно:]
-https://dev-webapp.rizaltaservice.ru/api/docs/file?path=путь/к/файлу
 ```
 
 ---
@@ -108,15 +95,14 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=путь/к/файлу
 **Что сделано:**
 - [ ] ...
 
-**Обновлены docs:**
+**Docs обновлены через 1Code (webhook → DEV):**
 - [ ] CLAUDE.md
 - [ ] TASK_MAP.md
+
+**Общие docs обновлены на сервере:**
 - [ ] RIZALTA_CURRENT.md (дополнено)
 - [ ] RIZALTA_TASKS.md (дополнено)
-
-**Коммиты:**
-- [ ] webapp (ветка webapp)
-- [ ] bot-dev (docs/)
-- [ ] bot PROD (docs/)
+- [ ] bot-dev закоммичен
+- [ ] bot PROD закоммичен
 
 **Промпт для нового чата выдан:** [ ]
