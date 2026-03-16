@@ -30,9 +30,9 @@ async def send_welcome(chat_id: int):
             resp = await client.post(
                 f"{MAX_API}/messages",
                 headers={"Authorization": MAX_BOT_TOKEN},
+                params={"chat_id": chat_id},
                 json={
-                    "chat_id": chat_id,
-                    "body": {"text": WELCOME_TEXT},
+                    "text": WELCOME_TEXT,
                     "attachments": [{
                         "type": "inline_keyboard",
                         "payload": {

@@ -145,10 +145,8 @@ async def send_max_message(chat_id: int, text: str) -> bool:
             resp = await client.post(
                 f"{MAX_API}/messages",
                 headers={"Authorization": MAX_BOT_TOKEN},
-                json={
-                    "chat_id": int(chat_id),
-                    "body": {"text": text}
-                }
+                params={"chat_id": int(chat_id)},
+                json={"text": text}
             )
             if resp.status_code == 200:
                 return True
