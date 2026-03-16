@@ -747,16 +747,26 @@ def _needs_documents(message: str) -> bool:
         'регистрац', 'собственност', 'право собствен',
         'застройщик', 'долевое участие', 'долевого',
     ]
-    return any(kw in text for kw in DOC_KEYWORDS)
+    result = any(kw in text for kw in DOC_KEYWORDS)
+    logger.info(f"[RAG] _needs_documents('{message[:60]}...') = {result}")
+    return result
 
 
 def _build_rag_context(message: str) -> str:
     """Search documents and format context block for system prompt."""
     results = search_documents(message, top_k=5)
+    logger.info(f"[RAG] search_documents returned {len(results)} chunks")
     if not results:
         return ""
 
-    lines = ["\n\n=== КОНТЕКСТ ИЗ ДОКУМЕНТОВ (отвечай только на основе этих данных) ==="]
+    lines = [
+        "\n\n## ВАЖНО: ОТВЕТ НА ОСНОВЕ ДОКУМЕНТОВ",
+        "Ниже приведены выдержки из реальных документов проекта RIZALTA.",
+        "Отвечай на вопрос пользователя СТРОГО на основе этих данных.",
+        "Цитируй пункты и условия из документов. Указывай источник и страницу.",
+        "",
+        "=== КОНТЕКСТ ИЗ ДОКУМЕНТОВ ===",
+    ]
     for r in results:
         lines.append(f"\n[Источник: {r['source']}, стр. {r['page']}]")
         lines.append(r["text"])
