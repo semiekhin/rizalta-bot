@@ -9,7 +9,6 @@ from openai import OpenAI
 
 from services.data_loader import load_finance, load_instructions
 from services.tool_definitions import TOOLS, execute_tool
-from services.yandex_chat import call_yandex_gpt
 from services.intent_router import extract_lot_code
 from services.rag_service import search_documents
 
@@ -542,7 +541,7 @@ def stream_lot_report(code: str, building: int | None = None):
     # Шаг 3: AI пишет полноценный инвестиционный анализ
     yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую инвестиционный анализ..."}, ensure_ascii=False)}\n\n'
 
-    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/gpt-oss-120b/latest")
 
     summary = format_lot_summary(data)
     metrics = data.get("metrics", {})
@@ -632,7 +631,7 @@ def stream_portfolio_report(budget: int):
     # Step 4: Stream YandexGPT analytical text
     yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую портфельный анализ..."}, ensure_ascii=False)}\n\n'
 
-    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/gpt-oss-120b/latest")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
 
     try:
@@ -788,49 +787,36 @@ def _stream_yandex_response(message: str, history: list[dict]):
             rag_mode = True
             print(f"[DEBUG] RAG injected {len(rag_context)} chars into prompt for: {message[:50]}")
 
-    REFUSAL_MARKERS = [
-        "не могу обсуждать", "давайте поговорим", "не могу помочь с этим",
-        "не в моей компетенции", "не могу консультировать", "не могу давать",
-        "выходит за рамки", "не предоставляю", "обратитесь к специалист",
-        "обратитесь к юрист", "не отвечаю на", "к сожалению, я не",
-    ]
-
     messages = []
     if history:
         for msg in history[-20:]:
             messages.append({"role": msg["role"], "content": msg.get("content", "")})
 
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/gpt-oss-120b/latest")
+
     try:
         if rag_mode:
-            # RAG uses OpenAI-compatible endpoint (no moderation) + yandexgpt-5-pro
-            pro_model = os.getenv("YANDEX_MODEL_PRO", "gpt://b1giu7d61rvmondibc51/yandexgpt-5-pro/latest")
-            print(f"[DEBUG] RAG using model: {pro_model} (OpenAI-compatible)")
-
             sanitized = f"На основе справочных материалов выше, ответь на вопрос сотрудника: {message}"
             messages.append({"role": "user", "content": sanitized})
-
-            # Non-stream call via OpenAI-compatible client (same as agentic loop)
-            client = get_client()
-            response = client.chat.completions.create(
-                model=pro_model,
-                messages=[{"role": "system", "content": system_prompt}] + messages,
-                max_tokens=2000,
-                temperature=0.6,
-            )
-            text = response.choices[0].message.content or ""
-            print(f"[DEBUG] RAG response (first 120): {text[:120]}")
-
-            # Phase 3: fake-stream the result to client
-            chunk_size = 4
-            for i in range(0, len(text), chunk_size):
-                yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
         else:
-            # Regular chat — yandexgpt/latest
             messages.append({"role": "user", "content": message})
-            text = call_yandex_gpt(system_prompt, messages)
-            chunk_size = 4
-            for i in range(0, len(text), chunk_size):
-                yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
+
+        print(f"[DEBUG] _stream_yandex_response: rag={rag_mode}, model={model}")
+
+        client = get_client()
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "system", "content": system_prompt}] + messages,
+            max_tokens=2000,
+            temperature=0.6,
+        )
+        text = response.choices[0].message.content or ""
+        print(f"[DEBUG] response (first 120): {text[:120]}")
+
+        # Fake-stream the result to client
+        chunk_size = 4
+        for i in range(0, len(text), chunk_size):
+            yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
 
         yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
 
@@ -861,7 +847,7 @@ def stream_chat_with_tools(message: str, history: list[dict]):
         return
 
     print("[DEBUG] Routing → YandexGPT agentic loop (tools needed)")
-    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/gpt-oss-120b/latest")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
 
     system_prompt = build_system_prompt() + ADVISOR_INSTRUCTION
