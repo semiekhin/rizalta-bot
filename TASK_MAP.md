@@ -81,6 +81,24 @@
 - **GPT-5.2 fix** — max_tokens → max_completion_tokens
 - **Архитектурное решение:** разделение на 3 экрана (портфель, сводка лота, чат-консьерж)
 
+
+### Сессия 02.03.2026 part 4 (v0.9.5 → v0.9.6) — Python Portfolio
+- **AI selector удалён:** Python round-robin подбирает лоты (-392 строки ai-кода)
+- **3 сценария:** premium (самый дорогой в бюджете), portfolio_full (round-robin ASC), max_leverage (ПВ 30%)
+- **Единые метрики:** NOI, Cap Rate, ROI, CoC + human-readable labels во всех сценариях
+- **portfolio_pdf_generator.py:** PDF в стиле чат-карточек
+- **POST /api/portfolio-pdf:** новый эндпоинт
+- **GPT-5.2 fix:** max_tokens → max_completion_tokens
+- **Git tag:** v0.9.6
+
+### Сессия 11.03.2026 (v0.9.6 → v0.9.7) — Инвестиционная сводка по лоту
+- **Модалка "📊 Инвестиционная сводка"** в LotDetail.jsx — фронтенд-агрегация Promise.all × 5 API
+- **lot_summary_pdf_generator.py:** PDF в dark RIZALTA branding (#263524 / #D4A84B)
+- **POST /api/lot-summary-pdf:** эндпоинт сводки лота
+- **RFC 5987 filename encoding:** Фикс кириллицы в Content-Disposition
+- **Chat.jsx cleanup:** Удалены кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" (-96 строк)
+- **Git tag:** v0.9.7-lot-summary
+
 ## 🔜 БЭКЛОГ (актуализирован 02.03.2026 part 4)
 
 ### Приоритет 🔴 — Этап 1: Портфельный калькулятор
@@ -126,6 +144,10 @@
 | v0.9.1-claude-orchestrator | Эндпоинт /api/docs/file |
 | v0.9.2 | AI agentic loop + tools + report_builder |
 | v0.9.3 | PDF investment reports + strategy_data SSE fix |
+| v0.9.4 | Investment metrics (NOI, Cap Rate, CoC, Equity Multiple) |
+| v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
+| v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |
+| v0.9.7-lot-summary | Инвестиционная сводка по лоту (modal + PDF) + Chat cleanup |
 | v0.9.4 | Investment metrics (NOI, Cap Rate, CoC, Equity Multiple) |
 | v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
 | v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |

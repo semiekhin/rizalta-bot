@@ -1,7 +1,7 @@
 # RIZALTA WebApp — Claude Code Context
 
 ## Версия
-**v0.9.6** (Python portfolio + unified metrics + portfolio PDF)
+**v0.9.7** (Инвестиционная сводка по лоту + PDF + Chat cleanup)
 
 ## Цель проекта
 Standalone веб-приложение дублирующее функциональность Telegram-бота RIZALTA.
@@ -107,6 +107,7 @@ git add -A && git commit -m "описание" && git push origin webapp
 │       ├── compare_pdf_generator.py # PDF сравнения (wkhtmltopdf)
 │       ├── kp_pdf_generator.py      # PDF КП (wkhtmltopdf)
 │       ├── payment_pdf_generator.py # PDF вариантов оплаты
+│       ├── lot_summary_pdf_generator.py # PDF инвест-сводки по лоту (dark branding: #263524/#D4A84B)
 │       ├── calc_xlsx_generator.py   # Excel ROI
 │       ├── investment_calc.py       # Investment calculations
 │       ├── calc_universal.py        # Universal calculator
@@ -232,6 +233,7 @@ GET  /api/download-xlsx/{code}        # ?building= для К3
 GET  /api/download-compare-pdf        # ?amount=X&years=11&area=26.8
 GET  /api/payment-pdf                 # ?price=&code=
 POST /api/strategy-pdf                # PDF инвестиционного отчёта (из strategy_data)
+POST /api/lot-summary-pdf             # PDF инвестиционной сводки по лоту (RFC 5987 filename)
 
 # Заявки (реальные уведомления TG + Email)
 POST /api/book-showing                # {name, phone, lot_code, comment}
@@ -336,6 +338,7 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=<относительн�
 | v0.9.4 | Investment metrics (NOI, Cap Rate, CoC, Equity Multiple) |
 | v0.9.5 | AI-driven portfolio + 3 scenarios + budget guard |
 | v0.9.6 | Python portfolio selection + unified metrics + portfolio PDF |
+| v0.9.7 | Инвестиционная сводка по лоту (modal + PDF) + Chat cleanup |
 
 ## Команды
 ```bash
@@ -367,18 +370,17 @@ curl -s http://127.0.0.1:8004/api/health
 
 ## TODO (актуализировано 02.03.2026 part 4)
 
-### 🔴 Этап 1 — Портфельный калькулятор (отдельный экран)
-1. Новый экран Portfolio.jsx — ввод бюджета → 3 сценария (Python, мгновенно)
-2. Перенос PortfolioReportCardV2, ScenarioCard, MetricCell из Chat.jsx
-3. Кнопка "Инвестиционный портфель" в главном меню (Home.jsx)
-4. PDF кнопка → /api/portfolio-pdf
-5. Убрать кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" из Chat.jsx
+### ✅ Этап 2 — Инвестиционная сводка по лоту (ВЫПОЛНЕНО v0.9.7)
+- Модалка "📊 Инвестиционная сводка" в LotDetail.jsx
+- Фронтенд-агрегация: Promise.all по 5 существующим API (roi, installment, compare-deposit, mgp, mortgage)
+- PDF полной сводки: POST /api/lot-summary-pdf (dark RIZALTA branding: #263524 bg, #D4A84B gold)
+- Cyrillic filename encoding via RFC 5987
+- Chat.jsx cleanup: удалены кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" (-96 строк)
 
-### 🟡 Этап 2 — Инвестиционная сводка по лоту
-6. Новый экран/модалка LotSummary — ВСЕ калькуляторы на одной странице
-7. Метрики (NOI, Cap Rate, CoC, ROI) + МГП + Рассрочка + Ипотека + Депозит
-8. Кнопка в меню лота (LotDetail.jsx)
-9. PDF полной сводки
+### 🟡 Этап 1 — Портфельный калькулятор (отдельный экран) — ДЕПРИОРИТИЗИРОВАН
+- Менеджеры предпочитают составлять портфели вручную
+- Код ready: portfolio_pdf_generator.py, /api/portfolio-pdf, Python round-robin
+- Можно реализовать при наличии запроса
 
 ### 🟢 Этап 3 — Чат-консьерж
 10. Добавить в system prompt: ДДУ (ddu.pdf), договор аренды (arenda.pdf), RIZALTA_KNOWLEDGE.md
@@ -499,3 +501,12 @@ https://dev-webapp.rizaltaservice.ru/api/docs/file?path=SESSION_END_TEMPLATE_WEB
 - **Архитектурное решение:** чат → консьерж, портфель → отдельный экран, сводка лота → отдельный экран
 - **Удалено:** AI_PORTFOLIO_SELECTOR_PROMPT, select_portfolio_lots, _build_lots_table, _build_scenario_from_codes (-392 строки)
 - **Коммиты:** d11f485, 8f35c8d, 349dae9, 6171b9a, 9c619f4
+
+### Сессия 11.03.2026 (v0.9.6 → v0.9.7) — Инвестиционная сводка по лоту
+- **LotDetail.jsx:** Модалка "📊 Инвестиционная сводка" — фронтенд-агрегация (Promise.all × 5 API)
+- **lot_summary_pdf_generator.py:** PDF в dark RIZALTA branding (#263524 фон, #D4A84B золото, Montserrat)
+- **POST /api/lot-summary-pdf:** Эндпоинт генерации PDF сводки лота
+- **RFC 5987 filename encoding:** Фикс кириллицы в заголовке Content-Disposition
+- **Chat.jsx cleanup:** Удалены кнопки "Фин. отчёт по лоту" и "Портфель по бюджету" (-96 строк)
+- **Этап 1 (Portfolio screen) деприоритизирован** — менеджеры составляют портфели вручную
+- **Git tag:** v0.9.7-lot-summary
