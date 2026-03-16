@@ -436,3 +436,15 @@
 - 🔴 Полная миграция на YandexGPT (function calling проверен)
 - 🔴 RAG с документами (ДДУ, аренда)
 - 🟡 PDF из чата
+
+## WebApp (обновлено 16.03.2026)
+### ✅ Выполнено v0.9.8
+- Полная миграция AI на YandexGPT (gpt-oss-120b через OpenAI-compatible API)
+- RAG с документами: ДДУ (ddu.pdf) + договор аренды (arenda.pdf)
+- Фикс роутинга _needs_tools() и intent_router для RAG
+
+### 🔜 Бэклог
+- Тюнинг system prompt для gpt-oss-120b (качество ответов, tool selection)
+- Траншевая ипотека (калькулятор)
+- Chat PDF download
+- Портфельный калькулятор (отдельный экран)

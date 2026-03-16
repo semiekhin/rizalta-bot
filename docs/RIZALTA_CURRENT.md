@@ -570,3 +570,9 @@ grep -rn "/opt/bot-dev" /opt/bot/ --include="*.py" | grep -v __pycache__
 ## WebApp (обновлено 16.03.2026)
 - **Версия:** v0.9.8
 - **Сессия 16.03:** Траншевая ипотека (калькулятор + PDF), редизайн меню лота (grid 2×5), интеграция YandexGPT для чат-консьержа, проверена совместимость YandexGPT с OpenAI API (function calling)
+
+## WebApp (обновлено 16.03.2026)
+- **Версия:** v0.9.8
+- **AI:** Мигрирован на YandexGPT через OpenAI-compatible endpoint (модель gpt-oss-120b/latest)
+- **RAG:** Документы ДДУ и договор аренды доступны через AI чат (TF-IDF поиск, 487 чанков)
+- **DEV:** https://dev-webapp.rizaltaservice.ru
