@@ -329,7 +329,7 @@ export default function LotDetail({ lot, onBack, onChat }) {
             <span className="text-xs leading-tight text-center">Получить КП</span>
           </button>
           <button onClick={handleSummary} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">📊</span>
+            <span className="text-2xl">📈</span>
             <span className="text-xs leading-tight text-center">Инвест. сводка</span>
           </button>
           <button onClick={handleInstallment} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
@@ -337,19 +337,19 @@ export default function LotDetail({ lot, onBack, onChat }) {
             <span className="text-xs leading-tight text-center">Рассрочка</span>
           </button>
           <button onClick={handleROI} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">📊</span>
+            <span className="text-2xl">🧮</span>
             <span className="text-xs leading-tight text-center">ROI калькулятор</span>
           </button>
           <button onClick={handleDeposit} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">🏦</span>
+            <span className="text-2xl">💰</span>
             <span className="text-xs leading-tight text-center">Сравнить с депозитом</span>
           </button>
           <button onClick={handleMGP} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">📊</span>
+            <span className="text-2xl">🎯</span>
             <span className="text-xs leading-tight text-center">Расчёт МГП</span>
           </button>
           <button onClick={() => setShowMortgage(true)} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">🏦</span>
+            <span className="text-2xl">🏠</span>
             <span className="text-xs leading-tight text-center">Ипотека Совкомбанк</span>
           </button>
           <button onClick={handleTrancheMortgage} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
