@@ -34,6 +34,7 @@ from services.rclick_service import init_rclick_table, rclick_auth, rclick_check
 from services.news_service import get_weather, get_flights, get_news_digest
 from services.mgp_calculator import calc_mgp, generate_mgp_pdf, fmt as mgp_fmt
 from services.mortgage_calculator import calc_mortgage, get_mortgage_options, generate_mortgage_pdf
+from services.tranche_mortgage_calculator import calc_tranche_mortgage, calc_all_scenarios as calc_tranche_all, get_down_payment_options as get_tranche_dp_options
 from services.payment_pdf_generator import generate_payment_pdf
 from services.strategy_pdf_generator import generate_strategy_pdf
 
@@ -187,6 +188,13 @@ class MortgageRequest(BaseModel):
     down_payment_pct: int = 30
     tariff: str = "base"
     loan_term_months: int = 360
+
+class TrancheMortgageRequest(BaseModel):
+    price: int
+    down_payment_pct: float = 30.1
+
+class TrancheMortgageAllRequest(BaseModel):
+    price: int
 
 
 # === Rate limiter (10 req/min per IP for /api/chat) ===
@@ -971,6 +979,30 @@ async def api_mortgage_pdf(price: int, down_payment_pct: int = 30, tariff: str =
                 filename=f"Mortgage_{price}.pdf"
             )
         return {"ok": False, "error": "Ошибка генерации PDF"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# === Tranche mortgage endpoints ===
+
+@app.post("/api/tranche-mortgage/calculate")
+async def api_tranche_mortgage_calculate(req: TrancheMortgageRequest):
+    """Calculate tranche mortgage for given price and down payment."""
+    try:
+        result = calc_tranche_mortgage(req.price, req.down_payment_pct)
+        if result is None:
+            return {"ok": False, "error": "Невозможно рассчитать для данных параметров"}
+        return {"ok": True, "data": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/tranche-mortgage/all")
+async def api_tranche_mortgage_all(req: TrancheMortgageAllRequest):
+    """Calculate all 4 tranche mortgage scenarios for a given price."""
+    try:
+        results = calc_tranche_all(req.price)
+        return {"ok": True, "data": [r for r in results if r is not None]}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

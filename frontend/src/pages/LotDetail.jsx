@@ -43,6 +43,11 @@ export default function LotDetail({ lot, onBack, onChat }) {
   const [mortgageTariff, setMortgageTariff] = useState('base')
   const [mortgageTerm, setMortgageTerm] = useState(360)
 
+  // Tranche Mortgage
+  const [showTrancheMortgage, setShowTrancheMortgage] = useState(false)
+  const [trancheMortgageData, setTrancheMortgageData] = useState(null)
+  const [trancheMortgageLoading, setTrancheMortgageLoading] = useState(false)
+
   // Summary
   const [showSummary, setShowSummary] = useState(false)
   const [summaryData, setSummaryData] = useState(null)
@@ -198,6 +203,24 @@ export default function LotDetail({ lot, onBack, onChat }) {
     setMortgageLoading(false)
   }
 
+  // === Tranche Mortgage ===
+  const handleTrancheMortgage = async () => {
+    setShowTrancheMortgage(true)
+    setTrancheMortgageLoading(true)
+    try {
+      const res = await fetch('/api/tranche-mortgage/all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price: lot.price })
+      })
+      const data = await res.json()
+      if (data.ok) setTrancheMortgageData(data.data)
+    } catch (e) {
+      console.error(e)
+    }
+    setTrancheMortgageLoading(false)
+  }
+
   // === Summary ===
   const handleSummary = async () => {
     setShowSummary(true)
@@ -321,6 +344,9 @@ export default function LotDetail({ lot, onBack, onChat }) {
           </button>
           <button onClick={() => setShowMortgage(true)} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             🏦 Ипотека
+          </button>
+          <button onClick={handleTrancheMortgage} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
+            🏗 Траншевая ипотека
           </button>
           <button onClick={() => setShowShowing(true)} className="w-full bg-rz-green-mid text-rz-cream py-3 rounded-xl hover:bg-rz-green-light transition-colors">
             📅 Записаться на показ
@@ -853,6 +879,76 @@ export default function LotDetail({ lot, onBack, onChat }) {
                     📄 Скачать PDF
                   </button>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tranche Mortgage Modal */}
+      {showTrancheMortgage && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-rz-green-light w-full sm:max-w-md sm:rounded-xl rounded-t-xl max-h-[90vh] overflow-auto pb-24">
+            <div className="px-4 py-3 border-b border-rz-green-mid flex justify-between items-center sticky top-0 bg-rz-green-light z-10">
+              <h2 className="font-bold text-lg">🏗 Траншевая ипотека</h2>
+              <button onClick={() => { setShowTrancheMortgage(false); setTrancheMortgageData(null) }} className="text-rz-cream-dark text-xl">✕</button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-rz-cream-dark text-xs">3 транша • 20 лет • Сервисный сбор 150 000 ₽</p>
+
+              {trancheMortgageLoading && (
+                <div className="flex justify-center py-8">
+                  <div className="w-8 h-8 border-4 border-rz-gold border-t-transparent rounded-full animate-spin"/>
+                </div>
+              )}
+
+              {trancheMortgageData && trancheMortgageData.length > 0 && (
+                <div className="space-y-3">
+                  {trancheMortgageData.map((sc) => (
+                    <div key={sc.down_payment_pct} className="bg-rz-green-mid rounded-xl p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-rz-gold">ПВ {sc.down_payment_pct}%</span>
+                        <span className="text-sm text-rz-cream-dark">Ставка {sc.rate}%</span>
+                      </div>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-rz-cream-dark">Первоначальный взнос</span>
+                          <span className="font-bold">{formatPrice(sc.down_payment)} ₽</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-rz-cream-dark">Сумма ипотеки</span>
+                          <span className="font-bold">{formatPrice(sc.mortgage_total)} ₽</span>
+                        </div>
+                      </div>
+                      <div className="border-t border-rz-green-light pt-2">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-rz-green/50 rounded-lg p-2">
+                            <p className="text-[10px] text-rz-cream-muted">1 транш</p>
+                            <p className="text-xs text-rz-cream-dark">({sc.tranche_period} мес.)</p>
+                            <p className="text-sm font-bold text-rz-gold mt-1">{formatPrice(sc.ep_1)} ₽</p>
+                          </div>
+                          <div className="bg-rz-green/50 rounded-lg p-2">
+                            <p className="text-[10px] text-rz-cream-muted">2 транш</p>
+                            <p className="text-xs text-rz-cream-dark">({sc.tranche_period} мес.)</p>
+                            <p className="text-sm font-bold text-rz-gold mt-1">{formatPrice(sc.ep_2)} ₽</p>
+                          </div>
+                          <div className="bg-rz-green/50 rounded-lg p-2">
+                            <p className="text-[10px] text-rz-cream-muted">3 транш</p>
+                            <p className="text-xs text-rz-cream-dark">({sc.term_months - 2 * sc.tranche_period} мес.)</p>
+                            <p className="text-sm font-bold text-rz-gold mt-1">{formatPrice(sc.ep_3)} ₽</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-rz-cream-muted text-center pt-2">
+                    Расчёт предварительный. Точные условия уточняйте в банке.
+                  </p>
+                </div>
+              )}
+
+              {trancheMortgageData && trancheMortgageData.length === 0 && (
+                <p className="text-rz-error text-center">Нет доступных сценариев для данной цены</p>
               )}
             </div>
           </div>
