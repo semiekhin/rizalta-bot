@@ -59,7 +59,7 @@ async def poll():
     async with httpx.AsyncClient(timeout=60.0) as client:
         while True:
             try:
-                params = {"timeout": 30, "types": "message_created"}
+                params = {"timeout": 30, "update_types": "message_created"}
                 if marker:
                     params["marker"] = marker
 
@@ -78,7 +78,7 @@ async def poll():
                 marker = data.get("marker", marker)
 
                 for update in data.get("updates", []):
-                    if update.get("type") == "message_created":
+                    if update.get("update_type") == "message_created":
                         chat_id = update.get("message", {}).get("recipient", {}).get("chat_id")
                         if chat_id:
                             await send_welcome(chat_id)
