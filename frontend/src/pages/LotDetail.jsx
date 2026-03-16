@@ -323,46 +323,46 @@ export default function LotDetail({ lot, onBack, onChat }) {
         </div>
 
         {/* Actions — 2-col grid of 3D cards */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <button onClick={() => setShowKP(true)} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-gold-light to-rz-gold text-rz-green-dark font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">📄</span>
-            <span className="text-xs leading-tight text-center">Получить КП</span>
+        <div className="grid grid-cols-2 gap-2.5 pt-2 px-4">
+          <button onClick={() => setShowKP(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-gold-light to-rz-gold text-rz-green-dark font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">📄</span>
+            <span className="text-[11px] leading-tight text-center">Получить КП</span>
           </button>
-          <button onClick={handleSummary} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">📈</span>
-            <span className="text-xs leading-tight text-center">Инвест. сводка</span>
+          <button onClick={handleSummary} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">📈</span>
+            <span className="text-[11px] leading-tight text-center">Инвест. сводка</span>
           </button>
-          <button onClick={handleInstallment} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">💳</span>
-            <span className="text-xs leading-tight text-center">Рассрочка</span>
+          <button onClick={handleInstallment} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">💳</span>
+            <span className="text-[11px] leading-tight text-center">Рассрочка</span>
           </button>
-          <button onClick={handleROI} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">🧮</span>
-            <span className="text-xs leading-tight text-center">ROI калькулятор</span>
+          <button onClick={handleROI} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">🧮</span>
+            <span className="text-[11px] leading-tight text-center">ROI калькулятор</span>
           </button>
-          <button onClick={handleDeposit} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">💰</span>
-            <span className="text-xs leading-tight text-center">Сравнить с депозитом</span>
+          <button onClick={handleDeposit} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">💰</span>
+            <span className="text-[11px] leading-tight text-center">Сравнить с депозитом</span>
           </button>
-          <button onClick={handleMGP} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">🎯</span>
-            <span className="text-xs leading-tight text-center">Расчёт МГП</span>
+          <button onClick={handleMGP} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">🎯</span>
+            <span className="text-[11px] leading-tight text-center">Расчёт МГП</span>
           </button>
-          <button onClick={() => setShowMortgage(true)} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">🏠</span>
-            <span className="text-xs leading-tight text-center">Ипотека Совкомбанк</span>
+          <button onClick={() => setShowMortgage(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">🏠</span>
+            <span className="text-[11px] leading-tight text-center">Ипотека Совкомбанк</span>
           </button>
-          <button onClick={handleTrancheMortgage} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">🏗</span>
-            <span className="text-xs leading-tight text-center">Транш. ипотека Сбербанк</span>
+          <button onClick={handleTrancheMortgage} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">🏗</span>
+            <span className="text-[11px] leading-tight text-center">Транш. ипотека Сбербанк</span>
           </button>
-          <button onClick={() => setShowShowing(true)} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">📅</span>
-            <span className="text-xs leading-tight text-center">Записаться на показ</span>
+          <button onClick={() => setShowShowing(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">📅</span>
+            <span className="text-[11px] leading-tight text-center">Записаться на показ</span>
           </button>
-          <button onClick={onChat} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_4px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
-            <span className="text-2xl">💬</span>
-            <span className="text-xs leading-tight text-center">Чат с AI</span>
+          <button onClick={onChat} className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-lg bg-gradient-to-b from-rz-green-light to-rz-green-mid text-rz-cream font-semibold shadow-[0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all duration-150">
+            <span className="text-xl">💬</span>
+            <span className="text-[11px] leading-tight text-center">Чат с AI</span>
           </button>
         </div>
       </div>
