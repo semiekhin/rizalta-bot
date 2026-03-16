@@ -258,7 +258,10 @@ async def docs_file(path: str = ""):
     return Response(
         content=content,
         media_type="text/plain; charset=utf-8",
-        headers={"Cache-Control": "no-cache"},
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        },
     )
 
 
