@@ -22,6 +22,11 @@ MANAGER_CHAT_ID = os.getenv("MANAGER_CHAT_ID", "")  # Может быть чер
 SHOWS_GROUP_ID = os.getenv("SHOWS_GROUP_ID", "")  # Группа «Показы RIZALTA» для кнопки «Взять»
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
+# MAX config
+MAX_BOT_TOKEN = os.getenv("MAX_BOT_TOKEN", "")
+MAX_SHOWS_CHAT_ID = os.getenv("MAX_SHOWS_CHAT_ID", "")
+MAX_API = "https://platform-api.max.ru"
+
 # Email config
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -127,6 +132,31 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"Email send failed: {e}")
+        return False
+
+
+async def send_max_message(chat_id: int, text: str) -> bool:
+    """Отправка сообщения через MAX Bot API."""
+    if not MAX_BOT_TOKEN:
+        logger.warning("MAX_BOT_TOKEN not set, skipping MAX notification")
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{MAX_API}/messages",
+                headers={"Authorization": MAX_BOT_TOKEN},
+                json={
+                    "chat_id": int(chat_id),
+                    "body": {"text": text}
+                }
+            )
+            if resp.status_code == 200:
+                return True
+            else:
+                logger.error(f"MAX API error: {resp.text}")
+                return False
+    except Exception as e:
+        logger.error(f"MAX send failed: {e}")
         return False
 
 
@@ -287,13 +317,33 @@ async def notify_showing_request(
 
     email_ok = send_email(MANAGER_EMAIL, email_subject, email_body)
 
+    # --- 4. MAX канал показов ---
+    max_sent = False
+    if MAX_SHOWS_CHAT_ID:
+        lot_info_plain = f"\n🏢 Лот: {lot_code}" if lot_code else ""
+        comment_info_plain = f"\n💬 {comment}" if comment else ""
+        max_text = (
+            f"🆕 Новая заявка на онлайн-показ\n\n"
+            f"👤 {name}\n"
+            f"📱 {phone}"
+            f"{lot_info_plain}"
+            f"{comment_info_plain}\n\n"
+            f"🌐 Источник: {source}\n"
+            f"🕐 {now}"
+        )
+        try:
+            max_sent = await send_max_message(int(MAX_SHOWS_CHAT_ID), max_text)
+        except Exception as e:
+            logger.error(f"[SHOWING] MAX notify error: {e}")
+
     result = {
         "telegram_sent": tg_count,
         "telegram_total": len(get_manager_chat_ids()),
         "group_sent": group_sent,
         "booking_id": booking_id,
         "email_sent": email_ok,
+        "max_sent": max_sent,
     }
 
-    logger.info(f"[SHOWING] {name} / {phone} / {lot_code} → TG: {tg_count}, Group: {group_sent}, Email: {email_ok}")
+    logger.info(f"[SHOWING] {name} / {phone} / {lot_code} → TG: {tg_count}, Group: {group_sent}, Email: {email_ok}, MAX: {max_sent}")
     return result

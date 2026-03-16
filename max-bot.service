@@ -1,0 +1,14 @@
+[Unit]
+Description=RIZALTA MAX Bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/webapp-dev/backend
+ExecStart=/opt/webapp-dev/venv/bin/python3 -m services.max_bot
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
