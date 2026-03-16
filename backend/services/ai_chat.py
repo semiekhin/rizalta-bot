@@ -802,22 +802,23 @@ def _stream_yandex_response(message: str, history: list[dict]):
 
     try:
         if rag_mode:
-            # RAG uses yandexgpt-5-pro for better document comprehension
+            # RAG uses OpenAI-compatible endpoint (no moderation) + yandexgpt-5-pro
             pro_model = os.getenv("YANDEX_MODEL_PRO", "gpt://b1giu7d61rvmondibc51/yandexgpt-5-pro/latest")
-            print(f"[DEBUG] RAG using model: {pro_model}")
+            print(f"[DEBUG] RAG using model: {pro_model} (OpenAI-compatible)")
 
-            # Phase 1: non-stream call with sanitized message
             sanitized = f"На основе справочных материалов выше, ответь на вопрос сотрудника: {message}"
             messages.append({"role": "user", "content": sanitized})
-            text = call_yandex_gpt(system_prompt, messages, model_uri=pro_model)
-            print(f"[DEBUG] RAG response (first 120): {text[:120]}")
 
-            # Phase 2: retry if moderation triggered
-            if any(m in text.lower() for m in REFUSAL_MARKERS):
-                print(f"[DEBUG] RAG moderation hit, retrying with neutral phrasing")
-                messages[-1]["content"] = f"Перескажи информацию из справочных материалов, которая относится к теме: {message}"
-                text = call_yandex_gpt(system_prompt, messages, model_uri=pro_model)
-                print(f"[DEBUG] RAG retry response (first 120): {text[:120]}")
+            # Non-stream call via OpenAI-compatible client (same as agentic loop)
+            client = get_client()
+            response = client.chat.completions.create(
+                model=pro_model,
+                messages=[{"role": "system", "content": system_prompt}] + messages,
+                max_tokens=2000,
+                temperature=0.6,
+            )
+            text = response.choices[0].message.content or ""
+            print(f"[DEBUG] RAG response (first 120): {text[:120]}")
 
             # Phase 3: fake-stream the result to client
             chunk_size = 4
