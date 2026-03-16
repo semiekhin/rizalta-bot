@@ -941,6 +941,12 @@ export default function LotDetail({ lot, onBack, onChat }) {
                       </div>
                     </div>
                   ))}
+                  <button
+                    onClick={() => window.open(`/api/tranche-mortgage/pdf?code=${encodeURIComponent(lot.code)}&building=${lot.building}`, '_blank')}
+                    className="w-full bg-rz-gold text-rz-green-dark font-bold py-3 rounded-xl hover:bg-rz-gold-light transition-colors"
+                  >
+                    📄 Скачать PDF
+                  </button>
                   <p className="text-xs text-rz-cream-muted text-center pt-2">
                     Расчёт предварительный. Точные условия уточняйте в банке.
                   </p>

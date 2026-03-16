@@ -1007,6 +1007,30 @@ async def api_tranche_mortgage_all(req: TrancheMortgageAllRequest):
         return {"ok": False, "error": str(e)}
 
 
+@app.get("/api/tranche-mortgage/pdf")
+async def api_tranche_mortgage_pdf(code: str, building: int = None):
+    """Generate and download tranche mortgage PDF."""
+    code = normalize_lot_code(code)
+    try:
+        from services.tranche_mortgage_pdf_generator import generate_tranche_mortgage_pdf
+        pdf_bytes = generate_tranche_mortgage_pdf(code, building)
+        if not pdf_bytes:
+            raise HTTPException(status_code=404, detail="Лот не найден или расчёт невозможен")
+        import urllib.parse
+        filename = f"RIZALTA_{code}_Tranche.pdf"
+        filename_ascii = filename.encode('ascii', 'ignore').decode()
+        filename_utf8 = urllib.parse.quote(filename)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=\"{filename_ascii}\"; filename*=UTF-8''{filename_utf8}"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 # === Статика ===
 
 app.mount("/assets", StaticFiles(directory=f"{DIST_PATH}/assets"), name="assets")
