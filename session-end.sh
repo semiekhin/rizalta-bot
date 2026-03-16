@@ -4,7 +4,7 @@ echo "=== SESSION END ==="
 
 # 1. Webapp
 echo "[1/3] Webapp..."
-cd /opt/webapp
+cd /opt/webapp-dev
 git add -A
 git status --short
 read -p "Commit message: " MSG
@@ -33,5 +33,6 @@ else
   git commit -m "docs: $MSG" && git push
 fi
 
+sudo systemctl restart webapp-dev.service
 echo "=== DONE ==="
 echo "Не забудь: промпт для нового чата!"
