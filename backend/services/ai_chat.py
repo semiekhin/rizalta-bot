@@ -1,4 +1,4 @@
-"""AI Chat service — OpenAI streaming with function calling for RIZALTA webapp."""
+"""AI Chat service — YandexGPT streaming with function calling for RIZALTA webapp."""
 
 import os
 import re
@@ -14,19 +14,38 @@ from services.intent_router import extract_lot_code
 
 logger = logging.getLogger(__name__)
 
-# OpenAI client (initialized lazily)
+# YandexGPT client via OpenAI-compatible API (initialized lazily)
 _client = None
 
 
 def get_client() -> OpenAI:
-    """Get or create OpenAI client."""
+    """Get or create YandexGPT client (OpenAI-compatible Chat Completions)."""
     global _client
     if _client is None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY not set in .env")
-        _client = OpenAI(api_key=api_key)
+        api_key = os.getenv("YANDEX_API_KEY")
+        folder_id = os.getenv("YANDEX_FOLDER_ID")
+        if not api_key or not folder_id:
+            raise RuntimeError("YANDEX_API_KEY or YANDEX_FOLDER_ID not set in .env")
+        _client = OpenAI(
+            base_url="https://llm.api.cloud.yandex.net/v1",
+            api_key=api_key,
+            default_headers={"x-folder-id": folder_id},
+        )
     return _client
+
+
+# Convert Responses API tool format → Chat Completions format
+CHAT_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": tool["name"],
+            "description": tool["description"],
+            "parameters": tool["parameters"],
+        },
+    }
+    for tool in TOOLS
+]
 
 
 def build_finance_system_context(finance: dict) -> str:
@@ -522,7 +541,7 @@ def stream_lot_report(code: str, building: int | None = None):
     # Шаг 3: AI пишет полноценный инвестиционный анализ
     yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую инвестиционный анализ..."}, ensure_ascii=False)}\n\n'
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
 
     summary = format_lot_summary(data)
     metrics = data.get("metrics", {})
@@ -540,18 +559,19 @@ def stream_lot_report(code: str, building: int | None = None):
 
     try:
         client = get_client()
-        stream = client.responses.create(
+        stream = client.chat.completions.create(
             model=model,
-            instructions="Ты финансовый аналитик RIZALTA.",
-            input=[{"role": "user", "content": prompt}],
-            reasoning={"effort": "low"},
-            max_output_tokens=4000,
+            messages=[
+                {"role": "system", "content": "Ты финансовый аналитик RIZALTA."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=4000,
             stream=True,
         )
 
-        for event in stream:
-            if hasattr(event, 'type') and event.type == 'response.output_text.delta':
-                yield f'data: {json.dumps({"type": "token", "content": event.delta}, ensure_ascii=False)}\n\n'
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield f'data: {json.dumps({"type": "token", "content": chunk.choices[0].delta.content}, ensure_ascii=False)}\n\n'
 
     except Exception as e:
         logger.error(f"[LOT REPORT] AI error: {e}")
@@ -608,10 +628,10 @@ def stream_portfolio_report(budget: int):
     summary = format_portfolio_summary_v2(data, budget)
     prompt = PORTFOLIO_PROMPT_V3.format(budget=budget_fmt) + "\n\nСВОДКА:\n" + summary
 
-    # Step 4: Stream GPT-5.2 analytical text
+    # Step 4: Stream YandexGPT analytical text
     yield f'data: {json.dumps({"type": "thinking", "tool": "ai", "label": "Формирую портфельный анализ..."}, ensure_ascii=False)}\n\n'
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
 
     try:
@@ -622,7 +642,7 @@ def stream_portfolio_report(budget: int):
                 {"role": "system", "content": "Ты — профессиональный инвестиционный аналитик."},
                 {"role": "user", "content": prompt},
             ],
-            max_completion_tokens=max_tokens,
+            max_tokens=max_tokens,
             temperature=0.7,
             stream=True,
         )
@@ -632,7 +652,7 @@ def stream_portfolio_report(budget: int):
                 token = chunk.choices[0].delta.content
                 yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
     except Exception as e:
-        logger.error(f"[PORTFOLIO] GPT-5.2 error: {e}")
+        logger.error(f"[PORTFOLIO] YandexGPT error: {e}")
         yield f'data: {json.dumps({"type": "token", "content": "Анализ временно недоступен."}, ensure_ascii=False)}\n\n'
 
     # Step 5: strategy_data for PDF
@@ -736,7 +756,7 @@ def _stream_yandex_response(message: str, history: list[dict]):
 def stream_chat_with_tools(message: str, history: list[dict]):
     """Generator yielding SSE events.
 
-    Routes: simple questions → YandexGPT, tool queries → GPT-5.2 agentic loop.
+    Routes: simple questions → YandexGPT (no tools), tool queries → YandexGPT agentic loop.
 
     SSE event types:
     - {"type": "token", "content": "..."}
@@ -746,106 +766,111 @@ def stream_chat_with_tools(message: str, history: list[dict]):
     - {"type": "done"}
     - {"type": "error", "content": "..."}
     """
-    # Simple chat → YandexGPT (no tools, no agentic loop)
+    # Simple chat → YandexGPT v1/completion (no tools, no agentic loop)
     if not _needs_tools(message):
-        logger.info(f"[AI CHAT] Routing to YandexGPT (simple chat)")
+        logger.info("[AI CHAT] Routing to YandexGPT (simple chat)")
         yield from _stream_yandex_response(message, history)
         return
 
-    logger.info(f"[AI CHAT] Routing to GPT-5.2 (tools needed)")
-    model = os.getenv("OPENAI_MODEL", "gpt-5.2")
+    logger.info("[AI CHAT] Routing to YandexGPT agentic loop (tools needed)")
+    model = os.getenv("YANDEX_MODEL", "gpt://b1giu7d61rvmondibc51/yandexgpt/latest")
     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
 
     system_prompt = build_system_prompt() + ADVISOR_INSTRUCTION
 
-    input_messages = []
+    # Build messages in Chat Completions format
+    messages = [{"role": "system", "content": system_prompt}]
     if history:
-        input_messages.extend(history[-20:])
-    input_messages.append({"role": "user", "content": message})
+        messages.extend(history[-20:])
+    messages.append({"role": "user", "content": message})
 
     strategy_data = {"tools_used": [], "results": {}}
+    all_tool_calls = []  # collect for _generate_context_actions
 
     try:
         client = get_client()
 
         # === AGENTIC LOOP — up to 5 rounds of tool calls ===
         MAX_ROUNDS = 5
-        current_input = list(input_messages)
-        tool_calls = []
+        current_tool_calls = []
 
         for round_num in range(MAX_ROUNDS):
-            response = client.responses.create(
+            response = client.chat.completions.create(
                 model=model,
-                instructions=system_prompt,
-                input=current_input,
-                tools=TOOLS,
-                reasoning={"effort": "high"},
-                max_output_tokens=max_tokens,
+                messages=messages,
+                tools=CHAT_TOOLS,
+                max_tokens=max_tokens,
             )
 
-            tool_calls = [item for item in response.output if item.type == "function_call"]
+            choice = response.choices[0]
+            current_tool_calls = choice.message.tool_calls or []
 
-            if not tool_calls:
+            if not current_tool_calls:
                 # No tool calls — model is ready to answer
                 break
 
-            # Execute tool calls, append to current_input
-            for item in response.output:
-                current_input.append(item)
-                if item.type == "function_call":
-                    thinking_labels = {
-                        "search_lots": "Ищу подходящие лоты...",
-                        "get_lot_details": "Загружаю информацию о лоте...",
-                        "calculate_roi": "Считаю доходность...",
-                        "calculate_installment": "Рассчитываю варианты рассрочки...",
-                        "compare_with_deposit": "Сравниваю с депозитом...",
-                    }
-                    label = thinking_labels.get(item.name, f"Выполняю {item.name}...")
-                    yield f'data: {json.dumps({"type": "thinking", "tool": item.name, "label": label}, ensure_ascii=False)}\n\n'
+            # Append assistant message (with tool_calls) to messages
+            messages.append(choice.message)
 
-                    result = execute_tool(item.name, item.arguments)
+            for tc in current_tool_calls:
+                fn_name = tc.function.name
+                fn_args = tc.function.arguments
 
-                    strategy_data["tools_used"].append(item.name)
-                    try:
-                        strategy_data["results"][f"{item.name}_{len(strategy_data['results'])}"] = json.loads(result)
-                    except Exception:
-                        pass
+                thinking_labels = {
+                    "search_lots": "Ищу подходящие лоты...",
+                    "get_lot_details": "Загружаю информацию о лоте...",
+                    "calculate_roi": "Считаю доходность...",
+                    "calculate_installment": "Рассчитываю варианты рассрочки...",
+                    "compare_with_deposit": "Сравниваю с депозитом...",
+                }
+                label = thinking_labels.get(fn_name, f"Выполняю {fn_name}...")
+                yield f'data: {json.dumps({"type": "thinking", "tool": fn_name, "label": label}, ensure_ascii=False)}\n\n'
 
-                    current_input.append({
-                        "type": "function_call_output",
-                        "call_id": item.call_id,
-                        "output": result,
-                    })
+                result = execute_tool(fn_name, fn_args)
+
+                strategy_data["tools_used"].append(fn_name)
+                try:
+                    strategy_data["results"][f"{fn_name}_{len(strategy_data['results'])}"] = json.loads(result)
+                except Exception:
+                    pass
+
+                all_tool_calls.append(tc)
+
+                # Append tool result to messages
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": result,
+                })
 
         # === FINAL streaming response ===
-        if response.output_text and not tool_calls:
-            # Last response already has text (no tool calls) — send it
-            text = response.output_text
+        content = choice.message.content if not current_tool_calls else None
+        if content:
+            # Last response already has text (no tool calls) — fake-stream it
             chunk_size = 4
-            for i in range(0, len(text), chunk_size):
-                yield f'data: {json.dumps({"type": "token", "content": text[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
+            for i in range(0, len(content), chunk_size):
+                yield f'data: {json.dumps({"type": "token", "content": content[i:i+chunk_size]}, ensure_ascii=False)}\n\n'
         else:
             # Hint to model: stop calling tools, write text response
-            current_input.append({
+            messages.append({
                 "role": "user",
                 "content": "Все данные собраны. Сформируй финальный инвестиционный отчёт на основе полученных данных. Отвечай текстом, не вызывай инструменты."
             })
 
-            # Stream final answer WITHOUT tools (so model only responds)
-            stream = client.responses.create(
+            # Stream final answer WITHOUT tools
+            stream = client.chat.completions.create(
                 model=model,
-                instructions=system_prompt,
-                input=current_input,
-                reasoning={"effort": "high"},
-                max_output_tokens=max_tokens,
+                messages=messages,
+                max_tokens=max_tokens,
                 stream=True,
             )
 
             full_response_text = ""
-            for event in stream:
-                if hasattr(event, 'type') and event.type == 'response.output_text.delta':
-                    full_response_text += event.delta
-                    yield f'data: {json.dumps({"type": "token", "content": event.delta}, ensure_ascii=False)}\n\n'
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    token = chunk.choices[0].delta.content
+                    full_response_text += token
+                    yield f'data: {json.dumps({"type": "token", "content": token}, ensure_ascii=False)}\n\n'
 
             if full_response_text:
                 strategy_data["response_text"] = full_response_text
@@ -862,27 +887,31 @@ def stream_chat_with_tools(message: str, history: list[dict]):
         if len(strategy_data["tools_used"]) >= 1:
             yield f'data: {json.dumps({"type": "strategy_data", "data": strategy_data}, ensure_ascii=False)}\n\n'
 
-        # Actions — collect all function_call items from current_input
-        all_tool_items = [item for item in current_input if hasattr(item, 'type') and getattr(item, 'type', '') == 'function_call']
-        actions = _generate_context_actions(all_tool_items)
+        # Actions — generate from collected tool calls
+        actions = _generate_context_actions(all_tool_calls)
         if actions:
             yield f'data: {json.dumps({"type": "actions", "actions": actions}, ensure_ascii=False)}\n\n'
 
         yield f'data: {json.dumps({"type": "done", "content": ""})}\n\n'
 
     except Exception as e:
-        logger.error(f"[AI CHAT] GPT-5.2 error: {e}")
+        logger.error(f"[AI CHAT] YandexGPT error: {e}")
         yield f'data: {json.dumps({"type": "error", "content": "AI временно недоступен, попробуйте позже"}, ensure_ascii=False)}\n\n'
 
 
-def _generate_context_actions(tool_items: list) -> list[dict]:
-    """Generate action buttons based on which tools were used."""
+def _generate_context_actions(tool_calls: list) -> list[dict]:
+    """Generate action buttons based on which tools were used.
+
+    Args:
+        tool_calls: list of ChatCompletionMessageToolCall objects
+                    (tc.function.name, tc.function.arguments)
+    """
     actions = []
 
-    for item in tool_items:
-        name = item.name
+    for tc in tool_calls:
+        name = tc.function.name
         try:
-            args = json.loads(item.arguments) if isinstance(item.arguments, str) else {}
+            args = json.loads(tc.function.arguments) if isinstance(tc.function.arguments, str) else {}
         except Exception:
             args = {}
 
