@@ -1,5 +1,22 @@
 # SESSION_LOG — Последние сессии
 
+## 30.03.2026 — Система управления контекстом
+
+**Сделано:**
+- CLAUDE.md переписан с нуля (534→230 строк): экосистема, архитектура из кода, БД схемы, уроки из ошибок
+- SESSION_LOG.md создан: последние 3 сессии в компактном формате
+- BACKLOG.md создан: невыполненные задачи P0–P3
+- Добавлена секция «Промпты для Claude Code» — критерии готовности задач
+- Совместимо со скриптом start-session.sh (собирает 3 файла в буфер)
+
+**Файлы:** CLAUDE.md, SESSION_LOG.md, BACKLOG.md
+
+**Решения:** старый CLAUDE.md заменён полностью (дублирование сессий, 534→230 строк). TASK_MAP.md и SESSION_END_TEMPLATE_WEBAPP.md оставлены как архив.
+
+**Следующий шаг:** деплой v0.9.8 в PROD, стабилизация YandexGPT
+
+---
+
 ## 16.03.2026 — YandexGPT миграция + RAG + Траншевая ипотека
 
 **Сделано:**
@@ -39,25 +56,3 @@
 
 **Следующий шаг:** траншевая ипотека, YandexGPT интеграция
 
----
-
-## 02.03.2026 (parts 1-4) — AI agentic loop + Reports + Метрики + Portfolio
-
-**Сделано:**
-- ai_chat.py: 3 пути (navigation / reports / agentic loop с GPT-5.2 + 5 tools)
-- report_builder.py: сбор данных из БД без AI (build_lot_report_data, build_portfolio_data_v2)
-- tool_definitions.py: 5 OpenAI tools (search, details, ROI, installment, deposit)
-- strategy_pdf_generator.py: full rewrite, 4-страничные PDF с RIZALTA branding
-- Инвестиционные метрики: NOI, Cap Rate, Cash-on-Cash, Equity Multiple
-- 3 сценария портфеля: premium / portfolio 100% / max leverage (round-robin)
-- AI selector удалён → Python round-robin подбор (-392 строки)
-- portfolio_pdf_generator.py: PDF в стиле чат-карточек
-- UI: LotReportCard, PortfolioReportCardV2, MetricCell, renderText()
-
-**Файлы:** ai_chat.py, report_builder.py, tool_definitions.py, strategy_pdf_generator.py, calculator.py, Chat.jsx, app.py
-
-**Решения:**
-- Python подбирает лоты (не AI) — надёжнее и дешевле
-- Разделение: чат = консьерж, портфель = отдельный экран, сводка лота = отдельный экран
-
-**Следующий шаг:** инвестиционная сводка по лоту (модалка + PDF)
