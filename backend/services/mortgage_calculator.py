@@ -121,7 +121,6 @@ def generate_mortgage_pdf(data: Dict[str, Any]) -> str:
         <tr><th colspan="2">Параметры расчёта</th></tr>
         <tr><td>Стоимость объекта</td><td class="val">{_fmt(data['price'])} ₽</td></tr>
         <tr><td>Первоначальный взнос ({data['down_payment_pct']}%)</td><td class="val">{_fmt(data['down_payment'])} ₽</td></tr>
-        <tr><td>Удорожание ({data['markup_pct']}%)</td><td class="val">{_fmt(data['markup'])} ₽</td></tr>
         <tr><td>Сумма кредита</td><td class="val">{_fmt(data['loan_amount'])} ₽</td></tr>
         <tr><th colspan="2">Льготный период ({data['grace_months']} мес)</th></tr>
         <tr class="highlight"><td>Платёж в льготный период</td><td class="val">{_fmt(data['grace_payment'])} ₽/мес</td></tr>

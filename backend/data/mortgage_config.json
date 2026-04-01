@@ -8,17 +8,17 @@
     "30": {
       "pct": 30,
       "grace_months": 12,
-      "markup_pct": 6
+      "markup_pct": 0
     },
     "40": {
       "pct": 40,
       "grace_months": 18,
-      "markup_pct": 9
+      "markup_pct": 0
     },
     "50": {
       "pct": 50,
       "grace_months": 24,
-      "markup_pct": 12
+      "markup_pct": 0
     }
   },
 
