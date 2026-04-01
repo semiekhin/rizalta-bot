@@ -2,7 +2,7 @@
 
 ## P0 — Срочно
 
-- [ ] **Деплой v0.9.8 в PROD** — `bash /opt/webapp-dev/deploy-to-prod.sh`
+- [x] **Деплой v0.9.8 в PROD** — задеплоено 01.04.2026
 - [ ] **Стабилизация YandexGPT** — agentic loop уже на gpt-oss-120b, проверить стабильность, убрать OpenAI fallback
 - [ ] **RAG расширение** — добавить аналитику CoreXP, расширить chunking, тестировать качество ответов
 
