@@ -2,6 +2,12 @@
   "project": "RIZALTA Resort Belokurikha",
   "completion_year": 2027,
   "completion_quarter": "Q4 2027",
+  "completion_by_building": {
+    "1": {"year": 2027, "quarter": "Q4 2027"},
+    "2": {"year": 2027, "quarter": "Q4 2027"},
+    "3": {"year": 2028, "quarter": "Q2 2028"},
+    "4": {"year": 2028, "quarter": "Q2 2028"}
+  },
   "min_lot": {
     "unit_code": "В215",
     "price_rub": 13695000,

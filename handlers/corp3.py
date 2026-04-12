@@ -539,7 +539,7 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <tr><td class="detail-label">Этаж</td><td class="detail-value">{unit["floor"]}</td></tr>
 <tr><td class="detail-label">Площадь</td><td class="detail-value">{unit["area"]} м²</td></tr>
 <tr><td class="detail-label">Комнат</td><td class="detail-value">{ltype}</td></tr>
-<tr><td class="detail-label">Сдача</td><td class="detail-value">4 кв. 2027</td></tr>
+<tr><td class="detail-label">Сдача</td><td class="detail-value">2 кв. 2028</td></tr>
 <tr><td class="detail-label">Цена за м²</td><td class="detail-value">{fmt_p(ppm2)}</td></tr>
 </table>
 <div style="margin-top: 45px; padding-top: 15px; border-top: 1px solid #eee;">

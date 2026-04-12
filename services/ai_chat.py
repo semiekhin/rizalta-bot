@@ -210,7 +210,8 @@ def build_finance_system_context(finance: Dict[str, Any]) -> str:
     """
     Строит полный контекст с финансовыми данными для AI.
     """
-    completion = finance.get("completion_year", 2027)
+    completion_year = finance.get("completion_year", 2027)
+    completion_by_building = finance.get("completion_by_building", {})
     project = finance.get("project", "RIZALTA Resort Belokurikha")
     defaults = finance.get("defaults", {})
     installments = finance.get("installment_programs", [])
@@ -223,7 +224,15 @@ def build_finance_system_context(finance: Dict[str, Any]) -> str:
     lines.append("=== ФИНАНСОВЫЕ ДАННЫЕ ПРОЕКТА (используй только эти цифры) ===")
     lines.append("")
     lines.append(f"Проект: {project}")
-    lines.append(f"Срок сдачи: Q4 {completion} года")
+    if completion_by_building:
+        groups: Dict[str, List[str]] = {}
+        for bnum, info in completion_by_building.items():
+            q = info.get("quarter", "")
+            groups.setdefault(q, []).append(f"К{bnum}")
+        parts = [f"{'/'.join(blds)}: {q}" for q, blds in groups.items()]
+        lines.append(f"Срок сдачи: {', '.join(parts)}")
+    else:
+        lines.append(f"Срок сдачи: Q4 {completion_year} года")
     lines.append("")
     
     # === ВСЕ ЮНИТЫ ===

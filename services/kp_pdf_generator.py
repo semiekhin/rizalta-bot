@@ -17,7 +17,7 @@ RESOURCES_DIR = BASE_DIR / "services" / "kp_resources"
 SERVICE_FEE = 150_000
 
 # Апартаменты с индивидуальными условиями рассрочки (только 50% ПВ, 12 мес)
-CUSTOM_INSTALLMENT_UNITS = ['В217', 'В225', 'В317', 'В327', 'В417', 'В517', 'В525', 'В527', 'В615', 'В617', 'В625', 'А101']
+CUSTOM_INSTALLMENT_UNITS = ['В217', 'В225', 'В317', 'В327', 'В417', 'В517', 'В525', 'В527', 'В615', 'В617', 'В625']
 
 def load_resource(filename: str) -> str:
     path = RESOURCES_DIR / filename
@@ -50,6 +50,8 @@ def get_lot_from_db(area: float = 0, code: str = "", building: int = None) -> Op
 def download_layout(url: str) -> str:
     if not url:
         return ""
+    if url.startswith('data:image'):
+        return url.split(',', 1)[1] if ',' in url else ""
     try:
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
@@ -207,7 +209,7 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <tr><td class="detail-label">Этаж</td><td class="detail-value">{lot["floor"]}</td></tr>
 <tr><td class="detail-label">Площадь</td><td class="detail-value">{lot["area"]} м²</td></tr>
 <tr><td class="detail-label">Комнат</td><td class="detail-value">{ltype}</td></tr>
-<tr><td class="detail-label">Сдача</td><td class="detail-value">4 кв. 2027</td></tr>
+<tr><td class="detail-label">Сдача</td><td class="detail-value">{"2 кв. 2028" if lot.get("building") == 3 else "4 кв. 2027"}</td></tr>
 <tr><td class="detail-label">Цена за м²</td><td class="detail-value">{fmt(ppm2)}</td></tr>
 </table>
 {'' if full_payment else '''<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
