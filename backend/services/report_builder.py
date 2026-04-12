@@ -13,6 +13,7 @@ from services.tool_definitions import (
 from services.installment_calculator import calc_12m, calc_18m, calc_full
 from services.deposit_calculator import calculate_all_scenarios
 from services.data_loader import load_finance
+from services.finance_config import get_completion, get_min_completion_year, format_completion_grouped
 from services.calculator import calculate_investment_metrics, calculate_roi, RATE_PER_M2, OCCUPANCY, DAYS_IN_YEAR, EXPENSES_PCT
 
 
@@ -82,6 +83,8 @@ def build_lot_report_data(code: str, building: int | None = None) -> dict:
     # 6. Финансовые параметры проекта
     finance = load_finance()
 
+    completion_info = get_completion(lot.get("building_num"))
+
     return {
         "lot": lot,
         "roi": slim_roi(roi),
@@ -90,7 +93,8 @@ def build_lot_report_data(code: str, building: int | None = None) -> dict:
         "deposit_comparison": deposit,
         "project": {
             "name": finance.get("project", "RIZALTA Resort Belokurikha"),
-            "completion": finance.get("completion_year", 2027),
+            "completion": completion_info["year"],
+            "completion_display": completion_info["quarter_ru"],
             "daily_rate": finance.get("defaults", {}).get("daily_rate_rub", 15000),
             "occupancy": finance.get("defaults", {}).get("occupancy_pct", 60),
             "expenses": finance.get("defaults", {}).get("expenses_pct", 50),
@@ -165,7 +169,8 @@ def build_portfolio_data(budget: int) -> dict:
         "installment_programs": finance.get("installment_programs", []),
         "project": {
             "name": finance.get("project", "RIZALTA Resort Belokurikha"),
-            "completion": finance.get("completion_year", 2027),
+            "completion": get_min_completion_year(),
+            "completion_display": format_completion_grouped(),
         },
     }
 
@@ -476,6 +481,7 @@ def build_portfolio_data_v2(budget: int) -> dict:
         "deposit_comparison": deposit,
         "project": {
             "name": finance.get("project", "RIZALTA Resort Belokurikha"),
-            "completion": finance.get("completion_year", 2027),
+            "completion": get_min_completion_year(),
+            "completion_display": format_completion_grouped(),
         },
     }

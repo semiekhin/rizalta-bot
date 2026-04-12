@@ -8,6 +8,7 @@
 
 import os, sqlite3, subprocess, tempfile, requests, base64
 from services.installment_calculator import calc_12m, calc_18m, get_service_fee as get_sf
+from services.finance_config import get_completion
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -211,7 +212,7 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 <tr><td class="detail-label">Этаж</td><td class="detail-value">{lot["floor"]}</td></tr>
 <tr><td class="detail-label">Площадь</td><td class="detail-value">{lot["area"]} м²</td></tr>
 <tr><td class="detail-label">Комнат</td><td class="detail-value">{ltype}</td></tr>
-<tr><td class="detail-label">Сдача</td><td class="detail-value">4 кв. 2027</td></tr>
+<tr><td class="detail-label">Сдача</td><td class="detail-value">{get_completion(lot.get("building"))["quarter_ru"]}</td></tr>
 <tr><td class="detail-label">Цена за м²</td><td class="detail-value">{fmt(ppm2)}</td></tr>
 </table>
 {'' if full_payment else '''<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">

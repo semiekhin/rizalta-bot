@@ -11,6 +11,7 @@ from services.data_loader import load_finance, load_instructions
 from services.tool_definitions import TOOLS, execute_tool
 from services.intent_router import extract_lot_code
 from services.rag_service import search_documents
+from services.finance_config import format_completion_grouped
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,6 @@ def build_finance_system_context(finance: dict) -> str:
     if not finance:
         return ""
 
-    completion = finance.get("completion_year", 2027)
     project = finance.get("project", "RIZALTA Resort Belokurikha")
     defaults = finance.get("defaults", {})
     installments = finance.get("installment_programs", [])
@@ -66,7 +66,7 @@ def build_finance_system_context(finance: dict) -> str:
     lines.append("=== ФИНАНСОВЫЕ ДАННЫЕ ПРОЕКТА (используй только эти цифры) ===")
     lines.append("")
     lines.append(f"Проект: {project}")
-    lines.append(f"Срок сдачи: Q4 {completion} года")
+    lines.append(f"Срок сдачи: {format_completion_grouped()}")
     lines.append("")
 
     lines.append("=== ЛОТЫ ===")

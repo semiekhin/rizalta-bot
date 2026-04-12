@@ -20,6 +20,7 @@ from services.calculator import calculate_roi, calculate_investment_metrics
 from services.installment_calculator import calc_12m, calc_18m
 from services.deposit_calculator import calculate_all_scenarios
 from services.investment_compare import calculate_rizalta
+from services.finance_config import get_completion
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +277,7 @@ def _generate_lot_report(data: dict) -> str | None:
             <tr><td class="detail-label">Этаж</td><td class="detail-value">{floor}</td></tr>
             <tr><td class="detail-label">Площадь</td><td class="detail-value">{area} м&sup2;</td></tr>
             <tr><td class="detail-label">Цена за м&sup2;</td><td class="detail-value">{fmt(price_m2)}</td></tr>
-            <tr><td class="detail-label">Сдача</td><td class="detail-value">4 кв. 2027</td></tr>
+            <tr><td class="detail-label">Сдача</td><td class="detail-value">{get_completion(building_num)["quarter_ru"]}</td></tr>
           </table>
         </div>
         <div style="clear:both"></div>
