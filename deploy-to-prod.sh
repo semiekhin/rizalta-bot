@@ -57,10 +57,14 @@ log "npm build ok"
 # 6. Restart
 echo "→ restarting webapp..."
 systemctl restart webapp || fail "restart failed"
-sleep 2
 
-# 7. Health check
-NEW_HEALTH=$(curl -sf http://127.0.0.1:$PROD_PORT/api/health 2>/dev/null) || {
+# 7. Health check (retry up to ~20s — cold start incl. RAG init takes ~3-5s)
+NEW_HEALTH=""
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    sleep 2
+    NEW_HEALTH=$(curl -sf http://127.0.0.1:$PROD_PORT/api/health 2>/dev/null) && break
+done
+[ -n "$NEW_HEALTH" ] || {
     warn "PROD not healthy after deploy — rolling back!"
     git reset --hard "$ROLLBACK_HASH"
     npm run build --prefix frontend
