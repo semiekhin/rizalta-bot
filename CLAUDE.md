@@ -6,7 +6,7 @@
 - `/opt/bot`, `/opt/bot-dev`, `/opt/bot-max-dev` — чужие сервисы, НЕ редактировать
 - `/opt/bot/properties.db` — общая БД экосистемы, схему НЕ менять
 - Вся работа ТОЛЬКО в `/opt/webapp-dev` (DEV)
-- venv pip шебанг сломан — ставить через `python3 -m pip install --break-system-packages`
+- DEV venv пересобран 21.04.2026 — шебанги корректные (`#!/opt/webapp-dev/venv/bin/python`), ставить пакеты через `/opt/webapp-dev/venv/bin/python -m pip install <pkg>`
 
 ## Экосистема RIZALTA
 
@@ -179,7 +179,7 @@ Nginx: `/api/` → backend, `/` → frontend/dist (SPA fallback), `/webhook` →
 - `/opt/bot/`, `/opt/bot-dev/`, `/opt/bot-max-dev/` — чужие сервисы
 
 ### Уроки из ошибок
-- **venv pip шебанг:** указывает на PROD. Ставить через `python3 -m pip install --break-system-packages`
+- **DEV venv (21.04.2026):** пересобран с нуля, шебанги теперь корректные. Ставить пакеты через `/opt/webapp-dev/venv/bin/python -m pip install <pkg>`. Бэкап старого venv: `/opt/webapp-dev/venv.backup-20260421_1012` (удалить после 28.04.2026)
 - **GPT-5.2 + reasoning:** max_tokens → max_completion_tokens (иначе ошибка)
 - **YandexGPT модерация:** нативный API модерирует жёстче чем OpenAI-compatible. Использовать только OpenAI-compatible endpoint
 - **gpt-oss-120b:** без модерации, streaming, function calling, tool role — лучший выбор
