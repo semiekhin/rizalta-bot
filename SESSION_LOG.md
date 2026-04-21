@@ -1,5 +1,30 @@
 # SESSION_LOG — Последние сессии
 
+## 21.04.2026 — RCLICK fix (PHPSESSID + auto-relogin) + пересборка DEV venv
+
+**Сделано:**
+- `services/rclick_service.py`: переписан под новый API rclick.ru — связка `rClick_token + PHPSESSID`, multipart/form-data, браузерные headers (UA/Origin/Referer), телефон `8 (XXX) XXX-XX-XX`, обязательные пустые поля `agentLastName/FirstName/Phone + pasImage[]`, project=340, manager=2
+- Fernet-шифрование пароля → авто-релогин при мёртвой PHP-сессии (HTTP 500 + empty body), rate-limit 30с на session_id
+- `init_rclick_table()`: идемпотентная миграция (`CREATE IF NOT EXISTS` + `ALTER TABLE ADD COLUMN` с try/except). Убран деструктивный `DROP TABLE IF EXISTS` — раньше терял сессии при каждом рестарте. Новые колонки: `token`, `phpsessid`, `encrypted_password`, `session_refreshed_at`
+- `pages/Fixation.jsx`: на `{reauth_required: true}` возврат на форму логина с серверным сообщением (было: красная плашка над формой фиксации)
+- `.env` (DEV + PROD): добавлен `RCLICK_ENCRYPTION_KEY` (Fernet.generate_key, одинаковый ключ на обоих)
+- `requirements.txt`: `cryptography>=42.0`
+- DEV venv пересобран с нуля: старый имел `uvicorn` с шебангом на PROD venv python (`/opt/webapp/venv/bin/python3.12`) — DEV сервис де-факто работал на PROD python + PROD site-packages, из-за чего новые пакеты в DEV не подхватывались. Новый venv: freeze PROD (33 пакета) + cryptography, шебанги корректные. Бэкап: `/opt/webapp-dev/venv.backup-20260421_1012`
+- `CLAUDE.md`: убрана устаревшая заметка про сломанный шебанг, добавлена инструкция `/opt/webapp-dev/venv/bin/python -m pip install`
+- Задеплоено в PROD: cryptography в `/opt/webapp/venv`, `RCLICK_ENCRYPTION_KEY` в PROD `.env`, бэкап PROD БД (`webapp.db.bak-20260421_1020`), миграция идемпотентна — прошла чисто
+
+**Файлы:** backend/services/rclick_service.py, backend/requirements.txt, backend/.env (DEV+PROD), frontend/src/pages/Fixation.jsx, CLAUDE.md
+
+**Решения:**
+- Архитектура webapp сохранена (`httpx.AsyncClient` async, `session_id` как cookie, общая `webapp.db`) — код бота (sync requests, keyed by `telegram_id`) не скопирован слепо, портирована только бизнес-логика
+- Ключ шифрования одинаковый DEV/PROD — иначе при миграции PROD сессий они бы расшифровывались некорректно. PROD rclick_sessions был пуст → никому перелогиниваться не пришлось
+- Пересборка DEV venv вместо PYTHONPATH-хака (Вариант 3 из трёх предложенных) — инфра чище, шебанги теперь всегда правильные
+- Колонка `cookies` в rclick_sessions оставлена как NULL-наследие (не удалена) — SQLite DROP COLUMN требует пересоздания таблицы, не нужно
+
+**Следующий шаг:** наблюдение PROD с реальным риелтором; удаление бэкапов после 28.04.2026
+
+---
+
 ## 12.04.2026 — Срок сдачи К3/К4 → 2 кв. 2028 + фикс deploy script
 
 **Сделано:**

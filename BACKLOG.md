@@ -3,8 +3,10 @@
 ## P0 — Срочно
 
 - [x] **Деплой v0.9.8 в PROD** — задеплоено 01.04.2026
+- [x] **RCLICK fix** — задеплоено 21.04.2026 (PHPSESSID auth + auto-relogin + multipart)
 - [ ] **Стабилизация YandexGPT** — agentic loop уже на gpt-oss-120b, проверить стабильность, убрать OpenAI fallback
 - [ ] **RAG расширение** — добавить аналитику CoreXP, расширить chunking, тестировать качество ответов
+- [ ] **Удалить бэкапы (после 28.04.2026)** — `/opt/webapp-dev/venv.backup-20260421_1012`, `/opt/webapp/backend/webapp.db.bak-20260421_1020`
 
 ## P1 — Следующая итерация
 
