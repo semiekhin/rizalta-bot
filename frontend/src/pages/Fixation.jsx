@@ -104,11 +104,19 @@ export default function Fixation({ onBack }) {
         }),
       })
       const data = await res.json()
-      setFixResult(data)
       if (data.ok) {
+        setFixResult(data)
         setClientName('')
         setClientPhone('')
         setComment('')
+      } else if (data.reauth_required) {
+        // Session expired on rclick side — drop to login form with the server message
+        setAuthState('login')
+        setAgentName('')
+        setAuthError(data.message || 'Сессия истекла, авторизуйтесь заново')
+        setFixResult(null)
+      } else {
+        setFixResult(data)
       }
     } catch {
       setFixResult({ ok: false, message: 'Ошибка связи с сервером' })
