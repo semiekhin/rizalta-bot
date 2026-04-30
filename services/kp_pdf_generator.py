@@ -17,7 +17,7 @@ RESOURCES_DIR = BASE_DIR / "services" / "kp_resources"
 SERVICE_FEE = 150_000
 
 # Апартаменты с индивидуальными условиями рассрочки (только 50% ПВ, 12 мес)
-CUSTOM_INSTALLMENT_UNITS = ['В217', 'В225', 'В317', 'В327', 'В417', 'В517', 'В525', 'В527', 'В615', 'В617', 'В625']
+CUSTOM_INSTALLMENT_UNITS = ['В217', 'В225', 'В317', 'В327', 'В417', 'В517', 'В525', 'В527', 'В615', 'В617', 'В625', 'В717']
 
 def load_resource(filename: str) -> str:
     path = RESOURCES_DIR / filename
