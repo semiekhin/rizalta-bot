@@ -13,11 +13,10 @@ from typing import Dict, Any
 from services.telegram import send_message, send_message_inline
 from services.rclick_service import (
     is_authorized,
-    get_token,
-    save_token,
     delete_token,
     login_rclick,
-    create_booking
+    save_auth_after_login,
+    create_booking_for_user,
 )
 
 # Хранение состояний диалога (в памяти, для простоты)
@@ -174,7 +173,7 @@ async def handle_booking_input(chat_id: int, telegram_id: int, text: str):
         result = login_rclick(phone, password)
         
         if result["success"]:
-            save_token(telegram_id, phone, result["token"], result.get("agent_name", ""))
+            save_auth_after_login(telegram_id, phone, password, result)
             clear_state(telegram_id)
             
             msg = """✅ <b>Авторизация успешна!</b>
@@ -268,23 +267,13 @@ async def handle_booking_skip_comment(chat_id: int, telegram_id: int):
 
 
 async def send_booking(chat_id: int, telegram_id: int, client_name: str, client_phone: str, comment: str):
-    """Отправляет фиксацию на ri.rclick.ru."""
+    """Отправляет фиксацию на ri.rclick.ru через create_booking_for_user (с авто-релогином)."""
     clear_state(telegram_id)
-    
-    token = get_token(telegram_id)
-    if not token:
-        msg = "❌ Токен истёк. Авторизуйтесь заново."
-        inline_buttons = [
-            [{"text": "🔑 Авторизоваться", "callback_data": "booking_auth"}],
-            [{"text": "📝 Регистрация на ri.rclick.ru", "url": "https://ri.rclick.ru/signup/"}],
-        ]
-        await send_message_inline(chat_id, msg, inline_buttons)
-        return
-    
+
     await send_message(chat_id, "⏳ Отправляю фиксацию...")
-    
-    result = create_booking(token, client_name, client_phone, comment)
-    
+
+    result = create_booking_for_user(telegram_id, client_name, client_phone, comment)
+
     if result["success"]:
         msg = f"""✅ <b>Клиент зафиксирован!</b>
 
@@ -293,7 +282,7 @@ async def send_booking(chat_id: int, telegram_id: int, client_name: str, client_
 {f"💬 {comment}" if comment else ""}
 
 Информация отправлена в CRM застройщика."""
-        
+
         inline_buttons = [
             [{"text": "➕ Ещё фиксация", "callback_data": "booking_new"}],
             [{"text": "🔙 В меню", "callback_data": "main_menu"}],
@@ -302,12 +291,20 @@ async def send_booking(chat_id: int, telegram_id: int, client_name: str, client_
         msg = f"""❌ <b>Ошибка фиксации</b>
 
 {result["error"]}"""
-        
-        inline_buttons = [
-            [{"text": "🔄 Повторить", "callback_data": "booking_new"}],
-            [{"text": "🔙 В меню", "callback_data": "main_menu"}],
-        ]
-    
+
+        if result.get("reauth_required"):
+            # Сессия/токен/пароль недействителен — нужна повторная авторизация
+            inline_buttons = [
+                [{"text": "🔑 Авторизоваться заново", "callback_data": "booking_reauth"}],
+                [{"text": "🔙 В меню", "callback_data": "main_menu"}],
+            ]
+        else:
+            # Временная ошибка (сбой RCLICK, rate-limit, валидация) — можно повторить
+            inline_buttons = [
+                [{"text": "🔄 Повторить", "callback_data": "booking_new"}],
+                [{"text": "🔙 В меню", "callback_data": "main_menu"}],
+            ]
+
     await send_message_inline(chat_id, msg, inline_buttons)
 
 
