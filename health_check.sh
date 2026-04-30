@@ -13,3 +13,8 @@ fi
 if ! systemctl is-active --quiet rizalta-bot-dev; then
     curl -s "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=⚠️ RIZALTA DEV бот упал!" > /dev/null
 fi
+
+# Проверяем MAX
+if ! systemctl is-active --quiet rizalta-bot-max; then
+    curl -s "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=🚨 RIZALTA MAX бот упал! Проверь: ssh -p 2222 root@72.56.64.91" > /dev/null
+fi

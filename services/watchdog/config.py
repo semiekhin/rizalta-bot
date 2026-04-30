@@ -20,6 +20,7 @@ INTERVALS = {
 SERVICES = [
     "rizalta-bot",
     "rizalta-bot-dev",
+    "rizalta-bot-max",
     "cloudflare-rizalta",
     "rizalta-dev-tunnel",
 ]
@@ -64,6 +65,7 @@ AUTO_ACTIONS = {
 SAFE_RESTART_COMMANDS = [
     "systemctl restart rizalta-bot",
     "systemctl restart rizalta-bot-dev",
+    "systemctl restart rizalta-bot-max",
     "systemctl restart cloudflare-rizalta",
     "systemctl restart rizalta-dev-tunnel",
 ]
