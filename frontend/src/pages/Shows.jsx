@@ -231,7 +231,7 @@ export default function Shows({ onBack }) {
       {/* Floating add button */}
       <button
         onClick={() => setShowCreate(true)}
-        className="fixed bottom-6 right-6 bg-rz-gold hover:bg-rz-gold-light text-rz-green w-14 h-14 rounded-full text-2xl font-semibold shadow-xl z-40"
+        className="fixed bottom-20 right-6 bg-rz-gold hover:bg-rz-gold-light text-rz-green w-14 h-14 rounded-full text-2xl font-semibold shadow-xl z-40"
         aria-label="Новый показ"
       >+</button>
 
