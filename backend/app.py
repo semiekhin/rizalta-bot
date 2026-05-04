@@ -212,25 +212,16 @@ class ShowCreateRequest(BaseModel):
     show_datetime: str
     manager: str
     realtor_name: str
-    planned_lot: str
-    realtor_phone: Optional[str] = None
     realtor_agency: Optional[str] = None
-    client_name: Optional[str] = None
+    comment: Optional[str] = None
 
 
 class ShowUpdateRequest(BaseModel):
     show_datetime: Optional[str] = None
     manager: Optional[str] = None
-    realtor_name: Optional[str] = None
-    realtor_phone: Optional[str] = None
     realtor_agency: Optional[str] = None
-    client_name: Optional[str] = None
-    planned_lot: Optional[str] = None
-    actual_lot: Optional[str] = None
+    realtor_name: Optional[str] = None
     status: Optional[str] = None
-    reschedule_to: Optional[str] = None
-    reschedule_reason: Optional[str] = None
-    result: Optional[str] = None
     comment: Optional[str] = None
 
 
@@ -725,10 +716,8 @@ async def api_shows_create(req: ShowCreateRequest):
             show_datetime=req.show_datetime,
             manager=req.manager,
             realtor_name=req.realtor_name,
-            planned_lot=req.planned_lot,
-            realtor_phone=req.realtor_phone,
             realtor_agency=req.realtor_agency,
-            client_name=req.client_name,
+            comment=req.comment,
         )
         return {"ok": True, "show": show}
     except ValueError as e:

@@ -13,8 +13,7 @@ MANAGERS = [
     "Панченко Инна",
 ]
 
-VALID_STATUS = {"planned", "rescheduled", "completed", "cancelled", "no_show"}
-VALID_RESULT = {"interested", "booked", "not_interested", "contact_saved"}
+VALID_STATUS = {"planned", "completed", "completed_booked", "rescheduled", "cancelled"}
 
 
 def get_conn():
@@ -33,16 +32,9 @@ def init_shows_db():
             updated_at TEXT DEFAULT (datetime('now')),
             show_datetime TEXT NOT NULL,
             manager TEXT NOT NULL,
-            realtor_name TEXT NOT NULL,
-            realtor_phone TEXT,
             realtor_agency TEXT,
-            client_name TEXT,
-            planned_lot TEXT NOT NULL,
-            actual_lot TEXT,
+            realtor_name TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'planned',
-            reschedule_to TEXT,
-            reschedule_reason TEXT,
-            result TEXT,
             comment TEXT
         )
     """)
@@ -62,16 +54,9 @@ def _row_to_dict(row) -> Optional[dict]:
         "updated_at": row["updated_at"],
         "show_datetime": row["show_datetime"],
         "manager": row["manager"],
-        "realtor_name": row["realtor_name"],
-        "realtor_phone": row["realtor_phone"],
         "realtor_agency": row["realtor_agency"],
-        "client_name": row["client_name"],
-        "planned_lot": row["planned_lot"],
-        "actual_lot": row["actual_lot"],
+        "realtor_name": row["realtor_name"],
         "status": row["status"],
-        "reschedule_to": row["reschedule_to"],
-        "reschedule_reason": row["reschedule_reason"],
-        "result": row["result"],
         "comment": row["comment"],
     }
 
@@ -84,21 +69,17 @@ def create_show(
     show_datetime: str,
     manager: str,
     realtor_name: str,
-    planned_lot: str,
-    realtor_phone: Optional[str] = None,
     realtor_agency: Optional[str] = None,
-    client_name: Optional[str] = None,
+    comment: Optional[str] = None,
 ) -> dict:
     if manager not in MANAGERS:
         raise ValueError(f"Unknown manager: {manager}")
     conn = get_conn()
     cursor = conn.execute(
         """INSERT INTO shows
-           (show_datetime, manager, realtor_name, realtor_phone, realtor_agency,
-            client_name, planned_lot, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'planned')""",
-        (show_datetime, manager, realtor_name, realtor_phone, realtor_agency,
-         client_name, planned_lot),
+           (show_datetime, manager, realtor_agency, realtor_name, status, comment)
+           VALUES (?, ?, ?, ?, 'planned', ?)""",
+        (show_datetime, manager, realtor_agency, realtor_name, comment),
     )
     show_id = cursor.lastrowid
     conn.commit()
@@ -136,9 +117,7 @@ def list_shows(
 
 
 _ALLOWED_FIELDS = {
-    "show_datetime", "manager", "realtor_name", "realtor_phone", "realtor_agency",
-    "client_name", "planned_lot", "actual_lot", "status",
-    "reschedule_to", "reschedule_reason", "result", "comment",
+    "show_datetime", "manager", "realtor_agency", "realtor_name", "status", "comment",
 }
 
 
@@ -149,8 +128,6 @@ def update_show(show_id: int, fields: dict) -> Optional[dict]:
             clean[k] = v
     if "status" in clean and clean["status"] not in VALID_STATUS:
         raise ValueError(f"Invalid status: {clean['status']}")
-    if "result" in clean and clean["result"] not in VALID_RESULT:
-        raise ValueError(f"Invalid result: {clean['result']}")
     if "manager" in clean and clean["manager"] not in MANAGERS:
         raise ValueError(f"Unknown manager: {clean['manager']}")
     if not clean:

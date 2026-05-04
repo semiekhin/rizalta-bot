@@ -2,28 +2,22 @@ import React, { useState, useEffect, useMemo } from 'react'
 
 const STATUS_LABEL = {
   planned: 'Запланирован',
-  rescheduled: 'Перенесён',
   completed: 'Проведён',
+  completed_booked: 'Проведён + бронь',
+  rescheduled: 'Перенесён',
   cancelled: 'Отменён',
-  no_show: 'Не пришли',
 }
 
+// Card backgrounds by status. completed_booked gets brand gold (most positive
+// outcome). rescheduled — muted yellow-gray. cancelled — neutral gray.
 const STATUS_BG = {
-  planned: 'bg-blue-600',
-  rescheduled: 'bg-yellow-500',
-  completed: 'bg-rz-success',
-  cancelled: 'bg-rz-cream-muted',
-  no_show: 'bg-rz-error',
+  planned: 'bg-blue-600 text-rz-white',
+  completed: 'bg-rz-success text-rz-white',
+  completed_booked: 'bg-rz-gold text-rz-green',
+  rescheduled: 'bg-yellow-700 text-rz-white',
+  cancelled: 'bg-rz-cream-muted text-rz-green',
 }
 
-const RESULT_LABEL = {
-  interested: 'Заинтересован',
-  booked: 'Забронировал',
-  not_interested: 'Не интересно',
-  contact_saved: 'Сохранён контакт',
-}
-
-const DAYS_RU_FULL = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
 const DAYS_RU_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
 
@@ -38,12 +32,10 @@ function dateToYMD(d) {
 }
 
 function ymdhmToISO(date, time) {
-  // date: YYYY-MM-DD, time: HH:MM -> "YYYY-MM-DD HH:MM:00" (sortable text)
   return `${date} ${time}:00`
 }
 
 function parseShowDT(s) {
-  // "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DDTHH:MM:SS"
   if (!s) return null
   const norm = s.replace('T', ' ')
   const [d, t] = norm.split(' ')
@@ -53,7 +45,7 @@ function parseShowDT(s) {
 function startOfWeek(d) {
   const date = new Date(d)
   const dow = date.getDay()
-  const diff = (dow === 0 ? -6 : 1 - dow) // Mon-start
+  const diff = (dow === 0 ? -6 : 1 - dow)
   date.setDate(date.getDate() + diff)
   date.setHours(0, 0, 0, 0)
   return date
@@ -64,22 +56,20 @@ function addDays(d, n) {
 }
 
 function startOfMonth(d) {
-  const x = new Date(d.getFullYear(), d.getMonth(), 1)
-  return x
+  return new Date(d.getFullYear(), d.getMonth(), 1)
 }
 
 export default function Shows({ onBack }) {
   const [manager, setManager] = useState(null)
   const [managers, setManagers] = useState([])
-  const [view, setView] = useState('week') // day | week | month
+  const [view, setView] = useState('week')
   const [anchor, setAnchor] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d })
   const [shows, setShows] = useState([])
   const [loading, setLoading] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
-  const [editing, setEditing] = useState(null) // show object
+  const [editing, setEditing] = useState(null)
   const [error, setError] = useState('')
 
-  // Init manager from localStorage + load managers list
   useEffect(() => {
     const saved = localStorage.getItem(LS_KEY)
     if (saved) setManager(saved)
@@ -98,7 +88,6 @@ export default function Shows({ onBack }) {
       const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
       return { from: dateToYMD(days[0]), to: dateToYMD(days[6]), days }
     }
-    // month
     const first = startOfMonth(anchor)
     const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)
     const days = []
@@ -106,7 +95,6 @@ export default function Shows({ onBack }) {
     return { from: dateToYMD(first), to: dateToYMD(last), days }
   }, [view, anchor])
 
-  // Fetch shows when range changes
   useEffect(() => {
     if (!manager) return
     setLoading(true)
@@ -238,7 +226,6 @@ export default function Shows({ onBack }) {
       {showCreate && (
         <CreateModal
           manager={manager}
-          managers={managers}
           defaultDate={dateToYMD(view==='month' ? anchor : (range.days[0] || anchor))}
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); refresh() }}
@@ -274,7 +261,6 @@ function TimeGrid({ days, shows, manager, onClickShow }) {
   return (
     <div className="overflow-x-auto">
       <div className="grid" style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(140px, 1fr))` }}>
-        {/* Header row */}
         <div></div>
         {days.map(d => {
           const isToday = dateToYMD(d) === dateToYMD(new Date())
@@ -286,7 +272,6 @@ function TimeGrid({ days, shows, manager, onClickShow }) {
           )
         })}
 
-        {/* Hours */}
         {HOURS.map(h => (
           <React.Fragment key={h}>
             <div className="text-xs text-rz-cream-muted text-right pr-2 py-2 border-t border-rz-green-light">{pad(h)}:00</div>
@@ -313,14 +298,16 @@ function TimeGrid({ days, shows, manager, onClickShow }) {
 
 function ShowCard({ show, mine, onClick }) {
   const dt = parseShowDT(show.show_datetime)
+  const colors = STATUS_BG[show.status] || 'bg-rz-green-light text-rz-white'
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left text-xs ${STATUS_BG[show.status] || 'bg-rz-green-light'} text-rz-white rounded px-1.5 py-1 mb-1 ${mine ? 'ring-2 ring-rz-gold' : ''}`}
-      title={`${STATUS_LABEL[show.status]} · ${show.manager}`}
+      className={`w-full text-left text-xs ${colors} rounded px-1.5 py-1 mb-1 ${mine ? 'ring-2 ring-rz-gold' : ''}`}
+      title={`${STATUS_LABEL[show.status] || show.status} · ${show.manager}`}
     >
-      <div className="font-semibold">{dt?.time || '—'} · {show.planned_lot}</div>
+      <div className="font-semibold truncate">{dt?.time || '—'} · {show.realtor_agency || '—'}</div>
       <div className="truncate opacity-90">{show.realtor_name}</div>
+      <div className="truncate text-[10px] opacity-80">{STATUS_LABEL[show.status] || show.status}</div>
     </button>
   )
 }
@@ -328,9 +315,8 @@ function ShowCard({ show, mine, onClick }) {
 // ============ Month view ============
 
 function MonthView({ days, shows, manager, onClickShow }) {
-  // Pad to start on Monday
   const first = days[0]
-  const lead = (first.getDay() + 6) % 7 // Mon=0
+  const lead = (first.getDay() + 6) % 7
   const cells = []
   for (let i = 0; i < lead; i++) cells.push(null)
   for (const d of days) cells.push(d)
@@ -377,44 +363,24 @@ function MonthView({ days, shows, manager, onClickShow }) {
 
 // ============ Create modal ============
 
-function CreateModal({ manager, managers, defaultDate, onClose, onCreated }) {
+function CreateModal({ manager, defaultDate, onClose, onCreated }) {
   const [form, setForm] = useState({
     date: defaultDate,
     time: '12:00',
-    realtor_name: '',
-    realtor_phone: '',
     realtor_agency: '',
-    client_name: '',
-    planned_lot: '',
+    realtor_name: '',
+    comment: '',
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
-  const [lotInfo, setLotInfo] = useState(null)
 
   function update(k, v) { setForm(f => ({ ...f, [k]: v })) }
-
-  // Lot autocomplete via /api/lots/search
-  useEffect(() => {
-    const code = form.planned_lot.trim()
-    if (code.length < 3) { setLotInfo(null); return }
-    const t = setTimeout(() => {
-      fetch(`/api/lots/search?code=${encodeURIComponent(code)}`)
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok && d.lot) setLotInfo({ ok: true, label: `${d.lot.code} · ${d.lot.buildingName} · ${d.lot.area} м²` })
-          else if (d.ok && d.multiple) setLotInfo({ ok: true, label: `Найдено: ${d.lots.length}` })
-          else setLotInfo({ ok: false, label: 'Лот не найден' })
-        })
-        .catch(() => setLotInfo(null))
-    }, 350)
-    return () => clearTimeout(t)
-  }, [form.planned_lot])
 
   async function submit(e) {
     e.preventDefault()
     setErr('')
-    if (!form.realtor_name.trim() || !form.planned_lot.trim()) {
-      setErr('Заполните риэлтора и лот')
+    if (!form.realtor_name.trim()) {
+      setErr('Заполните имя риэлтора')
       return
     }
     setSaving(true)
@@ -425,11 +391,9 @@ function CreateModal({ manager, managers, defaultDate, onClose, onCreated }) {
         body: JSON.stringify({
           show_datetime: ymdhmToISO(form.date, form.time),
           manager,
-          realtor_name: form.realtor_name.trim(),
-          realtor_phone: form.realtor_phone.trim() || null,
           realtor_agency: form.realtor_agency.trim() || null,
-          client_name: form.client_name.trim() || null,
-          planned_lot: form.planned_lot.trim(),
+          realtor_name: form.realtor_name.trim(),
+          comment: form.comment.trim() || null,
         }),
       })
       const data = await res.json()
@@ -443,7 +407,16 @@ function CreateModal({ manager, managers, defaultDate, onClose, onCreated }) {
   }
 
   return (
-    <Modal onClose={onClose} title="Новый показ">
+    <Modal onClose={onClose} title="Новый показ"
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded border border-rz-green-light text-rz-cream-dark">Отмена</button>
+          <button type="button" onClick={submit} disabled={saving} className="flex-1 py-2.5 rounded bg-rz-gold text-rz-green font-semibold disabled:opacity-60">
+            {saving ? 'Сохранение…' : 'Сохранить'}
+          </button>
+        </>
+      }
+    >
       <form onSubmit={submit} className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <Field label="Дата">
@@ -456,34 +429,16 @@ function CreateModal({ manager, managers, defaultDate, onClose, onCreated }) {
         <Field label="Менеджер">
           <input value={manager} disabled className={inputCls + ' opacity-70'} />
         </Field>
+        <Field label="Агентство">
+          <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} placeholder="например, Этажи" />
+        </Field>
         <Field label="Риэлтор (ФИО)*">
           <input value={form.realtor_name} onChange={e => update('realtor_name', e.target.value)} className={inputCls} required />
         </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Телефон">
-            <input value={form.realtor_phone} onChange={e => update('realtor_phone', e.target.value)} className={inputCls} />
-          </Field>
-          <Field label="Агентство">
-            <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} />
-          </Field>
-        </div>
-        <Field label="Клиент (опционально)">
-          <input value={form.client_name} onChange={e => update('client_name', e.target.value)} className={inputCls} />
+        <Field label="Комментарий">
+          <textarea value={form.comment} onChange={e => update('comment', e.target.value)} className={inputCls + ' min-h-[60px]'} />
         </Field>
-        <Field label="Планируемый лот* (код)">
-          <input value={form.planned_lot} onChange={e => update('planned_lot', e.target.value)} className={inputCls} required placeholder="например, А-12-3" />
-          {lotInfo && (
-            <div className={`text-xs mt-1 ${lotInfo.ok ? 'text-rz-success' : 'text-rz-cream-muted'}`}>{lotInfo.label}</div>
-          )}
-        </Field>
-
         {err && <div className="text-rz-error text-sm">{err}</div>}
-        <div className="flex gap-2 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 py-2 rounded border border-rz-green-light text-rz-cream-dark">Отмена</button>
-          <button type="submit" disabled={saving} className="flex-1 py-2 rounded bg-rz-gold text-rz-green font-semibold disabled:opacity-60">
-            {saving ? 'Сохранение…' : 'Сохранить'}
-          </button>
-        </div>
       </form>
     </Modal>
   )
@@ -497,17 +452,10 @@ function EditModal({ show, managers, onClose, onSaved, onDeleted }) {
     date: dt.date,
     time: dt.time,
     manager: show.manager,
-    realtor_name: show.realtor_name || '',
-    realtor_phone: show.realtor_phone || '',
     realtor_agency: show.realtor_agency || '',
-    client_name: show.client_name || '',
-    planned_lot: show.planned_lot || '',
+    realtor_name: show.realtor_name || '',
     status: show.status || 'planned',
-    actual_lot: show.actual_lot || '',
-    result: show.result || '',
     comment: show.comment || '',
-    reschedule_to: show.reschedule_to || '',
-    reschedule_reason: show.reschedule_reason || '',
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -523,17 +471,10 @@ function EditModal({ show, managers, onClose, onSaved, onDeleted }) {
       const body = {
         show_datetime: ymdhmToISO(form.date, form.time),
         manager: form.manager,
-        realtor_name: form.realtor_name.trim(),
-        realtor_phone: form.realtor_phone.trim() || null,
         realtor_agency: form.realtor_agency.trim() || null,
-        client_name: form.client_name.trim() || null,
-        planned_lot: form.planned_lot.trim(),
+        realtor_name: form.realtor_name.trim(),
         status: form.status,
-        actual_lot: form.status === 'completed' ? (form.actual_lot.trim() || null) : null,
-        result: form.status === 'completed' ? (form.result || null) : null,
         comment: form.comment.trim() || null,
-        reschedule_to: form.status === 'rescheduled' ? (form.reschedule_to || null) : null,
-        reschedule_reason: form.status === 'rescheduled' ? (form.reschedule_reason.trim() || null) : null,
       }
       const res = await fetch(`/api/shows/${show.id}`, {
         method: 'PUT',
@@ -563,7 +504,25 @@ function EditModal({ show, managers, onClose, onSaved, onDeleted }) {
   }
 
   return (
-    <Modal onClose={onClose} title={`Показ #${show.id}`}>
+    <Modal onClose={onClose} title={`Показ #${show.id}`}
+      footer={
+        <>
+          {!confirmDel ? (
+            <button type="button" onClick={() => setConfirmDel(true)} className="px-3 py-2.5 rounded border border-rz-error text-rz-error text-sm">Удалить</button>
+          ) : (
+            <>
+              <button type="button" onClick={doDelete} className="px-3 py-2.5 rounded bg-rz-error text-rz-white text-sm">Подтвердить</button>
+              <button type="button" onClick={() => setConfirmDel(false)} className="px-3 py-2.5 rounded border border-rz-cream-dark text-rz-cream-dark text-sm">Нет</button>
+            </>
+          )}
+          <div className="flex-1" />
+          <button type="button" onClick={onClose} className="px-3 py-2.5 rounded border border-rz-green-light text-rz-cream-dark">Отмена</button>
+          <button type="button" onClick={submit} disabled={saving} className="px-4 py-2.5 rounded bg-rz-gold text-rz-green font-semibold disabled:opacity-60">
+            {saving ? 'Сохранение…' : 'Сохранить'}
+          </button>
+        </>
+      }
+    >
       <form onSubmit={submit} className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <Field label="Дата"><input type="date" value={form.date} onChange={e => update('date', e.target.value)} className={inputCls} required /></Field>
@@ -574,67 +533,21 @@ function EditModal({ show, managers, onClose, onSaved, onDeleted }) {
             {managers.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </Field>
+        <Field label="Агентство">
+          <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} />
+        </Field>
+        <Field label="Риэлтор">
+          <input value={form.realtor_name} onChange={e => update('realtor_name', e.target.value)} className={inputCls} />
+        </Field>
         <Field label="Статус">
           <select value={form.status} onChange={e => update('status', e.target.value)} className={inputCls}>
             {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </Field>
-
-        {form.status === 'rescheduled' && (
-          <div className="space-y-2 p-3 bg-rz-green-mid rounded border border-yellow-500/30">
-            <Field label="Перенесено на (дата+время)">
-              <input type="datetime-local" value={form.reschedule_to ? form.reschedule_to.replace(' ', 'T').slice(0,16) : ''}
-                onChange={e => update('reschedule_to', e.target.value.replace('T', ' ') + ':00')}
-                className={inputCls} />
-            </Field>
-            <Field label="Причина переноса">
-              <input value={form.reschedule_reason} onChange={e => update('reschedule_reason', e.target.value)} className={inputCls} />
-            </Field>
-          </div>
-        )}
-
-        {form.status === 'completed' && (
-          <div className="space-y-2 p-3 bg-rz-green-mid rounded border border-rz-success/30">
-            <Field label="Реально показанный лот">
-              <input value={form.actual_lot} onChange={e => update('actual_lot', e.target.value)} className={inputCls} placeholder="код лота" />
-            </Field>
-            <Field label="Результат">
-              <select value={form.result} onChange={e => update('result', e.target.value)} className={inputCls}>
-                <option value="">— не указан —</option>
-                {Object.entries(RESULT_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </Field>
-          </div>
-        )}
-
-        <Field label="Риэлтор"><input value={form.realtor_name} onChange={e => update('realtor_name', e.target.value)} className={inputCls} /></Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Телефон"><input value={form.realtor_phone} onChange={e => update('realtor_phone', e.target.value)} className={inputCls} /></Field>
-          <Field label="Агентство"><input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} /></Field>
-        </div>
-        <Field label="Клиент"><input value={form.client_name} onChange={e => update('client_name', e.target.value)} className={inputCls} /></Field>
-        <Field label="Планируемый лот"><input value={form.planned_lot} onChange={e => update('planned_lot', e.target.value)} className={inputCls} /></Field>
         <Field label="Комментарий">
           <textarea value={form.comment} onChange={e => update('comment', e.target.value)} className={inputCls + ' min-h-[60px]'} />
         </Field>
-
         {err && <div className="text-rz-error text-sm">{err}</div>}
-
-        <div className="flex gap-2 pt-2">
-          {!confirmDel ? (
-            <button type="button" onClick={() => setConfirmDel(true)} className="px-3 py-2 rounded border border-rz-error text-rz-error text-sm">Удалить</button>
-          ) : (
-            <>
-              <button type="button" onClick={doDelete} className="px-3 py-2 rounded bg-rz-error text-rz-white text-sm">Подтвердить</button>
-              <button type="button" onClick={() => setConfirmDel(false)} className="px-3 py-2 rounded border border-rz-cream-dark text-rz-cream-dark text-sm">Нет</button>
-            </>
-          )}
-          <div className="flex-1" />
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded border border-rz-green-light text-rz-cream-dark">Отмена</button>
-          <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-rz-gold text-rz-green font-semibold disabled:opacity-60">
-            {saving ? 'Сохранение…' : 'Сохранить'}
-          </button>
-        </div>
       </form>
     </Modal>
   )
@@ -653,7 +566,10 @@ function Field({ label, children }) {
   )
 }
 
-function Modal({ title, onClose, children }) {
+// Modal: flex column with sticky header + scrollable body + sticky footer.
+// Mobile: bottom-padding (pb-16) reserves space for the bottom navigation bar
+// (~64px), so the footer with action buttons isn't covered by it.
+function Modal({ title, onClose, children, footer }) {
   useEffect(() => {
     const onEsc = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onEsc)
@@ -661,16 +577,24 @@ function Modal({ title, onClose, children }) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-16 sm:pb-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-rz-green border border-rz-green-light rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto"
+        className="bg-rz-green border border-rz-green-light rounded-2xl sm:rounded-xl w-full sm:max-w-lg max-h-[calc(100vh-80px)] sm:max-h-[92vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-rz-green border-b border-rz-green-light px-4 py-3 flex items-center justify-between">
+        <div className="bg-rz-green border-b border-rz-green-light rounded-t-2xl sm:rounded-t-xl px-4 py-3 flex items-center justify-between">
           <h2 className="text-rz-gold font-semibold">{title}</h2>
           <button onClick={onClose} className="text-rz-cream-dark text-xl leading-none">×</button>
         </div>
-        <div className="px-4 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        {footer && (
+          <div className="border-t border-rz-green-light px-4 py-3 flex gap-2 items-center bg-rz-green rounded-b-2xl sm:rounded-b-xl">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )
