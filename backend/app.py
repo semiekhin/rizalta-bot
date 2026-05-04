@@ -30,6 +30,9 @@ from services.ai_chat import stream_chat_with_tools, stream_lot_report, stream_p
 from services.intent_router import quick_classify_navigation
 from services import rag_service
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
+from services.shows_service import (
+    init_shows_db, get_managers, create_show, list_shows, update_show, delete_show,
+)
 from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
 from services.news_service import get_weather, get_flights, get_news_digest
@@ -95,6 +98,7 @@ async def lifespan(app_instance):
     init_webapp_db()
     seed_token()
     init_secretary_db()
+    init_shows_db()
     init_rclick_table()
     try:
         print("[STARTUP] Initializing RAG service...")
@@ -202,6 +206,32 @@ class TrancheMortgageRequest(BaseModel):
 
 class TrancheMortgageAllRequest(BaseModel):
     price: int
+
+
+class ShowCreateRequest(BaseModel):
+    show_datetime: str
+    manager: str
+    realtor_name: str
+    planned_lot: str
+    realtor_phone: Optional[str] = None
+    realtor_agency: Optional[str] = None
+    client_name: Optional[str] = None
+
+
+class ShowUpdateRequest(BaseModel):
+    show_datetime: Optional[str] = None
+    manager: Optional[str] = None
+    realtor_name: Optional[str] = None
+    realtor_phone: Optional[str] = None
+    realtor_agency: Optional[str] = None
+    client_name: Optional[str] = None
+    planned_lot: Optional[str] = None
+    actual_lot: Optional[str] = None
+    status: Optional[str] = None
+    reschedule_to: Optional[str] = None
+    reschedule_reason: Optional[str] = None
+    result: Optional[str] = None
+    comment: Optional[str] = None
 
 
 # === Rate limiter (10 req/min per IP for /api/chat) ===
@@ -665,6 +695,65 @@ async def api_parse_task(req: TaskParseRequest):
         return {"ok": True, **parsed}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+# === Shows endpoints ===
+
+@app.get("/api/shows/managers")
+async def api_shows_managers():
+    return {"ok": True, "managers": get_managers()}
+
+
+@app.get("/api/shows")
+async def api_shows_list(
+    manager: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    try:
+        shows = list_shows(manager=manager, date_from=date_from, date_to=date_to, status=status)
+        return {"ok": True, "shows": shows}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/shows")
+async def api_shows_create(req: ShowCreateRequest):
+    try:
+        show = create_show(
+            show_datetime=req.show_datetime,
+            manager=req.manager,
+            realtor_name=req.realtor_name,
+            planned_lot=req.planned_lot,
+            realtor_phone=req.realtor_phone,
+            realtor_agency=req.realtor_agency,
+            client_name=req.client_name,
+        )
+        return {"ok": True, "show": show}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.put("/api/shows/{show_id}")
+async def api_shows_update(show_id: int, req: ShowUpdateRequest):
+    try:
+        show = update_show(show_id, req.dict(exclude_unset=True))
+        if show is None:
+            raise HTTPException(status_code=404, detail="Show not found")
+        return {"ok": True, "show": show}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/shows/{show_id}")
+async def api_shows_delete(show_id: int):
+    success = delete_show(show_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Show not found")
+    return {"ok": True}
 
 
 # === Fixation endpoints ===

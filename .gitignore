@@ -4,3 +4,6 @@ __pycache__/
 .env
 backend/webapp.db
 backend/secretary.db
+backend/shows.db
+backend/shows.db-shm
+backend/shows.db-wal

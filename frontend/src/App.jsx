@@ -13,6 +13,7 @@ const Booking = lazy(() => import('./pages/Booking'))
 const News = lazy(() => import('./pages/News'))
 const Secretary = lazy(() => import('./pages/Secretary'))
 const Fixation = lazy(() => import('./pages/Fixation'))
+const Shows = lazy(() => import('./pages/Shows'))
 // TODO: reuse for Corp4 whitelist
 // const Corp3 = lazy(() => import('./pages/Corp3'))
 
@@ -28,8 +29,14 @@ const PageLoader = () => (
   </div>
 )
 
+// URL paths that map to in-app screens (direct-link only, not in nav)
+const PATH_TO_SCREEN = {
+  '/shows': 'shows',
+}
+
 export default function App() {
-  const [screen, setScreen] = useState('home')
+  const initialScreen = PATH_TO_SCREEN[window.location.pathname] || 'home'
+  const [screen, setScreen] = useState(initialScreen)
   const [lots, setLots] = useState([])
   const [stats, setStats] = useState({ available: 0, booked: 0, sold: 0, total: 0 })
   const [loading, setLoading] = useState(true)
@@ -39,6 +46,12 @@ export default function App() {
   useEffect(() => {
     captureTokenFromURL()
     verifyAccess().then(level => setAccessLevel(level))
+
+    const onPop = () => {
+      const next = PATH_TO_SCREEN[window.location.pathname] || 'home'
+      setScreen(next)
+    }
+    window.addEventListener('popstate', onPop)
 
     fetch('/api/lots')
       .then(r => r.json())
@@ -50,11 +63,22 @@ export default function App() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   const navigate = (to, lot = null) => {
     if (lot) setSelectedLot(lot)
     setScreen(to)
+    // Sync URL only for paths that have a dedicated direct-link route.
+    // Keeps the rest of the app on '/' (existing behavior).
+    const targetPath = Object.keys(PATH_TO_SCREEN).find(p => PATH_TO_SCREEN[p] === to)
+    const onMapped = Object.values(PATH_TO_SCREEN).includes(to)
+    if (onMapped && targetPath && window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath)
+    } else if (!onMapped && Object.keys(PATH_TO_SCREEN).includes(window.location.pathname)) {
+      window.history.pushState({}, '', '/')
+    }
   }
 
   const renderScreen = () => {
@@ -81,6 +105,8 @@ export default function App() {
         return <Secretary onBack={() => navigate('home')} />
       case 'fixation':
         return <Fixation onBack={() => navigate('home')} />
+      case 'shows':
+        return <Shows onBack={() => navigate('home')} />
       // TODO: reuse for Corp4 whitelist
       // case 'corp3':
       //   return <Corp3 onSelectLot={(lot) => navigate('lot', lot)} onBack={() => navigate('home')} />
