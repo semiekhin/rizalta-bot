@@ -213,6 +213,13 @@ export default function Shows({ onBack }) {
             {view==='month' ? `${MONTHS_RU[anchor.getMonth()]} ${anchor.getFullYear()}`
               : `${range.days[0].getDate()} ${MONTHS_RU[range.days[0].getMonth()].toLowerCase()} — ${range.days[range.days.length-1].getDate()} ${MONTHS_RU[range.days[range.days.length-1].getMonth()].toLowerCase()}`}
           </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="w-full sm:w-auto bg-rz-gold hover:bg-rz-gold-light text-rz-green font-semibold rounded-lg px-4 py-2.5 text-sm flex items-center justify-center gap-1.5 shadow"
+          >
+            <span className="text-lg leading-none">+</span>
+            <span>Создать показ</span>
+          </button>
         </div>
       </div>
 
@@ -227,13 +234,6 @@ export default function Shows({ onBack }) {
           <TimeGrid days={range.days} shows={shows} manager={manager} onClickShow={setEditing} />
         )}
       </div>
-
-      {/* Floating add button */}
-      <button
-        onClick={() => setShowCreate(true)}
-        className="fixed bottom-20 right-6 bg-rz-gold hover:bg-rz-gold-light text-rz-green w-14 h-14 rounded-full text-2xl font-semibold shadow-xl z-40"
-        aria-label="Новый показ"
-      >+</button>
 
       {showCreate && (
         <CreateModal
