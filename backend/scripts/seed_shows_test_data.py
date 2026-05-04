@@ -147,18 +147,33 @@ def random_realtor_name() -> str:
 
 
 def random_show_dt(now: datetime, planned: bool) -> datetime:
-    """planned → ближайшие 2 недели в будущее, остальное → прошедшие 3 месяца."""
+    """planned → ближайшие 2 недели в будущее.
+    Прошедшие — 80% в текущем календарном месяце (1-е числа..сегодня
+    эксклюзив), 20% равномерно по 1..90 дням назад. Это нужно чтобы
+    дефолтный пресет дашборда «Этот месяц» показывал плотную статистику,
+    при этом «Произвольный 90 дней» по-прежнему даёт полное покрытие 3
+    месяцев."""
     if planned:
         delta_days = random.randint(0, 14)
         d = now + timedelta(days=delta_days)
     else:
-        delta_days = random.randint(1, 90)
-        d = now - timedelta(days=delta_days)
+        if random.random() < 0.80:
+            first_of_month = now.replace(day=1, hour=0, minute=0,
+                                         second=0, microsecond=0)
+            today_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            days_so_far = (today_midnight - first_of_month).days  # 0..30
+            if days_so_far <= 0:
+                # Самое начало месяца — fallback на последние 14 дней
+                d = now - timedelta(days=random.randint(1, 14))
+            else:
+                d = first_of_month + timedelta(days=random.randint(0, days_so_far - 1))
+        else:
+            d = now - timedelta(days=random.randint(1, 90))
     # Часы 10..19 со смещением к вечеру
     hours = list(range(10, 20))
     hour_weights = [1, 1, 1.5, 1.5, 2, 2.5, 3, 3, 3, 2]
     hour = random.choices(hours, weights=hour_weights, k=1)[0]
-    minute = random.choice([0, 0, 0, 15, 30, 30, 45])  # чаще ровный час и :30
+    minute = random.choice([0, 0, 0, 15, 30, 30, 45])
     return d.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
 

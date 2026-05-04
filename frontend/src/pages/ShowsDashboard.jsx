@@ -180,7 +180,7 @@ export default function ShowsDashboard({ onBack }) {
                   <th className="text-right px-3 py-2">Всего</th>
                   <th className="text-right px-3 py-2">Запланир.</th>
                   <th className="text-right px-3 py-2">Проведено</th>
-                  <th className="text-right px-3 py-2">С бронью</th>
+                  <th className="text-right px-3 py-2">из них с бронью</th>
                   <th className="text-right px-3 py-2">Перенесено</th>
                   <th className="text-right px-3 py-2">Отменено</th>
                   <th className="text-right px-3 py-2">% броней</th>
@@ -192,7 +192,7 @@ export default function ShowsDashboard({ onBack }) {
                     <td className="px-3 py-2 text-rz-cream">{s.manager}</td>
                     <td className="px-3 py-2 text-right">{s.total}</td>
                     <td className="px-3 py-2 text-right">{s.planned}</td>
-                    <td className="px-3 py-2 text-right">{s.completed}</td>
+                    <td className="px-3 py-2 text-right">{s.completed + s.completed_booked}</td>
                     <td className="px-3 py-2 text-right text-rz-gold font-semibold">{s.completed_booked}</td>
                     <td className="px-3 py-2 text-right">{s.rescheduled}</td>
                     <td className="px-3 py-2 text-right">{s.cancelled}</td>
@@ -204,7 +204,7 @@ export default function ShowsDashboard({ onBack }) {
                     <td className="px-3 py-2 text-rz-gold">Итого</td>
                     <td className="px-3 py-2 text-right">{totals.total}</td>
                     <td className="px-3 py-2 text-right">{totals.planned}</td>
-                    <td className="px-3 py-2 text-right">{totals.completed}</td>
+                    <td className="px-3 py-2 text-right">{totals.completed + totals.completed_booked}</td>
                     <td className="px-3 py-2 text-right text-rz-gold">{totals.completed_booked}</td>
                     <td className="px-3 py-2 text-right">{totals.rescheduled}</td>
                     <td className="px-3 py-2 text-right">{totals.cancelled}</td>
@@ -309,8 +309,8 @@ function ManagerCard({ s, highlight }) {
   const cells = [
     { label: 'Всего', value: s.total },
     { label: 'Запланировано', value: s.planned },
-    { label: 'Проведено', value: s.completed },
-    { label: 'С бронью', value: s.completed_booked, gold: true },
+    { label: 'Проведено', value: s.completed + s.completed_booked },
+    { label: 'из них с бронью', value: s.completed_booked, gold: true },
     { label: 'Перенесено', value: s.rescheduled },
     { label: 'Отменено', value: s.cancelled },
     { label: '% броней', value: s.booking_rate == null ? '—' : `${s.booking_rate}%`, span: 2 },
