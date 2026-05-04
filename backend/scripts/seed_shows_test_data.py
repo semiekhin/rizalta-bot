@@ -45,14 +45,15 @@ PROFILES = [
     {
         "name": "Шумова Дарья",
         # high activity + ПЛОХАЯ конверсия → должен попасть в красный флаг
-        # booking_rate ≈ 0.08 / (0.55 + 0.08) ≈ 13% < 20%, conducted ≈ 25-32 ≥ 5
+        # detail. allocation: 5 planned + 25 completed + 3 booked + 7 resched + 5 cancel
+        # → booking_rate = 3 / (25 + 3) = 10.7% < 20%, conducted = 28 ≥ 5
         "count_range": (40, 50),
         "weights": {
             "planned": 0.12,
-            "completed": 0.55,
-            "completed_booked": 0.08,
-            "rescheduled": 0.15,
-            "cancelled": 0.10,
+            "completed": 0.60,
+            "completed_booked": 0.06,
+            "rescheduled": 0.14,
+            "cancelled": 0.08,
         },
     },
     {
@@ -69,14 +70,15 @@ PROFILES = [
     },
     {
         "name": "Панченко Инна",
-        # низкая активность, но >= 3 (флаг низкой активности НЕ должен сработать)
-        "count_range": (5, 8),
+        # низкая активность относительно других, но в спеке 30-50 и >> 3
+        # (red flag "низкая активность" триггерится при total < 3, не сработает)
+        "count_range": (30, 35),
         "weights": {
-            "planned": 0.20,
+            "planned": 0.13,
             "completed": 0.40,
-            "completed_booked": 0.15,
+            "completed_booked": 0.20,
             "rescheduled": 0.15,
-            "cancelled": 0.10,
+            "cancelled": 0.12,
         },
     },
 ]
@@ -160,10 +162,22 @@ def random_show_dt(now: datetime, planned: bool) -> datetime:
     return d.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
 
-def pick_status(weights: dict) -> str:
-    statuses = list(weights.keys())
-    ws = list(weights.values())
-    return random.choices(statuses, weights=ws, k=1)[0]
+def allocate_counts(total: int, weights: dict[str, float]) -> dict[str, int]:
+    """Детерминированно разбить total по статусам пропорционально весам.
+    Округление с компенсацией: остаток после округлений уходит в самый
+    тяжёлый статус, чтобы сумма точно совпала с total."""
+    raw = {s: total * w for s, w in weights.items()}
+    rounded = {s: int(round(v)) for s, v in raw.items()}
+    diff = total - sum(rounded.values())
+    if diff != 0:
+        # самый "тяжёлый" статус принимает разницу (+/- 1..2)
+        heaviest = max(weights, key=weights.get)
+        rounded[heaviest] += diff
+    # ни у кого не должно быть отрицательного количества
+    for k, v in rounded.items():
+        if v < 0:
+            rounded[k] = 0
+    return rounded
 
 
 # ============ Основной сценарий ============
@@ -192,28 +206,30 @@ def main():
     for profile in PROFILES:
         manager = profile["name"]
         count = random.randint(*profile["count_range"])
-        for _ in range(count):
-            status = pick_status(profile["weights"])
-            dt = random_show_dt(now, planned=(status == "planned"))
-            dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-            agency = random.choice(AGENCIES)
-            realtor = random_realtor_name()
-            comment = random.choice(COMMENTS) if random.random() < 0.30 else None
+        allocation = allocate_counts(count, profile["weights"])
 
-            # create_show ставит status='planned' и валидирует manager
-            row = create_show(
-                show_datetime=dt_str,
-                manager=manager,
-                realtor_name=realtor,
-                realtor_agency=agency,
-                comment=comment,
-            )
-            # update_show валидирует status и применяет нужный
-            if status != "planned":
-                update_show(row["id"], {"status": status})
+        for status, n in allocation.items():
+            for _ in range(n):
+                dt = random_show_dt(now, planned=(status == "planned"))
+                dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                agency = random.choice(AGENCIES)
+                realtor = random_realtor_name()
+                comment = random.choice(COMMENTS) if random.random() < 0.30 else None
 
-            summary[manager][status] = summary[manager].get(status, 0) + 1
-            total_inserted += 1
+                # create_show ставит status='planned' и валидирует manager
+                row = create_show(
+                    show_datetime=dt_str,
+                    manager=manager,
+                    realtor_name=realtor,
+                    realtor_agency=agency,
+                    comment=comment,
+                )
+                # update_show валидирует status и применяет нужный
+                if status != "planned":
+                    update_show(row["id"], {"status": status})
+
+                summary[manager][status] = summary[manager].get(status, 0) + 1
+                total_inserted += 1
 
     # ============ Печать сводки ============
     print(f"\n[SEED] Inserted: {total_inserted} shows total\n")
