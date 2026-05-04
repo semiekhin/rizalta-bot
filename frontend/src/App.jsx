@@ -14,6 +14,7 @@ const News = lazy(() => import('./pages/News'))
 const Secretary = lazy(() => import('./pages/Secretary'))
 const Fixation = lazy(() => import('./pages/Fixation'))
 const Shows = lazy(() => import('./pages/Shows'))
+const ShowsDashboard = lazy(() => import('./pages/ShowsDashboard'))
 // TODO: reuse for Corp4 whitelist
 // const Corp3 = lazy(() => import('./pages/Corp3'))
 
@@ -29,9 +30,11 @@ const PageLoader = () => (
   </div>
 )
 
-// URL paths that map to in-app screens (direct-link only, not in nav)
+// URL paths that map to in-app screens (direct-link only, not in nav).
+// Dashboard URL has a secret suffix — see CLAUDE.md "Скрытые URL".
 const PATH_TO_SCREEN = {
   '/shows': 'shows',
+  '/shows/dashboard-84a11b0664': 'shows-dashboard',
 }
 
 export default function App() {
@@ -107,6 +110,8 @@ export default function App() {
         return <Fixation onBack={() => navigate('home')} />
       case 'shows':
         return <Shows onBack={() => navigate('home')} />
+      case 'shows-dashboard':
+        return <ShowsDashboard onBack={() => navigate('home')} />
       // TODO: reuse for Corp4 whitelist
       // case 'corp3':
       //   return <Corp3 onSelectLot={(lot) => navigate('lot', lot)} onBack={() => navigate('home')} />

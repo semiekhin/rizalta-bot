@@ -155,3 +155,59 @@ def delete_show(show_id: int) -> bool:
     conn.commit()
     conn.close()
     return cursor.rowcount > 0
+
+
+def get_stats_by_manager(date_from: Optional[str] = None,
+                         date_to: Optional[str] = None) -> list[dict]:
+    """Aggregate counts per manager. Always returns a row per known manager
+    (zero-filled if no shows in period). booking_rate is None when there are
+    no conducted shows (completed + completed_booked == 0)."""
+    conditions = []
+    params: list = []
+    if date_from:
+        conditions.append("show_datetime >= ?")
+        params.append(date_from)
+    if date_to:
+        conditions.append("show_datetime <= ?")
+        params.append(date_to)
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    sql = f"""
+        SELECT
+            manager,
+            COUNT(*) AS total,
+            SUM(CASE WHEN status = 'planned' THEN 1 ELSE 0 END) AS planned,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'completed_booked' THEN 1 ELSE 0 END) AS completed_booked,
+            SUM(CASE WHEN status = 'rescheduled' THEN 1 ELSE 0 END) AS rescheduled,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+        FROM shows
+        {where}
+        GROUP BY manager
+    """
+    conn = get_conn()
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+
+    by_name = {r["manager"]: r for r in rows}
+    result = []
+    for name in MANAGERS:
+        r = by_name.get(name)
+        total = r["total"] if r else 0
+        planned = r["planned"] if r else 0
+        completed = r["completed"] if r else 0
+        completed_booked = r["completed_booked"] if r else 0
+        rescheduled = r["rescheduled"] if r else 0
+        cancelled = r["cancelled"] if r else 0
+        conducted = completed + completed_booked
+        booking_rate = round(100 * completed_booked / conducted, 1) if conducted > 0 else None
+        result.append({
+            "manager": name,
+            "total": total,
+            "planned": planned,
+            "completed": completed,
+            "completed_booked": completed_booked,
+            "rescheduled": rescheduled,
+            "cancelled": cancelled,
+            "booking_rate": booking_rate,
+        })
+    return result

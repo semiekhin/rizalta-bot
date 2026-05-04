@@ -32,6 +32,7 @@ from services import rag_service
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.shows_service import (
     init_shows_db, get_managers, create_show, list_shows, update_show, delete_show,
+    get_stats_by_manager,
 )
 from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
@@ -743,6 +744,42 @@ async def api_shows_delete(show_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Show not found")
     return {"ok": True}
+
+
+@app.get("/api/shows/dashboard/stats")
+async def api_shows_dashboard_stats(date_from: Optional[str] = None,
+                                    date_to: Optional[str] = None):
+    try:
+        stats = get_stats_by_manager(date_from=date_from, date_to=date_to)
+        totals = {
+            "total": sum(s["total"] for s in stats),
+            "planned": sum(s["planned"] for s in stats),
+            "completed": sum(s["completed"] for s in stats),
+            "completed_booked": sum(s["completed_booked"] for s in stats),
+            "rescheduled": sum(s["rescheduled"] for s in stats),
+            "cancelled": sum(s["cancelled"] for s in stats),
+        }
+        conducted = totals["completed"] + totals["completed_booked"]
+        totals["booking_rate"] = round(100 * totals["completed_booked"] / conducted, 1) if conducted else None
+        return {"ok": True, "stats": stats, "totals": totals,
+                "period": {"from": date_from, "to": date_to}}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/shows/dashboard/list")
+async def api_shows_dashboard_list(date_from: Optional[str] = None,
+                                   date_to: Optional[str] = None,
+                                   manager: Optional[str] = None,
+                                   status: Optional[str] = None):
+    try:
+        shows = list_shows(manager=manager, date_from=date_from,
+                           date_to=date_to, status=status)
+        # Dashboard wants newest-first; calendar list_shows is ASC, so reverse here.
+        shows.reverse()
+        return {"ok": True, "shows": shows}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 # === Fixation endpoints ===
