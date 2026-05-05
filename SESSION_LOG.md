@@ -1,5 +1,28 @@
 # SESSION_LOG — Последние сессии
 
+## 05.05.2026 — Календарь показов (этап 1+2) + ставки траншевой ипотеки + v0.9.8 в PROD
+
+**Сделано:**
+- **Календарь показов /shows (этап 1 MVP):** `frontend/src/pages/Shows.jsx` (601 стр), `backend/services/shows_service.py` + отдельная `shows.db`, эндпоинты `GET/POST/PUT/DELETE /api/shows`, `GET /api/shows/managers`. Упрощённая модель: 5 статусов (`planned/completed/completed_booked/rescheduled/cancelled`), минимум полей (datetime, manager, realtor_agency, realtor_name, comment). Кнопка «Создать показ» вместо плавающего FAB. Mobile-fix для нижней навигации.
+- **Дашборд руководителя /shows/dashboard-84a11b0664 (этап 2):** `frontend/src/pages/ShowsDashboard.jsx` (365 стр), эндпоинты `GET /api/shows/dashboard/stats` + `/list`. Сводка по 4 менеджерам (Дегтярева/Шумова/Хватик/Панченко): всего/планируется/проведено/из них с бронью/перенесено/отменено/% броней. Пресеты периода (Сегодня/Вчера/Неделя/Месяц/Произвольный). Скрытый URL без авторизации, suffix статичен в `App.jsx` (`PATH_TO_SCREEN`). Колонки «Проведено» и «Проведено + бронь» объединены в одну с подстрокой «из них с бронью» (фикс a4e1edf).
+- **Красные флаги — только для периодов ≥ 7 дней:** в `ShowsDashboard.jsx` добавлен `periodDays = round((to-from)/86400000)+1`, `flags = periodDays >= 7 ? buildFlags(stats) : []`. Существующий гейт `flags.length > 0` скрывает блок целиком (заголовок + грид). Логика: для пресетов «Сегодня»/«Вчера» (1 день) флаги бесполезны (мало данных); для «Эта неделя»/«Этот месяц»/custom ≥ 7 дней — работают как раньше (≥5 проведённых при `booking_rate < 20%`, либо `total < 3`).
+- **Ставки траншевой ипотеки Сбербанк** (`backend/data/tranche_mortgage_config.json`) обновлены до соответствия боту: ПВ 20.1% 21.7→**21.2**, 30.1% 21.2→**19.7**, 40.1% 21.2→**19.7**, 50.1% 19.2→**19.0**. Размеры траншей, срок (240 мес.), период (8 мес.), сервисный сбор (150 000) НЕ трогали. Контрольные значения для лота 17 745 000 ₽: ПВ 30.1% Еп1=61 986 ₽, ПВ 50.1% Еп1=32 414 ₽ — сошлись.
+- **Bump 0.9.7 → 0.9.8** (`backend/app.py`: FastAPI title + `/api/health`).
+- **Деплой в PROD** через `deploy-to-prod.sh`: `8939d62 → b469ad7`, 11 файлов, +1647/-7. Restart ~5 сек. `/opt/webapp/backend/shows.db` создалась автоматически (lifespan `init_shows_db()`, `CREATE TABLE IF NOT EXISTS`). Откат не понадобился. PROD `/api/health` → v0.9.8.
+
+**Файлы:** backend/app.py, backend/data/tranche_mortgage_config.json, backend/services/shows_service.py (new), backend/scripts/seed_shows_test_data.py (new), frontend/src/App.jsx, frontend/src/pages/Shows.jsx (new), frontend/src/pages/ShowsDashboard.jsx (new), CLAUDE.md, BACKLOG.md, .gitignore (`backend/shows.db*`)
+
+**Решения:**
+- **shows.db отдельная**, не в `properties.db` — show-это webapp-only сущность, общая БД остаётся read-only для webapp по units. `MANAGERS` — константа в коде, не в БД (4 менеджера фиксированы).
+- **Скрытый URL без авторизации** (suffix `84a11b0664` в `PATH_TO_SCREEN`) — не защита, а obscurity. Дашборд внутренний, доступ контролируется ссылкой. Для публичного — нужна `auth.js` (P2 К4 whitelist).
+- **Тестовые данные seed** оставлены как `backend/scripts/seed_shows_test_data.py` (детерминированная аллокация менеджеров в спеку 30-50 показов) — для DEV-проверки дашборда. Перед PROD-деплоем `DELETE FROM shows;` (БД в `.gitignore`, в PROD создалась пустой).
+- **Красные флаги < 7 дней не показывать** — на коротких окнах статистика недостоверна (4 проведённых за день не значит «низкая конверсия»). Порог 7 дней совпадает с минимальным «осмысленным» периодом.
+- **Точечный `git add` вместо `-A`** — в репо 1930 файлов `venv/*` уже tracked (закоммичены до того как `venv/` попал в `.gitignore`), `-A` втянул бы их в коммит. Зачистка `git rm --cached venv/` отдельной задачей в P2.
+
+**Следующий шаг:** наблюдение PROD-дашборда; справочник агентств + матрица «менеджер × агентство» (P2)
+
+---
+
 ## 21.04.2026 — RCLICK fix (PHPSESSID + auto-relogin) + пересборка DEV venv
 
 **Сделано:**
