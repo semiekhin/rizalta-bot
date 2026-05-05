@@ -108,7 +108,12 @@ export default function ShowsDashboard({ onBack }) {
 
   useEffect(() => { load() }, [from, to, filterManager, filterStatus])
 
-  const flags = useMemo(() => buildFlags(stats), [stats])
+  const periodDays = useMemo(() => {
+    const f = new Date(from), t = new Date(to)
+    if (isNaN(f) || isNaN(t)) return 0
+    return Math.round((t - f) / 86400000) + 1
+  }, [from, to])
+  const flags = useMemo(() => periodDays >= 7 ? buildFlags(stats) : [], [stats, periodDays])
   const managerOptions = useMemo(() => stats.map(s => s.manager), [stats])
 
   return (
