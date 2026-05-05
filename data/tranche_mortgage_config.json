@@ -4,19 +4,19 @@
     "down_payment_options": {
         "20.1": {
             "pct": 20.1,
-            "rate": 21.7
+            "rate": 21.2
         },
         "30.1": {
             "pct": 30.1,
-            "rate": 21.2
+            "rate": 19.7
         },
         "40.1": {
             "pct": 40.1,
-            "rate": 21.2
+            "rate": 19.7
         },
         "50.1": {
             "pct": 50.1,
-            "rate": 19.2
+            "rate": 19.0
         }
     },
     "tranche_amounts": {
