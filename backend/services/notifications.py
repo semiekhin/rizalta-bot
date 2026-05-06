@@ -9,6 +9,8 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from datetime import datetime
 import httpx
 from dotenv import load_dotenv
@@ -132,6 +134,42 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"Email send failed: {e}")
+        return False
+
+
+def send_email_with_attachment(to: str, subject: str, body_html: str,
+                               attachment_path: str) -> bool:
+    """Отправка email с бинарным attachment (используется для бэкапов)."""
+    if not all([SMTP_HOST, SMTP_USER, SMTP_PASSWORD, to]):
+        logger.warning("Email config incomplete, skipping email with attachment")
+        return False
+    if not os.path.exists(attachment_path):
+        logger.error(f"Attachment not found: {attachment_path}")
+        return False
+
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = BOT_EMAIL or SMTP_USER
+        msg["To"] = to
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body_html, "html", "utf-8"))
+
+        with open(attachment_path, "rb") as f:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(f.read())
+        encoders.encode_base64(part)
+        filename = os.path.basename(attachment_path)
+        part.add_header("Content-Disposition",
+                        f'attachment; filename="{filename}"')
+        msg.attach(part)
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        logger.error(f"Email with attachment send failed: {e}")
         return False
 
 

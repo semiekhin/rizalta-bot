@@ -7,3 +7,5 @@ backend/secretary.db
 backend/shows.db
 backend/shows.db-shm
 backend/shows.db-wal
+backend/backups/*
+!backend/backups/.gitkeep

@@ -31,3 +31,4 @@
 - [ ] **Линтеры** — настроить flake8/black для backend
 - [ ] **Очистка legacy** — OpenAI env переменные (OPENAI_API_KEY, OPENAI_MODEL) больше не используются
 - [ ] **corp3_units.json** — больше не используется (всё в properties.db), CORP3_DATA_PATH в .env можно убрать
+- [ ] **ShowsDashboard.jsx: при 6+ менеджерах рассмотреть `lg:grid-cols-3` на десктопе** — сейчас `grid-cols-2` / `sm:grid-cols-2`, при 6 карточках ряды тянутся вниз

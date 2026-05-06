@@ -81,6 +81,30 @@ PROFILES = [
             "cancelled": 0.12,
         },
     },
+    {
+        "name": "Васильченко Евгения",
+        # средние показатели (новый менеджер — без триггеров красных флагов)
+        "count_range": (30, 40),
+        "weights": {
+            "planned": 0.13,
+            "completed": 0.42,
+            "completed_booked": 0.18,
+            "rescheduled": 0.15,
+            "cancelled": 0.12,
+        },
+    },
+    {
+        "name": "Товт Александра",
+        # средние показатели (новый менеджер — без триггеров красных флагов)
+        "count_range": (30, 40),
+        "weights": {
+            "planned": 0.13,
+            "completed": 0.40,
+            "completed_booked": 0.20,
+            "rescheduled": 0.15,
+            "cancelled": 0.12,
+        },
+    },
 ]
 
 # Сверка с MANAGERS из shows_service — чтобы не пропустить опечатку

@@ -11,6 +11,8 @@ MANAGERS = [
     "Шумова Дарья",
     "Хватик Светлана",
     "Панченко Инна",
+    "Васильченко Евгения",
+    "Товт Александра",
 ]
 
 VALID_STATUS = {"planned", "completed", "completed_booked", "rescheduled", "cancelled"}

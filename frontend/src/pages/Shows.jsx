@@ -151,7 +151,7 @@ export default function Shows({ onBack }) {
           <h1 className="text-2xl font-semibold text-rz-gold mb-2">Кто вы?</h1>
           <p className="text-rz-cream-dark text-sm mb-6">Выберите своё имя — оно сохранится для следующих визитов.</p>
           <div className="flex flex-col gap-3">
-            {(managers.length ? managers : ['Дегтярева Марина','Шумова Дарья','Хватик Светлана','Панченко Инна']).map(n => (
+            {(managers.length ? managers : ['Дегтярева Марина','Шумова Дарья','Хватик Светлана','Панченко Инна','Васильченко Евгения','Товт Александра']).map(n => (
               <button
                 key={n}
                 onClick={() => pickManager(n)}

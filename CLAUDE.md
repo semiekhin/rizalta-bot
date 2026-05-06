@@ -223,6 +223,28 @@ cd /opt/webapp-dev/frontend && npm run build
 sudo systemctl status webhook-webapp.service
 ```
 
+### Бэкап shows.db
+
+Скрипт: `backend/scripts/backup_shows.py`. Окружение определяется по `WEBAPP_ROOT`:
+- **PROD** (`/opt/webapp`): локальный бэкап + email на `MANAGER_EMAIL`.
+- **DEV** (`/opt/webapp-dev`): только локальный бэкап, без email.
+
+Snapshot — через sqlite3 backup API (consistent), затем gzip → `backend/backups/shows-YYYY-MM-DD.db.gz`. Локальная ротация — 14 дней по mtime. При неудачной отправке email локальный файл сохраняется, скрипт возвращает exit 1 (cron логирует в `/var/log/backup.log`).
+
+**Cron на PROD** (применить через `sudo crontab -e`, не пересекаться с бэкапом бота в 03:00):
+```
+30 3 * * * /opt/webapp/venv/bin/python /opt/webapp/backend/scripts/backup_shows.py >> /var/log/backup.log 2>&1
+```
+
+**Восстановление shows.db из бэкапа:**
+```bash
+sudo systemctl stop webapp.service
+gunzip -k /opt/webapp/backend/backups/shows-YYYY-MM-DD.db.gz
+sudo cp /opt/webapp/backend/backups/shows-YYYY-MM-DD.db /opt/webapp/backend/shows.db
+sudo chown root:root /opt/webapp/backend/shows.db
+sudo systemctl start webapp.service
+```
+
 ## Workflow
 
 - **Claude.ai** = архитектор (ТЗ, анализ, спецификации)
