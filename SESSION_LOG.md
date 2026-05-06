@@ -1,5 +1,31 @@
 # SESSION_LOG — Последние сессии
 
+## 06.05.2026 — +2 менеджера (6 итого) + ежедневный бэкап shows.db на email
+
+**Сделано:**
+- **+2 менеджера в шоу-календарь:** Васильченко Евгения, Товт Александра. `MANAGERS` в `backend/services/shows_service.py` 4 → 6, два новых `PROFILES` (средние показатели, без триггеров красных флагов) в `backend/scripts/seed_shows_test_data.py`, fallback-массив в `frontend/src/pages/Shows.jsx:154` синхронизирован. `GET /api/shows/managers` на PROD теперь возвращает 6 имён.
+- **Ежедневный бэкап shows.db (новый скрипт):** `backend/scripts/backup_shows.py`. sqlite3 backup API (consistent snapshot) → gzip → `backend/backups/shows-YYYY-MM-DD.db.gz`. Локальная ротация 14 дней по mtime. Окружение определяется по `WEBAPP_ROOT`: на DEV — только локальный бэкап без email; на PROD — локальный + email с attachment. При неудаче email — `sys.exit(1)`, локальный файл сохраняется. В `services/notifications.py` добавлена `send_email_with_attachment()` рядом с существующей `send_email()`.
+- **Отдельный `BACKUP_EMAIL` env-ключ с fallback на `MANAGER_EMAIL`:** `BACKUP_EMAIL = os.getenv("BACKUP_EMAIL") or os.getenv("MANAGER_EMAIL", "")`. Сделано после разведки: в `MANAGER_EMAIL` обнаружен посторонний адрес `dreaming2015@mail.ru` (происхождение неизвестно, в коде/других сервисах не упомянут, существует в `.env` минимум с 16.03.2026). Адрес продолжает получать продуктовые уведомления о заявках на показ (за последние 30 дней — 0 писем; за всю историю с 10.02.2026 — максимум 14 в feb 10–12 в тестовый период), но **не получает дамп БД**. `MANAGER_EMAIL` не тронут.
+- **`.gitignore`:** `backend/backups/*` + `!backend/backups/.gitkeep` (negation для маркера папки). `git check-ignore` проверен: `.gitkeep` whitelisted, `.db.gz` ignored.
+- **CLAUDE.md:** новая секция «Бэкап shows.db» — расписание, путь, ротация, процедура восстановления (4 команды).
+- **Деплой в PROD** через `deploy-to-prod.sh`: `e6cea2a → 8d435a6`, версия 0.9.8 не бампилась, скрипт спросил `Continue anyway? y` (содержательно изменения есть, но пользовательски в /api/health версия не менялась). Откат не понадобился.
+- **Первый ручной запуск бэкапа на PROD:** exit 0, `shows-2026-05-06.db.gz` создан (476 байт, исходная БД 20 KB / 0 строк), `gunzip -t` ok, `Email sent to 89181011091s@mail.ru`, `dreaming2015` в логах не упоминается, без `SMTPException`.
+
+**Файлы:** backend/services/shows_service.py, backend/services/notifications.py, backend/scripts/backup_shows.py (new), backend/scripts/seed_shows_test_data.py, backend/backups/.gitkeep (new), frontend/src/pages/Shows.jsx, .gitignore, CLAUDE.md, BACKLOG.md
+
+**Решения:**
+- **Бэкап на отдельный `BACKUP_EMAIL`, не на `MANAGER_EMAIL`** — в MANAGER_EMAIL сидит посторонний `dreaming2015@mail.ru` неизвестного происхождения. Уведомления о заявках продолжают идти на оба адреса (как настроено), но тех. дамп БД не должен. Развилка через env-ключ, не правка `MANAGER_EMAIL` — не наша зона ответственности.
+- **sqlite3 `src.backup(snap)`, не `gzip` живого файла** — базовая SQLite-гигиена бэкапов: при одновременной записи (которая ночью маловероятна, но возможна) gzip живого файла даст битый snapshot.
+- **Cron только на PROD, не на DEV** — симметрия с ботом (`/opt/bot/backup.sh` бэкапит только PROD), DEV постоянно пересобирается seed-данными.
+- **Версия 0.9.8 не бампилась** — содержательно для пользователя ничего нового (бэкап тех. процесс), 6 менеджеров — мелкая правка справочника. Бамп не нужен.
+- **Захардкоженный список MANAGERS вместо БД-таблицы** — менеджеры меняются раз в полгода, валидация уже в нескольких местах (create_show, update_show, get_stats_by_manager), вынос в БД — overengineering.
+
+**Следующий шаг:**
+- Сергей применяет cron-строку на PROD (`30 3 * * * /opt/webapp/venv/bin/python /opt/webapp/backend/scripts/backup_shows.py >> /var/log/backup.log 2>&1`). После этого первое автосрабатывание — следующая ночь 03:30 МСК.
+- Бонус-наблюдение (не наша территория): `/opt/bot/backup.sh` падает уже несколько дней с `(552, Message size exceeds maximum permitted)` — 86 MB архив бота не лезет в SMTP-лимит mail.ru. Передать Сергею для бот-стороны.
+
+---
+
 ## 05.05.2026 — Календарь показов (этап 1+2) + ставки траншевой ипотеки + v0.9.8 в PROD
 
 **Сделано:**
