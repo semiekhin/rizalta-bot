@@ -15,6 +15,35 @@ MANAGERS = [
     "Товт Александра",
 ]
 
+AGENCIES = [
+    "Арт-инвест",
+    "Атлас",
+    "Гордон А.",
+    "Града",
+    "ДМ групп",
+    "ДомРил",
+    "ЗАЙРЕКС",
+    "Интегрити",
+    "Интегрити 2",
+    "Кипарис",
+    "КосмосРиалти",
+    "Лехто Групп",
+    "Лето Недвижимость",
+    "Мегаполис",
+    "НВС Групп",
+    "НикаЭстейт",
+    "Оазис",
+    "Остров",
+    "ПроСторе Сочи",
+    "Семья Мосейкиных",
+    "Сириус Групп",
+    "Сочи ЮДВ",
+    "Финвилас",
+    "Элитный Сочи",
+    "ЭСТАДЕЛЬ",
+    "Ю-ХАУС",
+]
+
 VALID_STATUS = {"planned", "completed", "completed_booked", "rescheduled", "cancelled"}
 
 
@@ -65,6 +94,10 @@ def _row_to_dict(row) -> Optional[dict]:
 
 def get_managers() -> list[str]:
     return list(MANAGERS)
+
+
+def get_agencies() -> list[str]:
+    return list(AGENCIES)
 
 
 def create_show(

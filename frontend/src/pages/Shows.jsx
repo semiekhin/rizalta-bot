@@ -62,6 +62,7 @@ function startOfMonth(d) {
 export default function Shows({ onBack }) {
   const [manager, setManager] = useState(null)
   const [managers, setManagers] = useState([])
+  const [agencies, setAgencies] = useState([])
   const [view, setView] = useState('week')
   const [anchor, setAnchor] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d })
   const [shows, setShows] = useState([])
@@ -76,6 +77,13 @@ export default function Shows({ onBack }) {
     fetch('/api/shows/managers')
       .then(r => r.json())
       .then(d => { if (d.ok) setManagers(d.managers) })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/shows/agencies')
+      .then(r => r.json())
+      .then(d => { if (d.ok) setAgencies(d.agencies) })
       .catch(() => {})
   }, [])
 
@@ -241,6 +249,10 @@ export default function Shows({ onBack }) {
           onDeleted={() => { setEditing(null); refresh() }}
         />
       )}
+
+      <datalist id="rz-agencies-list">
+        {agencies.map(a => <option key={a} value={a} />)}
+      </datalist>
     </div>
   )
 }
@@ -430,7 +442,7 @@ function CreateModal({ manager, defaultDate, onClose, onCreated }) {
           <input value={manager} disabled className={inputCls + ' opacity-70'} />
         </Field>
         <Field label="Агентство">
-          <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} placeholder="например, Этажи" />
+          <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} list="rz-agencies-list" placeholder="например, Атлас" />
         </Field>
         <Field label="Риэлтор (ФИО)*">
           <input value={form.realtor_name} onChange={e => update('realtor_name', e.target.value)} className={inputCls} required />
@@ -534,7 +546,7 @@ function EditModal({ show, managers, onClose, onSaved, onDeleted }) {
           </select>
         </Field>
         <Field label="Агентство">
-          <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} />
+          <input value={form.realtor_agency} onChange={e => update('realtor_agency', e.target.value)} className={inputCls} list="rz-agencies-list" />
         </Field>
         <Field label="Риэлтор">
           <input value={form.realtor_name} onChange={e => update('realtor_name', e.target.value)} className={inputCls} />

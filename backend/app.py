@@ -31,7 +31,7 @@ from services.intent_router import quick_classify_navigation
 from services import rag_service
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.shows_service import (
-    init_shows_db, get_managers, create_show, list_shows, update_show, delete_show,
+    init_shows_db, get_managers, get_agencies, create_show, list_shows, update_show, delete_show,
     get_stats_by_manager,
 )
 from services.secretary_ai import parse_task_with_ai
@@ -694,6 +694,11 @@ async def api_parse_task(req: TaskParseRequest):
 @app.get("/api/shows/managers")
 async def api_shows_managers():
     return {"ok": True, "managers": get_managers()}
+
+
+@app.get("/api/shows/agencies")
+async def api_shows_agencies():
+    return {"ok": True, "agencies": get_agencies()}
 
 
 @app.get("/api/shows")

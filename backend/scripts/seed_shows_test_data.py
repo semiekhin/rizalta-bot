@@ -19,7 +19,7 @@ BACKEND_DIR = os.path.dirname(HERE)
 sys.path.insert(0, BACKEND_DIR)
 
 from services.shows_service import (  # noqa: E402
-    SHOWS_DB, MANAGERS, init_shows_db, create_show, update_show,
+    SHOWS_DB, MANAGERS, AGENCIES, init_shows_db, create_show, update_show,
 )
 
 # Защита от случайного запуска против PROD
@@ -114,19 +114,6 @@ if profile_names != service_names:
     raise SystemExit(f"PROFILES managers mismatch: profiles={profile_names} service={service_names}")
 
 # ============ Справочники ============
-
-AGENCIES = [
-    "Этажи",
-    "СамолётПлюс",
-    "Метражи",
-    "Жилфонд-Новосибирск",
-    "Перспектива24",
-    "ИнКом-Недвижимость",
-    "ТСН Недвижимость",
-    "Мегаполис-Сервис",
-    "Авангард-Риэлт",
-    "Доли.ру",
-]
 
 FIRST_NAMES_M = [
     "Александр", "Дмитрий", "Сергей", "Андрей", "Михаил",
