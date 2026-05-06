@@ -1,7 +1,8 @@
 """Daily backup of shows.db.
 
 - DEV (WEBAPP_ROOT == /opt/webapp-dev): локальный бэкап + лог в stdout, БЕЗ email.
-- PROD (WEBAPP_ROOT == /opt/webapp): локальный бэкап + email на MANAGER_EMAIL.
+- PROD (WEBAPP_ROOT == /opt/webapp): локальный бэкап + email на BACKUP_EMAIL
+  (fallback на MANAGER_EMAIL, если BACKUP_EMAIL не задан).
 
 Snapshot — через sqlite3 backup API (consistent под чтением/записью).
 Локальная ротация — 14 дней по mtime.
@@ -35,7 +36,7 @@ BACKUPS_DIR = os.path.join(BACKEND_DIR, "backups")
 
 WEBAPP_ROOT = os.getenv("WEBAPP_ROOT", "")
 IS_PROD = WEBAPP_ROOT.rstrip("/") == "/opt/webapp"
-MANAGER_EMAIL = os.getenv("MANAGER_EMAIL", "")
+BACKUP_EMAIL = os.getenv("BACKUP_EMAIL") or os.getenv("MANAGER_EMAIL", "")
 
 
 def log(msg: str) -> None:
@@ -127,8 +128,8 @@ def main() -> int:
         log("DEV — пропускаю отправку email. Локальный бэкап сохранён.")
         return 0
 
-    if not MANAGER_EMAIL:
-        log("ERROR: MANAGER_EMAIL is not set on PROD — локальный файл оставлен, exit 1")
+    if not BACKUP_EMAIL:
+        log("ERROR: ни BACKUP_EMAIL, ни MANAGER_EMAIL не заданы на PROD — локальный файл оставлен, exit 1")
         return 1
 
     subject = f"RIZALTA WebApp · бэкап shows.db · {today}"
@@ -144,11 +145,11 @@ def main() -> int:
         f"</ul>"
     )
 
-    ok = send_email_with_attachment(MANAGER_EMAIL, subject, body, archive_path)
+    ok = send_email_with_attachment(BACKUP_EMAIL, subject, body, archive_path)
     if not ok:
         log("ERROR: email send failed — локальный файл оставлен, exit 1")
         return 1
-    log(f"Email sent to {MANAGER_EMAIL}")
+    log(f"Email sent to {BACKUP_EMAIL}")
     return 0
 
 
