@@ -20,6 +20,12 @@ SERVICE_FEE = 150_000
 # Апартаменты с индивидуальными условиями рассрочки (только 50% ПВ, 12 мес)
 CUSTOM_INSTALLMENT_UNITS = ['В217', 'В225', 'В317', 'В327', 'В417', 'В517', 'В525', 'В527', 'В615', 'В617', 'В625', 'В717']
 
+# Бизнес-правило: лоты К1 площадью ≤ 22.1 м² имеют индивидуальные условия
+# рассрочки (12 мес, 50% ПВ), без 18-мес. секции. Имя 1-в-1 с
+# /opt/bot-max/config/settings.py:CUSTOM_INSTALLMENT_MAX_AREA — для будущей
+# унификации (см. BACKLOG P2).
+CUSTOM_INSTALLMENT_MAX_AREA = 22.1
+
 def load_resource(filename: str) -> str:
     path = RESOURCES_DIR / filename
     return path.read_text().strip() if path.exists() else ""
@@ -235,7 +241,13 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
         # Проверяем, является ли это апартаментом с индивидуальными условиями
         if lot["code"] in CUSTOM_INSTALLMENT_UNITS and lot.get("building") is None:
             print(f"[KP PDF] WARN лот {lot['code']} в CUSTOM-списке, но building=None — стандартный layout. Проверь API-контракт.")
-        is_custom = lot["code"] in CUSTOM_INSTALLMENT_UNITS and lot.get("building") == 1
+        is_custom = lot.get("building") == 1 and (
+            lot["code"] in CUSTOM_INSTALLMENT_UNITS
+            or (
+                lot.get("area") is not None
+                and lot["area"] <= CUSTOM_INSTALLMENT_MAX_AREA
+            )
+        )
 
         if is_custom:
             # Индивидуальные условия: только 50% ПВ, 2 колонки
@@ -319,8 +331,20 @@ def generate_kp_pdf(area: float = 0, code: str = "", building: int = None, inclu
     # Бизнес-правило: для лотов К1 с индивидуальными условиями 18-мес. рассрочка
     # не предлагается. Защита от случая, когда фронт передаёт include_18m=True
     # для custom-лота (см. инцидент 04.05.2026 — В225 К1 22.1 м²).
-    if include_18m and lot["code"] in CUSTOM_INSTALLMENT_UNITS and lot.get("building") == 1:
-        print(f"[KP PDF] WARN принудительно отключаем 18-мес. секцию для индивидуального лота {lot['code']} (К1)")
+    is_custom_force = lot.get("building") == 1 and (
+        lot["code"] in CUSTOM_INSTALLMENT_UNITS
+        or (
+            lot.get("area") is not None
+            and lot["area"] <= CUSTOM_INSTALLMENT_MAX_AREA
+        )
+    )
+    if include_18m and is_custom_force:
+        reason = (
+            "по списку"
+            if lot["code"] in CUSTOM_INSTALLMENT_UNITS
+            else f"по площади {lot['area']} м² ≤ {CUSTOM_INSTALLMENT_MAX_AREA}"
+        )
+        print(f"[KP PDF] WARN принудительно отключаем 18-мес. секцию для {lot['code']} (К1, {reason})")
         include_18m = False
     print(f"[KP PDF] Генерируем КП для {lot['code']} ({lot['area']} м²)")
     html = generate_html(lot, include_18m=include_18m, full_payment=full_payment)
