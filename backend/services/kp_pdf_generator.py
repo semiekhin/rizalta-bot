@@ -18,7 +18,7 @@ RESOURCES_DIR = BASE_DIR / "resources"
 SERVICE_FEE = 150_000
 
 # Апартаменты с индивидуальными условиями рассрочки (только 50% ПВ, 12 мес)
-CUSTOM_INSTALLMENT_UNITS = ['В327', 'В615', 'В527', 'В517', 'В617', 'В525', 'В625', 'А101']
+CUSTOM_INSTALLMENT_UNITS = ['В217', 'В225', 'В317', 'В327', 'В417', 'В517', 'В525', 'В527', 'В615', 'В617', 'В625', 'В717']
 
 def load_resource(filename: str) -> str:
     path = RESOURCES_DIR / filename
@@ -233,8 +233,10 @@ body {{ font-family: 'Montserrat', Arial, sans-serif; background: #F6F0E3; color
 
     if not full_payment:
         # Проверяем, является ли это апартаментом с индивидуальными условиями
-        is_custom = lot["code"] in CUSTOM_INSTALLMENT_UNITS
-        
+        if lot["code"] in CUSTOM_INSTALLMENT_UNITS and lot.get("building") is None:
+            print(f"[KP PDF] WARN лот {lot['code']} в CUSTOM-списке, но building=None — стандартный layout. Проверь API-контракт.")
+        is_custom = lot["code"] in CUSTOM_INSTALLMENT_UNITS and lot.get("building") == 1
+
         if is_custom:
             # Индивидуальные условия: только 50% ПВ, 2 колонки
             html += f'''<div class="installment-section">
@@ -314,6 +316,12 @@ def generate_kp_pdf(area: float = 0, code: str = "", building: int = None, inclu
     if not lot:
         print(f"[KP PDF] Лот не найден: area={area}, code={code}")
         return None
+    # Бизнес-правило: для лотов К1 с индивидуальными условиями 18-мес. рассрочка
+    # не предлагается. Защита от случая, когда фронт передаёт include_18m=True
+    # для custom-лота (см. инцидент 04.05.2026 — В225 К1 22.1 м²).
+    if include_18m and lot["code"] in CUSTOM_INSTALLMENT_UNITS and lot.get("building") == 1:
+        print(f"[KP PDF] WARN принудительно отключаем 18-мес. секцию для индивидуального лота {lot['code']} (К1)")
+        include_18m = False
     print(f"[KP PDF] Генерируем КП для {lot['code']} ({lot['area']} м²)")
     html = generate_html(lot, include_18m=include_18m, full_payment=full_payment)
     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
