@@ -754,15 +754,27 @@ async def api_shows_delete(show_id: int):
 @app.get("/api/shows/dashboard/stats")
 async def api_shows_dashboard_stats(date_from: Optional[str] = None,
                                     date_to: Optional[str] = None,
-                                    group_by: Optional[str] = "manager"):
+                                    group_by: Optional[str] = "manager",
+                                    filter_manager: Optional[str] = None,
+                                    filter_agency: Optional[str] = None,
+                                    sort_by: Optional[str] = None):
+    if group_by not in ("manager", "agency"):
+        print(f"[SHOWS] dashboard/stats: invalid group_by={group_by!r}, falling back to 'manager'")
+        group_by = "manager"
+    # Drill-down filters must target the dimension we are NOT grouping by.
+    if filter_manager and group_by == "manager":
+        raise HTTPException(status_code=400,
+                            detail="filter_manager несовместим с group_by=manager")
+    if filter_agency and group_by == "agency":
+        raise HTTPException(status_code=400,
+                            detail="filter_agency несовместим с group_by=agency")
     try:
-        if group_by not in ("manager", "agency"):
-            print(f"[SHOWS] dashboard/stats: invalid group_by={group_by!r}, falling back to 'manager'")
-            group_by = "manager"
         if group_by == "agency":
-            stats = get_stats_by_agency(date_from=date_from, date_to=date_to)
+            stats = get_stats_by_agency(date_from=date_from, date_to=date_to,
+                                        filter_manager=filter_manager, sort_by=sort_by)
         else:
-            stats = get_stats_by_manager(date_from=date_from, date_to=date_to)
+            stats = get_stats_by_manager(date_from=date_from, date_to=date_to,
+                                         filter_agency=filter_agency, sort_by=sort_by)
         totals = {
             "total": sum(s["total"] for s in stats),
             "planned": sum(s["planned"] for s in stats),
@@ -773,8 +785,10 @@ async def api_shows_dashboard_stats(date_from: Optional[str] = None,
         }
         conducted = totals["completed"] + totals["completed_booked"]
         totals["booking_rate"] = round(100 * totals["completed_booked"] / conducted, 1) if conducted else None
+        totals["conducted"] = conducted
         return {"ok": True, "stats": stats, "totals": totals,
-                "period": {"from": date_from, "to": date_to}}
+                "period": {"from": date_from, "to": date_to},
+                "filter": {"manager": filter_manager, "agency": filter_agency}}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

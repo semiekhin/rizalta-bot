@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import Modal from '../components/Modal'
 
 const STATUS_LABEL = {
   planned: 'Запланирован',
@@ -79,6 +80,14 @@ export default function ShowsDashboard({ onBack }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Drill-down sheet: { dimension: 'manager'|'agency', value, sortBy } | null.
+  // dimension is the dimension of the CARD that was tapped; the sheet shows
+  // the opposite dimension.
+  const [drilldown, setDrilldown] = useState(null)
+  const [breakdownData, setBreakdownData] = useState(null)
+  const [breakdownLoading, setBreakdownLoading] = useState(false)
+  const [breakdownError, setBreakdownError] = useState(null)
+
   function applyPreset(p) {
     setPreset(p)
     if (p !== 'custom') {
@@ -120,6 +129,44 @@ export default function ShowsDashboard({ onBack }) {
       .then(d => { if (d.ok) setManagerOptions(d.managers) })
       .catch(() => {})
   }, [])
+
+  // Period / mode change invalidates the drill-down context — close the sheet.
+  // On first mount drilldown is already null, so this is a harmless no-op.
+  useEffect(() => { setDrilldown(null) }, [from, to, groupBy])
+
+  // Load breakdown data whenever the drill-down target changes. AbortController
+  // + an `active` flag guard against races from rapid taps on different cells.
+  useEffect(() => {
+    if (!drilldown) { setBreakdownData(null); setBreakdownError(null); return }
+    const controller = new AbortController()
+    let active = true
+    setBreakdownLoading(true); setBreakdownError(null)
+    const p = new URLSearchParams({
+      date_from: `${from} 00:00:00`,
+      date_to: `${to} 23:59:59`,
+      sort_by: drilldown.sortBy,
+    })
+    if (drilldown.dimension === 'manager') {
+      p.set('group_by', 'agency'); p.set('filter_manager', drilldown.value)
+    } else {
+      p.set('group_by', 'manager'); p.set('filter_agency', drilldown.value)
+    }
+    fetch(`/api/shows/dashboard/stats?${p}`, { signal: controller.signal })
+      .then(r => r.json())
+      .then(d => {
+        if (!active) return
+        if (d.ok) setBreakdownData(d)
+        else setBreakdownError(d.error || 'Ошибка загрузки')
+      })
+      .catch(e => { if (active && e.name !== 'AbortError') setBreakdownError(String(e)) })
+      .finally(() => { if (active) setBreakdownLoading(false) })
+    return () => { active = false; controller.abort() }
+  }, [drilldown, from, to])
+
+  function openDrilldown(value, sortBy) {
+    if (value === 'Итого') return
+    setDrilldown({ dimension: groupBy, value, sortBy })
+  }
 
   const periodDays = useMemo(() => {
     const f = new Date(from), t = new Date(to)
@@ -230,18 +277,26 @@ export default function ShowsDashboard({ onBack }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.map(s => (
-                      <tr key={s.name} className="border-t border-rz-green-light">
-                        <td className="px-3 py-2 text-rz-cream">{s.name}</td>
-                        <td className="px-3 py-2 text-right">{s.total}</td>
-                        <td className="px-3 py-2 text-right">{s.planned}</td>
-                        <td className="px-3 py-2 text-right">{s.completed + s.completed_booked}</td>
-                        <td className="px-3 py-2 text-right text-rz-gold font-semibold">{s.completed_booked}</td>
-                        <td className="px-3 py-2 text-right">{s.rescheduled}</td>
-                        <td className="px-3 py-2 text-right">{s.cancelled}</td>
-                        <td className="px-3 py-2 text-right">{s.booking_rate == null ? '—' : `${s.booking_rate}%`}</td>
-                      </tr>
-                    ))}
+                    {stats.map(s => {
+                      const clickable = s.total > 0
+                      const cellCls = clickable
+                        ? 'cursor-pointer transition-colors hover:bg-rz-green-mid/40'
+                        : 'cursor-default'
+                      const drill = metric => { if (clickable) openDrilldown(s.name, metric) }
+                      const nameSort = groupBy === 'manager' ? 'total' : 'booking_rate'
+                      return (
+                        <tr key={s.name} className="border-t border-rz-green-light">
+                          <td className={`px-3 py-2 ${clickable ? 'text-rz-cream' : 'text-rz-cream-muted'} ${cellCls}`} onClick={() => drill(nameSort)}>{s.name}</td>
+                          <td className={`px-3 py-2 text-right ${cellCls}`} onClick={() => drill('total')}>{s.total}</td>
+                          <td className={`px-3 py-2 text-right ${cellCls}`} onClick={() => drill('planned')}>{s.planned}</td>
+                          <td className={`px-3 py-2 text-right ${cellCls}`} onClick={() => drill('conducted')}>{s.completed + s.completed_booked}</td>
+                          <td className={`px-3 py-2 text-right text-rz-gold font-semibold ${cellCls}`} onClick={() => drill('completed_booked')}>{s.completed_booked}</td>
+                          <td className={`px-3 py-2 text-right ${cellCls}`} onClick={() => drill('rescheduled')}>{s.rescheduled}</td>
+                          <td className={`px-3 py-2 text-right ${cellCls}`} onClick={() => drill('cancelled')}>{s.cancelled}</td>
+                          <td className={`px-3 py-2 text-right ${cellCls}`} onClick={() => drill('booking_rate')}>{s.booking_rate == null ? '—' : `${s.booking_rate}%`}</td>
+                        </tr>
+                      )
+                    })}
                     {totals && (
                       <tr className="border-t-2 border-rz-gold/40 bg-rz-green-mid font-semibold">
                         <td className="px-3 py-2 text-rz-gold">Итого</td>
@@ -260,12 +315,32 @@ export default function ShowsDashboard({ onBack }) {
 
               {/* Mobile cards */}
               <div className="md:hidden space-y-3">
-                {stats.map(s => <ManagerCard key={s.name} s={s} />)}
+                {stats.map(s => (
+                  <ManagerCard
+                    key={s.name}
+                    s={s}
+                    clickable={s.total > 0}
+                    defaultSort={groupBy === 'manager' ? 'total' : 'booking_rate'}
+                    onDrill={metric => openDrilldown(s.name, metric)}
+                  />
+                ))}
                 {totals && <ManagerCard s={{ name: 'Итого', ...totals }} highlight />}
               </div>
             </>
           )}
         </section>
+
+        {drilldown && (
+          <BreakdownSheet
+            drilldown={drilldown}
+            data={breakdownData}
+            loading={breakdownLoading}
+            error={breakdownError}
+            onClose={() => setDrilldown(null)}
+            onSort={key => setDrilldown(d => ({ ...d, sortBy: key }))}
+            onRetry={() => setDrilldown(d => ({ ...d }))}
+          />
+        )}
 
         {/* Shows list */}
         <section>
@@ -350,28 +425,138 @@ function buildFlags(stats) {
   return flags
 }
 
-function ManagerCard({ s, highlight }) {
+function ManagerCard({ s, highlight, clickable, defaultSort, onDrill }) {
   const cells = [
-    { label: 'Всего', value: s.total },
-    { label: 'Запланировано', value: s.planned },
-    { label: 'Проведено', value: s.completed + s.completed_booked },
-    { label: 'из них с бронью', value: s.completed_booked, gold: true },
-    { label: 'Перенесено', value: s.rescheduled },
-    { label: 'Отменено', value: s.cancelled },
-    { label: '% броней', value: s.booking_rate == null ? '—' : `${s.booking_rate}%`, span: 2 },
+    { label: 'Всего', value: s.total, metric: 'total' },
+    { label: 'Запланировано', value: s.planned, metric: 'planned' },
+    { label: 'Проведено', value: s.completed + s.completed_booked, metric: 'conducted' },
+    { label: 'из них с бронью', value: s.completed_booked, gold: true, metric: 'completed_booked' },
+    { label: 'Перенесено', value: s.rescheduled, metric: 'rescheduled' },
+    { label: 'Отменено', value: s.cancelled, metric: 'cancelled' },
+    { label: '% броней', value: s.booking_rate == null ? '—' : `${s.booking_rate}%`, span: 2, metric: 'booking_rate' },
   ]
+  const cellInteractive = clickable
+    ? 'cursor-pointer transition-colors hover:bg-rz-green-mid/40 active:bg-rz-green-mid/40'
+    : 'cursor-default'
+  const nameCls = highlight
+    ? 'text-rz-gold'
+    : clickable
+      ? 'text-rz-cream cursor-pointer hover:text-rz-gold active:text-rz-gold'
+      : 'text-rz-cream-muted cursor-default'
   return (
     <div className={`rounded-lg p-3 ${highlight ? 'bg-rz-green-mid border-2 border-rz-gold/40' : 'bg-rz-green-mid border border-rz-green-light'}`}>
-      <div className={`font-semibold mb-2 ${highlight ? 'text-rz-gold' : 'text-rz-cream'}`}>{s.name}</div>
+      <div
+        className={`font-semibold mb-2 ${nameCls}`}
+        onClick={clickable ? () => onDrill(defaultSort) : undefined}
+      >
+        {s.name}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {cells.map((c, i) => (
-          <div key={i} className={`bg-rz-green rounded px-2 py-1.5 ${c.span === 2 ? 'col-span-2' : ''}`}>
+          <div
+            key={i}
+            className={`bg-rz-green rounded px-2 py-1.5 ${c.span === 2 ? 'col-span-2' : ''} ${cellInteractive}`}
+            onClick={clickable ? () => onDrill(c.metric) : undefined}
+          >
             <div className="text-[10px] text-rz-cream-muted uppercase">{c.label}</div>
             <div className={`text-base font-semibold ${c.gold ? 'text-rz-gold' : 'text-rz-cream'}`}>{c.value}</div>
           </div>
         ))}
       </div>
     </div>
+  )
+}
+
+const METRIC_LABEL = {
+  total: 'Всего',
+  planned: 'Запланировано',
+  conducted: 'Проведено',
+  completed_booked: 'С бронью',
+  rescheduled: 'Перенесено',
+  cancelled: 'Отменено',
+  booking_rate: '% броней',
+}
+
+// Mini-table columns inside the drill-down sheet (short headers, 8 cols total
+// counting the name column). Each is sortable — tapping a header re-sorts.
+const BREAKDOWN_COLS = [
+  { key: 'total', label: 'Всего' },
+  { key: 'planned', label: 'Зпл' },
+  { key: 'conducted', label: 'Прв' },
+  { key: 'completed_booked', label: 'Бр', gold: true },
+  { key: 'rescheduled', label: 'Прн' },
+  { key: 'cancelled', label: 'Отм' },
+  { key: 'booking_rate', label: '%Бр' },
+]
+
+function BreakdownSheet({ drilldown, data, loading, error, onClose, onSort, onRetry }) {
+  const sheetDim = drilldown.dimension === 'manager' ? 'agency' : 'manager'
+  const title = drilldown.dimension === 'manager'
+    ? `${drilldown.value} · По агентствам`
+    : `${drilldown.value} · По менеджерам`
+  const nameLabel = sheetDim === 'agency' ? 'Агентство' : 'Менеджер'
+  const rows = data && data.ok ? data.stats : null
+
+  return (
+    <Modal title={title} onClose={onClose} handle>
+      <div className="text-xs text-rz-cream-muted mb-3">
+        Сортировка ↓ {METRIC_LABEL[drilldown.sortBy] || drilldown.sortBy}
+      </div>
+
+      {loading && (
+        <div className="space-y-2">
+          {[0, 1, 2].map(i => <div key={i} className="h-8 bg-rz-green-mid rounded animate-pulse" />)}
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="text-center py-6">
+          <div className="text-rz-error text-sm mb-3">Не удалось загрузить</div>
+          <button onClick={onRetry} className="bg-rz-gold hover:bg-rz-gold-light text-rz-green font-semibold rounded px-3 py-1.5 text-sm">
+            Повторить
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && rows && rows.length === 0 && (
+        <div className="text-rz-cream-muted text-sm py-6 text-center">Нет данных за период</div>
+      )}
+
+      {!loading && !error && rows && rows.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-rz-cream-dark">
+              <tr>
+                <th className="text-left px-2 py-1.5 sticky top-0 bg-rz-green z-10">{nameLabel}</th>
+                {BREAKDOWN_COLS.map(c => (
+                  <th
+                    key={c.key}
+                    onClick={() => onSort(c.key)}
+                    className="text-right px-2 py-1.5 whitespace-nowrap cursor-pointer hover:text-rz-gold sticky top-0 bg-rz-green z-10"
+                  >
+                    {c.label}{drilldown.sortBy === c.key ? ' ↓' : ''}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.name} className="border-t border-rz-green-light">
+                  <td className="px-2 py-1.5 text-rz-cream">{r.name}</td>
+                  <td className="px-2 py-1.5 text-right">{r.total}</td>
+                  <td className="px-2 py-1.5 text-right">{r.planned}</td>
+                  <td className="px-2 py-1.5 text-right">{r.conducted}</td>
+                  <td className="px-2 py-1.5 text-right text-rz-gold font-semibold">{r.completed_booked}</td>
+                  <td className="px-2 py-1.5 text-right">{r.rescheduled}</td>
+                  <td className="px-2 py-1.5 text-right">{r.cancelled}</td>
+                  <td className="px-2 py-1.5 text-right">{r.booking_rate == null ? '—' : `${r.booking_rate}%`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
   )
 }
 

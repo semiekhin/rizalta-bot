@@ -192,11 +192,39 @@ def delete_show(show_id: int) -> bool:
     return cursor.rowcount > 0
 
 
+_VALID_SORT_KEYS = {"total", "planned", "conducted", "completed_booked",
+                    "rescheduled", "cancelled", "booking_rate"}
+
+
+def _add_conducted(rows: list[dict]) -> list[dict]:
+    """Add a 'conducted' field (completed + completed_booked) to each row."""
+    for r in rows:
+        r["conducted"] = r["completed"] + r["completed_booked"]
+    return rows
+
+
+def _sort_stats(rows: list[dict], sort_by: Optional[str]) -> list[dict]:
+    """Sort stat rows in place by the given metric. booking_rate ascending
+    (problem rows on top, None last); every other metric descending. An
+    unknown or None sort_by leaves the list untouched. Call _add_conducted
+    first so the 'conducted' key is available."""
+    if sort_by not in _VALID_SORT_KEYS:
+        return rows
+    if sort_by == "booking_rate":
+        rows.sort(key=lambda r: (r["booking_rate"] is None, r["booking_rate"] or 0))
+    else:
+        rows.sort(key=lambda r: r[sort_by], reverse=True)
+    return rows
+
+
 def get_stats_by_manager(date_from: Optional[str] = None,
-                         date_to: Optional[str] = None) -> list[dict]:
-    """Aggregate counts per manager. Always returns a row per known manager
-    (zero-filled if no shows in period). booking_rate is None when there are
-    no conducted shows (completed + completed_booked == 0)."""
+                         date_to: Optional[str] = None,
+                         filter_agency: Optional[str] = None,
+                         sort_by: Optional[str] = None) -> list[dict]:
+    """Aggregate counts per manager. Without filter_agency, returns a row per
+    known manager (zero-filled if no shows in period). With filter_agency,
+    zero-fill is skipped — only managers who actually worked with that agency
+    are returned. booking_rate is None when there are no conducted shows."""
     conditions = []
     params: list = []
     if date_from:
@@ -205,6 +233,12 @@ def get_stats_by_manager(date_from: Optional[str] = None,
     if date_to:
         conditions.append("show_datetime <= ?")
         params.append(date_to)
+    if filter_agency is not None:
+        if filter_agency == "Без агентства":
+            conditions.append("(realtor_agency IS NULL OR realtor_agency = '')")
+        else:
+            conditions.append("realtor_agency = ?")
+            params.append(filter_agency)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     sql = f"""
         SELECT
@@ -223,10 +257,7 @@ def get_stats_by_manager(date_from: Optional[str] = None,
     rows = conn.execute(sql, params).fetchall()
     conn.close()
 
-    by_name = {r["manager"]: r for r in rows}
-    result = []
-    for name in MANAGERS:
-        r = by_name.get(name)
+    def _build(name, r):
         total = r["total"] if r else 0
         planned = r["planned"] if r else 0
         completed = r["completed"] if r else 0
@@ -235,7 +266,7 @@ def get_stats_by_manager(date_from: Optional[str] = None,
         cancelled = r["cancelled"] if r else 0
         conducted = completed + completed_booked
         booking_rate = round(100 * completed_booked / conducted, 1) if conducted > 0 else None
-        result.append({
+        return {
             "manager": name,
             "name": name,
             "total": total,
@@ -245,15 +276,29 @@ def get_stats_by_manager(date_from: Optional[str] = None,
             "rescheduled": rescheduled,
             "cancelled": cancelled,
             "booking_rate": booking_rate,
-        })
+        }
+
+    if filter_agency is None:
+        # Zero-fill: a row per known manager, in MANAGERS order.
+        by_name = {r["manager"]: r for r in rows}
+        result = [_build(name, by_name.get(name)) for name in MANAGERS]
+    else:
+        # Drill-down: only managers who actually have rows, no zero-fill.
+        result = [_build(r["manager"], r) for r in rows]
+
+    result = _add_conducted(result)
+    result = _sort_stats(result, sort_by)
     return result
 
 
 def get_stats_by_agency(date_from: Optional[str] = None,
-                        date_to: Optional[str] = None) -> list[dict]:
+                        date_to: Optional[str] = None,
+                        filter_manager: Optional[str] = None,
+                        sort_by: Optional[str] = None) -> list[dict]:
     """Aggregate counts per agency. Unlike get_stats_by_manager there is no
     zero-fill — only agencies with shows in the period are returned. NULL or
-    empty realtor_agency is bucketed into a synthetic 'Без агентства' row."""
+    empty realtor_agency is bucketed into a synthetic 'Без агентства' row.
+    With filter_manager, only that manager's shows are counted."""
     conditions = []
     params: list = []
     if date_from:
@@ -262,6 +307,9 @@ def get_stats_by_agency(date_from: Optional[str] = None,
     if date_to:
         conditions.append("show_datetime <= ?")
         params.append(date_to)
+    if filter_manager is not None:
+        conditions.append("manager = ?")
+        params.append(filter_manager)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     sql = f"""
         SELECT
@@ -297,7 +345,8 @@ def get_stats_by_agency(date_from: Optional[str] = None,
             "booking_rate": booking_rate,
         })
 
-    # Sort: lowest booking_rate first (problem agencies on top).
-    # None (no completed shows) goes to the end.
-    result.sort(key=lambda r: (r["booking_rate"] is None, r["booking_rate"] or 0))
+    # Default sort: lowest booking_rate first (problem agencies on top),
+    # None (no completed shows) at the end. An explicit sort_by overrides it.
+    result = _add_conducted(result)
+    result = _sort_stats(result, sort_by or "booking_rate")
     return result
