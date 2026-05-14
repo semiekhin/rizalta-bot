@@ -25,6 +25,18 @@ const PRESET_LABEL = {
   custom: 'Произвольный',
 }
 
+// Sort options for the "По агентствам" cards. 'default' sends no sort_by —
+// the backend falls back to booking_rate ASC (None last). The rest sort DESC.
+const AGENCY_SORT_OPTIONS = [
+  { value: 'default', label: 'По умолчанию (% броней)' },
+  { value: 'total', label: 'Всего ↓' },
+  { value: 'planned', label: 'Запланировано ↓' },
+  { value: 'conducted', label: 'Проведено ↓' },
+  { value: 'completed_booked', label: 'Из них с бронью ↓' },
+  { value: 'rescheduled', label: 'Перенесено ↓' },
+  { value: 'cancelled', label: 'Отменено ↓' },
+]
+
 function pad(n) { return String(n).padStart(2, '0') }
 function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
 
@@ -74,6 +86,10 @@ export default function ShowsDashboard({ onBack }) {
   const [totals, setTotals] = useState(null)
   const [shows, setShows] = useState([])
   const [groupBy, setGroupBy] = useState('manager')
+  // Sort for the "По агентствам" cards. 'default' → no sort_by sent, backend
+  // uses its own default (booking_rate ASC, None last). Persists across
+  // manager↔agency toggling within the session.
+  const [agencySortBy, setAgencySortBy] = useState('default')
   const [managerOptions, setManagerOptions] = useState([])
   const [filterManager, setFilterManager] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -111,6 +127,9 @@ export default function ShowsDashboard({ onBack }) {
       date_to: `${to} 23:59:59`,
       group_by: groupBy,
     })
+    if (groupBy === 'agency' && agencySortBy !== 'default') {
+      params.set('sort_by', agencySortBy)
+    }
     fetch(`/api/shows/dashboard/stats?${params}`)
       .then(r => r.json())
       .then(s => {
@@ -155,9 +174,9 @@ export default function ShowsDashboard({ onBack }) {
     if (listLoaded) loadList()
   }
 
-  // Stats reload automatically on period / mode change. The list does NOT —
-  // filterManager/filterStatus are intentionally absent from these deps.
-  useEffect(() => { loadStats() }, [from, to, groupBy])
+  // Stats reload automatically on period / mode / agency-sort change. The list
+  // does NOT — filterManager/filterStatus are intentionally absent from deps.
+  useEffect(() => { loadStats() }, [from, to, groupBy, agencySortBy])
 
   // Manager list for the "Все показы" filter — loaded once on mount so it
   // stays populated regardless of the active group_by mode.
@@ -265,21 +284,32 @@ export default function ShowsDashboard({ onBack }) {
       <div className="max-w-6xl mx-auto px-4 mt-4">
         {error && <div className="text-rz-error text-sm mb-3">{error}</div>}
 
-        {/* Group-by toggle */}
-        <div className="mb-6 inline-flex rounded-lg bg-[#1C2A1B] p-1">
-          {[['manager', 'По менеджерам'], ['agency', 'По агентствам']].map(([val, label]) => (
-            <button
-              key={val}
-              onClick={() => setGroupBy(val)}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                groupBy === val
-                  ? 'bg-[#D4A84B] text-[#1A2619] font-semibold'
-                  : 'bg-transparent text-[#C8BBAA]'
-              }`}
+        {/* Group-by toggle + agency sort */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center mb-4">
+          <div className="inline-flex rounded-lg bg-[#1C2A1B] p-1 self-start">
+            {[['manager', 'По менеджерам'], ['agency', 'По агентствам']].map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setGroupBy(val)}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  groupBy === val
+                    ? 'bg-[#D4A84B] text-[#1A2619] font-semibold'
+                    : 'bg-transparent text-[#C8BBAA]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {groupBy === 'agency' && (
+            <select
+              value={agencySortBy}
+              onChange={e => setAgencySortBy(e.target.value)}
+              className="bg-rz-green-mid border border-rz-cream-muted/30 rounded px-3 py-1.5 text-rz-cream text-sm w-full sm:w-auto sm:min-w-[200px]"
             >
-              {label}
-            </button>
-          ))}
+              {AGENCY_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          )}
         </div>
 
         {/* Red flags */}
