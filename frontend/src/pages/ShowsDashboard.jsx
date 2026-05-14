@@ -80,6 +80,14 @@ export default function ShowsDashboard({ onBack }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Shows list loads only on an explicit "Показать" click. listLoaded tracks
+  // whether that has happened; listSnapshot remembers the filters at the time
+  // of the last load so we can flag the list as "dirty" when they change.
+  const [listLoaded, setListLoaded] = useState(false)
+  const [listLoading, setListLoading] = useState(false)
+  const [listError, setListError] = useState(null)
+  const [listSnapshot, setListSnapshot] = useState(null)
+
   // Drill-down sheet: { dimension: 'manager'|'agency', value, sortBy } | null.
   // dimension is the dimension of the CARD that was tapped; the sheet shows
   // the opposite dimension.
@@ -96,30 +104,60 @@ export default function ShowsDashboard({ onBack }) {
     }
   }
 
-  function load() {
+  function loadStats() {
     setLoading(true); setError('')
-    const dateParams = new URLSearchParams({
+    const params = new URLSearchParams({
       date_from: `${from} 00:00:00`,
       date_to: `${to} 23:59:59`,
+      group_by: groupBy,
     })
-    const statsParams = new URLSearchParams(dateParams)
-    statsParams.set('group_by', groupBy)
-    const listParams = new URLSearchParams(dateParams)
-    if (filterManager) listParams.set('manager', filterManager)
-    if (filterStatus) listParams.set('status', filterStatus)
-    Promise.all([
-      fetch(`/api/shows/dashboard/stats?${statsParams}`).then(r => r.json()),
-      fetch(`/api/shows/dashboard/list?${listParams}`).then(r => r.json()),
-    ])
-      .then(([s, l]) => {
-        if (s.ok) { setStats(s.stats); setTotals(s.totals) } else setError(s.error || 'Ошибка stats')
-        if (l.ok) setShows(l.shows); else setError(prev => prev || l.error || 'Ошибка списка')
+    fetch(`/api/shows/dashboard/stats?${params}`)
+      .then(r => r.json())
+      .then(s => {
+        if (s.ok) { setStats(s.stats); setTotals(s.totals) }
+        else setError(s.error || 'Ошибка stats')
       })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [from, to, filterManager, filterStatus, groupBy])
+  function loadList() {
+    setListLoading(true); setListError(null)
+    const params = new URLSearchParams({
+      date_from: `${from} 00:00:00`,
+      date_to: `${to} 23:59:59`,
+    })
+    if (filterManager) params.set('manager', filterManager)
+    if (filterStatus) params.set('status', filterStatus)
+    // Snapshot filters as they are NOW; applied only on success so a failed
+    // load leaves the previous snapshot (and listLoaded) intact.
+    const snapshot = { from, to, filterManager, filterStatus }
+    fetch(`/api/shows/dashboard/list?${params}`)
+      .then(r => r.json())
+      .then(l => {
+        if (l.ok) {
+          setShows(l.shows)
+          setListLoaded(true)
+          setListSnapshot(snapshot)
+        } else {
+          setListError(l.error || 'Ошибка списка')
+        }
+      })
+      .catch(e => setListError(String(e)))
+      .finally(() => setListLoading(false))
+  }
+
+  // Header "Обновить": always refresh stats; refresh the list too, but only
+  // if it has already been loaded once — otherwise it stays a placeholder
+  // (the list must only appear on an explicit "Показать" click).
+  function refreshAll() {
+    loadStats()
+    if (listLoaded) loadList()
+  }
+
+  // Stats reload automatically on period / mode change. The list does NOT —
+  // filterManager/filterStatus are intentionally absent from these deps.
+  useEffect(() => { loadStats() }, [from, to, groupBy])
 
   // Manager list for the "Все показы" filter — loaded once on mount so it
   // stays populated regardless of the active group_by mode.
@@ -178,6 +216,14 @@ export default function ShowsDashboard({ onBack }) {
     [stats, periodDays, groupBy],
   )
 
+  // The loaded list is "dirty" when the current filters / period no longer
+  // match the snapshot taken at load time. groupBy is irrelevant to the list.
+  const listDirty = useMemo(() => {
+    if (!listLoaded || !listSnapshot) return false
+    return JSON.stringify(listSnapshot) !==
+      JSON.stringify({ from, to, filterManager, filterStatus })
+  }, [listLoaded, listSnapshot, from, to, filterManager, filterStatus])
+
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-24">
       {/* Header */}
@@ -186,11 +232,11 @@ export default function ShowsDashboard({ onBack }) {
           <button onClick={onBack} className="text-rz-cream-dark text-sm">← Главная</button>
           <h1 className="text-lg font-semibold text-rz-gold flex-1">Дашборд показов</h1>
           <button
-            onClick={load}
-            disabled={loading}
+            onClick={refreshAll}
+            disabled={loading || listLoading}
             className="bg-rz-gold hover:bg-rz-gold-light text-rz-green font-semibold rounded-lg px-3 py-1.5 text-sm disabled:opacity-60"
           >
-            {loading ? '…' : 'Обновить'}
+            {loading || listLoading ? '…' : 'Обновить'}
           </button>
         </div>
         <div className="max-w-6xl mx-auto px-4 pb-3 flex items-center gap-2 flex-wrap">
@@ -345,7 +391,7 @@ export default function ShowsDashboard({ onBack }) {
         {/* Shows list */}
         <section>
           <h2 className="text-sm uppercase tracking-wide text-rz-cream-dark mb-2">Все показы</h2>
-          <div className="flex gap-2 mb-3 flex-wrap">
+          <div className="flex gap-2 mb-3 flex-wrap items-center">
             <select value={filterManager} onChange={e => setFilterManager(e.target.value)} className={selectCls}>
               <option value="">Все менеджеры</option>
               {managerOptions.map(m => <option key={m} value={m}>{m}</option>)}
@@ -354,10 +400,40 @@ export default function ShowsDashboard({ onBack }) {
               <option value="">Все статусы</option>
               {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-            <div className="text-xs text-rz-cream-muted ml-auto self-center">{shows.length} {pluralShow(shows.length)}</div>
+            <button
+              onClick={loadList}
+              disabled={listLoading}
+              className="bg-rz-gold hover:bg-rz-gold-light text-rz-green font-semibold rounded-lg px-3 py-1.5 text-sm disabled:opacity-60"
+            >
+              {listLoading ? '…' : (filterManager === '' && filterStatus === '' ? 'Показать все' : 'Показать')}
+            </button>
+            {listLoaded && !listLoading && (
+              <div className="text-xs text-rz-cream-muted ml-auto self-center">{shows.length} {pluralShow(shows.length)}</div>
+            )}
           </div>
 
-          {shows.length === 0 ? (
+          {listDirty && !listLoading && (
+            <div className="bg-rz-gold/15 border border-rz-gold/40 text-rz-gold text-xs rounded-lg px-3 py-2 mb-3">
+              Фильтры изменены — нажмите «Показать» для обновления
+            </div>
+          )}
+
+          {listLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map(i => <div key={i} className="h-8 bg-rz-green-mid rounded animate-pulse" />)}
+            </div>
+          ) : listError ? (
+            <div className="text-center py-6">
+              <div className="text-rz-error text-sm mb-3">{listError}</div>
+              <button onClick={loadList} className="bg-rz-gold hover:bg-rz-gold-light text-rz-green font-semibold rounded px-3 py-1.5 text-sm">
+                Повторить
+              </button>
+            </div>
+          ) : !listLoaded ? (
+            <div className="text-center py-8 text-rz-cream-muted text-sm">
+              Выберите фильтры и нажмите «Показать»
+            </div>
+          ) : shows.length === 0 ? (
             <div className="text-rz-cream-muted text-sm py-6 text-center">Нет показов за выбранный период</div>
           ) : (
             <>
