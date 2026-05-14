@@ -33,7 +33,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 
-from services.notifications import send_email_with_attachment, send_telegram_to_managers  # noqa: E402
+from services.notifications import send_email_with_attachment, send_telegram_message  # noqa: E402
 
 RETENTION_DAYS = 14
 SHOWS_DB = os.path.join(BACKEND_DIR, "shows.db")
@@ -159,27 +159,32 @@ def main() -> int:
         error = str(e)
         log(f"ERROR: backup failed — {error}")
 
-    # Telegram notification — PROD only, at the very end, wrapped in its own
-    # try/except so a Telegram failure never changes the exit code. The local
-    # backup and email are the important guarantees and are already done.
+    # Telegram notification — PROD only, at the very end. Goes to the admin's
+    # personal chat (ADMIN_CHAT_ID), NOT the "Показы Rizalta" group. Wrapped in
+    # its own try/except so a Telegram failure never changes the exit code —
+    # the local backup and email are the important guarantees and already done.
     if IS_PROD:
-        try:
-            ts = datetime.now().strftime("%d.%m.%Y %H:%M")
-            if success:
-                msg = (
-                    f"✅ shows.db backup — {ts}\n"
-                    f"Размер: {archive_size / 1024:.1f} KB"
-                )
-            else:
-                safe_error = html.escape(error[:300])
-                msg = (
-                    f"❌ shows.db backup — {ts}\n"
-                    f"Ошибка: {safe_error}"
-                )
-            sent = asyncio.run(send_telegram_to_managers(msg))
-            log(f"Telegram notification sent to {sent} chat(s)")
-        except Exception as e:
-            log(f"WARNING: Telegram notification failed: {e}")
+        admin_chat_id = os.getenv("ADMIN_CHAT_ID", "").strip()
+        ts = datetime.now().strftime("%d.%m.%Y %H:%M")
+        if success:
+            msg = (
+                f"✅ shows.db backup — {ts}\n"
+                f"Размер: {archive_size / 1024:.1f} KB"
+            )
+        else:
+            safe_error = html.escape(error[:300])
+            msg = (
+                f"❌ shows.db backup — {ts}\n"
+                f"Ошибка: {safe_error}"
+            )
+        if not admin_chat_id:
+            log("WARNING: ADMIN_CHAT_ID не задан — пропускаю Telegram-уведомление")
+        else:
+            try:
+                asyncio.run(send_telegram_message(admin_chat_id, msg))
+                log("Telegram notification sent to admin")
+            except Exception as e:
+                log(f"WARNING: Telegram notification failed: {e}")
 
     return 0 if success else 1
 
