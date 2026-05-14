@@ -32,7 +32,7 @@ from services import rag_service
 from services.secretary_db import init_secretary_db, add_task, get_tasks_for_date, get_tasks_for_week, mark_done, mark_undone, move_task, delete_task
 from services.shows_service import (
     init_shows_db, get_managers, get_agencies, create_show, list_shows, update_show, delete_show,
-    get_stats_by_manager,
+    get_stats_by_manager, get_stats_by_agency,
 )
 from services.secretary_ai import parse_task_with_ai
 from services.rclick_service import init_rclick_table, rclick_auth, rclick_check_status, rclick_create_fixation, rclick_logout
@@ -753,9 +753,16 @@ async def api_shows_delete(show_id: int):
 
 @app.get("/api/shows/dashboard/stats")
 async def api_shows_dashboard_stats(date_from: Optional[str] = None,
-                                    date_to: Optional[str] = None):
+                                    date_to: Optional[str] = None,
+                                    group_by: Optional[str] = "manager"):
     try:
-        stats = get_stats_by_manager(date_from=date_from, date_to=date_to)
+        if group_by not in ("manager", "agency"):
+            print(f"[SHOWS] dashboard/stats: invalid group_by={group_by!r}, falling back to 'manager'")
+            group_by = "manager"
+        if group_by == "agency":
+            stats = get_stats_by_agency(date_from=date_from, date_to=date_to)
+        else:
+            stats = get_stats_by_manager(date_from=date_from, date_to=date_to)
         totals = {
             "total": sum(s["total"] for s in stats),
             "planned": sum(s["planned"] for s in stats),

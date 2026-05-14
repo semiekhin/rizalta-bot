@@ -72,6 +72,8 @@ export default function ShowsDashboard({ onBack }) {
   const [stats, setStats] = useState([])
   const [totals, setTotals] = useState(null)
   const [shows, setShows] = useState([])
+  const [groupBy, setGroupBy] = useState('manager')
+  const [managerOptions, setManagerOptions] = useState([])
   const [filterManager, setFilterManager] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [loading, setLoading] = useState(false)
@@ -91,11 +93,13 @@ export default function ShowsDashboard({ onBack }) {
       date_from: `${from} 00:00:00`,
       date_to: `${to} 23:59:59`,
     })
+    const statsParams = new URLSearchParams(dateParams)
+    statsParams.set('group_by', groupBy)
     const listParams = new URLSearchParams(dateParams)
     if (filterManager) listParams.set('manager', filterManager)
     if (filterStatus) listParams.set('status', filterStatus)
     Promise.all([
-      fetch(`/api/shows/dashboard/stats?${dateParams}`).then(r => r.json()),
+      fetch(`/api/shows/dashboard/stats?${statsParams}`).then(r => r.json()),
       fetch(`/api/shows/dashboard/list?${listParams}`).then(r => r.json()),
     ])
       .then(([s, l]) => {
@@ -106,15 +110,26 @@ export default function ShowsDashboard({ onBack }) {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [from, to, filterManager, filterStatus])
+  useEffect(() => { load() }, [from, to, filterManager, filterStatus, groupBy])
+
+  // Manager list for the "Все показы" filter — loaded once on mount so it
+  // stays populated regardless of the active group_by mode.
+  useEffect(() => {
+    fetch('/api/shows/managers')
+      .then(r => r.json())
+      .then(d => { if (d.ok) setManagerOptions(d.managers) })
+      .catch(() => {})
+  }, [])
 
   const periodDays = useMemo(() => {
     const f = new Date(from), t = new Date(to)
     if (isNaN(f) || isNaN(t)) return 0
     return Math.round((t - f) / 86400000) + 1
   }, [from, to])
-  const flags = useMemo(() => periodDays >= 7 ? buildFlags(stats) : [], [stats, periodDays])
-  const managerOptions = useMemo(() => stats.map(s => s.manager), [stats])
+  const flags = useMemo(
+    () => (groupBy === 'manager' && periodDays >= 7) ? buildFlags(stats) : [],
+    [stats, periodDays, groupBy],
+  )
 
   return (
     <div className="min-h-screen bg-rz-green text-rz-cream pb-24">
@@ -157,6 +172,23 @@ export default function ShowsDashboard({ onBack }) {
       <div className="max-w-6xl mx-auto px-4 mt-4">
         {error && <div className="text-rz-error text-sm mb-3">{error}</div>}
 
+        {/* Group-by toggle */}
+        <div className="mb-6 inline-flex rounded-lg bg-[#1C2A1B] p-1">
+          {[['manager', 'По менеджерам'], ['agency', 'По агентствам']].map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setGroupBy(val)}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                groupBy === val
+                  ? 'bg-[#D4A84B] text-[#1A2619] font-semibold'
+                  : 'bg-transparent text-[#C8BBAA]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Red flags */}
         {flags.length > 0 && (
           <section className="mb-6">
@@ -172,59 +204,67 @@ export default function ShowsDashboard({ onBack }) {
           </section>
         )}
 
-        {/* Manager stats */}
+        {/* Group stats */}
         <section className="mb-6">
-          <h2 className="text-sm uppercase tracking-wide text-rz-cream-dark mb-2">Сводка по менеджерам</h2>
+          <h2 className="text-sm uppercase tracking-wide text-rz-cream-dark mb-2">
+            {groupBy === 'agency' ? 'Сводка по агентствам' : 'Сводка по менеджерам'}
+          </h2>
 
-          {/* Desktop table */}
-          <div className="hidden md:block overflow-hidden rounded-lg border border-rz-green-light">
-            <table className="w-full text-sm">
-              <thead className="bg-rz-green-mid text-rz-cream-dark">
-                <tr>
-                  <th className="text-left px-3 py-2">Менеджер</th>
-                  <th className="text-right px-3 py-2">Всего</th>
-                  <th className="text-right px-3 py-2">Запланир.</th>
-                  <th className="text-right px-3 py-2">Проведено</th>
-                  <th className="text-right px-3 py-2">из них с бронью</th>
-                  <th className="text-right px-3 py-2">Перенесено</th>
-                  <th className="text-right px-3 py-2">Отменено</th>
-                  <th className="text-right px-3 py-2">% броней</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.map(s => (
-                  <tr key={s.manager} className="border-t border-rz-green-light">
-                    <td className="px-3 py-2 text-rz-cream">{s.manager}</td>
-                    <td className="px-3 py-2 text-right">{s.total}</td>
-                    <td className="px-3 py-2 text-right">{s.planned}</td>
-                    <td className="px-3 py-2 text-right">{s.completed + s.completed_booked}</td>
-                    <td className="px-3 py-2 text-right text-rz-gold font-semibold">{s.completed_booked}</td>
-                    <td className="px-3 py-2 text-right">{s.rescheduled}</td>
-                    <td className="px-3 py-2 text-right">{s.cancelled}</td>
-                    <td className="px-3 py-2 text-right">{s.booking_rate == null ? '—' : `${s.booking_rate}%`}</td>
-                  </tr>
-                ))}
-                {totals && (
-                  <tr className="border-t-2 border-rz-gold/40 bg-rz-green-mid font-semibold">
-                    <td className="px-3 py-2 text-rz-gold">Итого</td>
-                    <td className="px-3 py-2 text-right">{totals.total}</td>
-                    <td className="px-3 py-2 text-right">{totals.planned}</td>
-                    <td className="px-3 py-2 text-right">{totals.completed + totals.completed_booked}</td>
-                    <td className="px-3 py-2 text-right text-rz-gold">{totals.completed_booked}</td>
-                    <td className="px-3 py-2 text-right">{totals.rescheduled}</td>
-                    <td className="px-3 py-2 text-right">{totals.cancelled}</td>
-                    <td className="px-3 py-2 text-right">{totals.booking_rate == null ? '—' : `${totals.booking_rate}%`}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {stats.length === 0 ? (
+            <div className="text-rz-cream-muted text-sm py-6 text-center">Нет данных за период</div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-hidden rounded-lg border border-rz-green-light">
+                <table className="w-full text-sm">
+                  <thead className="bg-rz-green-mid text-rz-cream-dark">
+                    <tr>
+                      <th className="text-left px-3 py-2">{groupBy === 'agency' ? 'Агентство' : 'Менеджер'}</th>
+                      <th className="text-right px-3 py-2">Всего</th>
+                      <th className="text-right px-3 py-2">Запланир.</th>
+                      <th className="text-right px-3 py-2">Проведено</th>
+                      <th className="text-right px-3 py-2">из них с бронью</th>
+                      <th className="text-right px-3 py-2">Перенесено</th>
+                      <th className="text-right px-3 py-2">Отменено</th>
+                      <th className="text-right px-3 py-2">% броней</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.map(s => (
+                      <tr key={s.name} className="border-t border-rz-green-light">
+                        <td className="px-3 py-2 text-rz-cream">{s.name}</td>
+                        <td className="px-3 py-2 text-right">{s.total}</td>
+                        <td className="px-3 py-2 text-right">{s.planned}</td>
+                        <td className="px-3 py-2 text-right">{s.completed + s.completed_booked}</td>
+                        <td className="px-3 py-2 text-right text-rz-gold font-semibold">{s.completed_booked}</td>
+                        <td className="px-3 py-2 text-right">{s.rescheduled}</td>
+                        <td className="px-3 py-2 text-right">{s.cancelled}</td>
+                        <td className="px-3 py-2 text-right">{s.booking_rate == null ? '—' : `${s.booking_rate}%`}</td>
+                      </tr>
+                    ))}
+                    {totals && (
+                      <tr className="border-t-2 border-rz-gold/40 bg-rz-green-mid font-semibold">
+                        <td className="px-3 py-2 text-rz-gold">Итого</td>
+                        <td className="px-3 py-2 text-right">{totals.total}</td>
+                        <td className="px-3 py-2 text-right">{totals.planned}</td>
+                        <td className="px-3 py-2 text-right">{totals.completed + totals.completed_booked}</td>
+                        <td className="px-3 py-2 text-right text-rz-gold">{totals.completed_booked}</td>
+                        <td className="px-3 py-2 text-right">{totals.rescheduled}</td>
+                        <td className="px-3 py-2 text-right">{totals.cancelled}</td>
+                        <td className="px-3 py-2 text-right">{totals.booking_rate == null ? '—' : `${totals.booking_rate}%`}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {stats.map(s => <ManagerCard key={s.manager} s={s} />)}
-            {totals && <ManagerCard s={{ manager: 'Итого', ...totals }} highlight />}
-          </div>
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
+                {stats.map(s => <ManagerCard key={s.name} s={s} />)}
+                {totals && <ManagerCard s={{ name: 'Итого', ...totals }} highlight />}
+              </div>
+            </>
+          )}
         </section>
 
         {/* Shows list */}
@@ -322,7 +362,7 @@ function ManagerCard({ s, highlight }) {
   ]
   return (
     <div className={`rounded-lg p-3 ${highlight ? 'bg-rz-green-mid border-2 border-rz-gold/40' : 'bg-rz-green-mid border border-rz-green-light'}`}>
-      <div className={`font-semibold mb-2 ${highlight ? 'text-rz-gold' : 'text-rz-cream'}`}>{s.manager}</div>
+      <div className={`font-semibold mb-2 ${highlight ? 'text-rz-gold' : 'text-rz-cream'}`}>{s.name}</div>
       <div className="grid grid-cols-2 gap-2">
         {cells.map((c, i) => (
           <div key={i} className={`bg-rz-green rounded px-2 py-1.5 ${c.span === 2 ? 'col-span-2' : ''}`}>

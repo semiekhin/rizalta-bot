@@ -237,6 +237,7 @@ def get_stats_by_manager(date_from: Optional[str] = None,
         booking_rate = round(100 * completed_booked / conducted, 1) if conducted > 0 else None
         result.append({
             "manager": name,
+            "name": name,
             "total": total,
             "planned": planned,
             "completed": completed,
@@ -245,4 +246,58 @@ def get_stats_by_manager(date_from: Optional[str] = None,
             "cancelled": cancelled,
             "booking_rate": booking_rate,
         })
+    return result
+
+
+def get_stats_by_agency(date_from: Optional[str] = None,
+                        date_to: Optional[str] = None) -> list[dict]:
+    """Aggregate counts per agency. Unlike get_stats_by_manager there is no
+    zero-fill — only agencies with shows in the period are returned. NULL or
+    empty realtor_agency is bucketed into a synthetic 'Без агентства' row."""
+    conditions = []
+    params: list = []
+    if date_from:
+        conditions.append("show_datetime >= ?")
+        params.append(date_from)
+    if date_to:
+        conditions.append("show_datetime <= ?")
+        params.append(date_to)
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    sql = f"""
+        SELECT
+            COALESCE(NULLIF(realtor_agency, ''), 'Без агентства') AS name,
+            COUNT(*) AS total,
+            SUM(CASE WHEN status = 'planned' THEN 1 ELSE 0 END) AS planned,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'completed_booked' THEN 1 ELSE 0 END) AS completed_booked,
+            SUM(CASE WHEN status = 'rescheduled' THEN 1 ELSE 0 END) AS rescheduled,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+        FROM shows
+        {where}
+        GROUP BY COALESCE(NULLIF(realtor_agency, ''), 'Без агентства')
+    """
+    conn = get_conn()
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+
+    result = []
+    for r in rows:
+        completed = r["completed"]
+        completed_booked = r["completed_booked"]
+        conducted = completed + completed_booked
+        booking_rate = round(100 * completed_booked / conducted, 1) if conducted > 0 else None
+        result.append({
+            "name": r["name"],
+            "total": r["total"],
+            "planned": r["planned"],
+            "completed": completed,
+            "completed_booked": completed_booked,
+            "rescheduled": r["rescheduled"],
+            "cancelled": r["cancelled"],
+            "booking_rate": booking_rate,
+        })
+
+    # Sort: lowest booking_rate first (problem agencies on top).
+    # None (no completed shows) goes to the end.
+    result.sort(key=lambda r: (r["booking_rate"] is None, r["booking_rate"] or 0))
     return result
