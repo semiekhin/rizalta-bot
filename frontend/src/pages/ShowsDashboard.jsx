@@ -204,9 +204,11 @@ export default function ShowsDashboard({ onBack }) {
       sort_by: drilldown.sortBy,
     })
     if (drilldown.dimension === 'manager') {
-      p.set('group_by', 'agency'); p.set('filter_manager', drilldown.value)
+      p.set('group_by', 'agency')
+      if (drilldown.value) p.set('filter_manager', drilldown.value)
     } else {
-      p.set('group_by', 'manager'); p.set('filter_agency', drilldown.value)
+      p.set('group_by', 'manager')
+      if (drilldown.value) p.set('filter_agency', drilldown.value)
     }
     fetch(`/api/shows/dashboard/stats?${p}`, { signal: controller.signal })
       .then(r => r.json())
@@ -221,7 +223,7 @@ export default function ShowsDashboard({ onBack }) {
   }, [drilldown, from, to])
 
   function openDrilldown(value, sortBy) {
-    if (value === 'Итого') return
+    // value === null means Totals (no filter); backend returns the aggregate.
     setDrilldown({ dimension: groupBy, value, sortBy })
   }
 
@@ -379,7 +381,12 @@ export default function ShowsDashboard({ onBack }) {
                         <td className="px-3 py-2 text-right">{totals.total}</td>
                         <td className="px-3 py-2 text-right">{totals.planned}</td>
                         <td className="px-3 py-2 text-right">{totals.completed + totals.completed_booked}</td>
-                        <td className="px-3 py-2 text-right text-rz-gold">{totals.completed_booked}</td>
+                        <td
+                          className={`px-3 py-2 text-right ${totals.completed_booked > 0 ? 'text-rz-gold cursor-pointer transition-colors hover:bg-rz-green-mid/40' : 'text-rz-cream-muted'}`}
+                          onClick={totals.completed_booked > 0 ? () => openDrilldown(null, 'completed_booked') : undefined}
+                        >
+                          {totals.completed_booked}
+                        </td>
                         <td className="px-3 py-2 text-right">{totals.rescheduled}</td>
                         <td className="px-3 py-2 text-right">{totals.cancelled}</td>
                         <td className="px-3 py-2 text-right">{totals.booking_rate == null ? '—' : `${totals.booking_rate}%`}</td>
@@ -391,6 +398,14 @@ export default function ShowsDashboard({ onBack }) {
 
               {/* Mobile cards */}
               <div className="md:hidden space-y-3">
+                {totals && (
+                  <ManagerCard
+                    s={{ name: 'Итого', ...totals }}
+                    highlight
+                    bookedClickable
+                    onDrill={metric => openDrilldown(null, metric)}
+                  />
+                )}
                 {stats.map(s => (
                   <ManagerCard
                     key={s.name}
@@ -400,7 +415,6 @@ export default function ShowsDashboard({ onBack }) {
                     onDrill={metric => openDrilldown(s.name, metric)}
                   />
                 ))}
-                {totals && <ManagerCard s={{ name: 'Итого', ...totals }} highlight />}
               </div>
             </>
           )}
@@ -531,7 +545,7 @@ function buildFlags(stats) {
   return flags
 }
 
-function ManagerCard({ s, highlight, clickable, defaultSort, onDrill }) {
+function ManagerCard({ s, highlight, clickable, bookedClickable, defaultSort, onDrill }) {
   const cells = [
     { label: 'Всего', value: s.total, metric: 'total' },
     { label: 'Запланировано', value: s.planned, metric: 'planned' },
@@ -541,9 +555,6 @@ function ManagerCard({ s, highlight, clickable, defaultSort, onDrill }) {
     { label: 'Отменено', value: s.cancelled, metric: 'cancelled' },
     { label: '% броней', value: s.booking_rate == null ? '—' : `${s.booking_rate}%`, span: 2, metric: 'booking_rate' },
   ]
-  const cellInteractive = clickable
-    ? 'cursor-pointer transition-colors hover:bg-rz-green-mid/40 active:bg-rz-green-mid/40'
-    : 'cursor-default'
   const nameCls = highlight
     ? 'text-rz-gold'
     : clickable
@@ -558,16 +569,27 @@ function ManagerCard({ s, highlight, clickable, defaultSort, onDrill }) {
         {s.name}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        {cells.map((c, i) => (
-          <div
-            key={i}
-            className={`bg-rz-green rounded px-2 py-1.5 ${c.span === 2 ? 'col-span-2' : ''} ${cellInteractive}`}
-            onClick={clickable ? () => onDrill(c.metric) : undefined}
-          >
-            <div className="text-[10px] text-rz-cream-muted uppercase">{c.label}</div>
-            <div className={`text-base font-semibold ${c.gold ? 'text-rz-gold' : 'text-rz-cream'}`}>{c.value}</div>
-          </div>
-        ))}
+        {cells.map((c, i) => {
+          const cellIsClickable = clickable
+            || (bookedClickable && c.metric === 'completed_booked' && Number(s.completed_booked) > 0)
+          const cellInteractive = cellIsClickable
+            ? 'cursor-pointer transition-colors hover:bg-rz-green-mid/40 active:bg-rz-green-mid/40'
+            : 'cursor-default'
+          // In totals-card mode (bookedClickable), dim every value except the live "С бронью" cell.
+          const valueCls = bookedClickable
+            ? (cellIsClickable && c.gold ? 'text-rz-gold' : 'text-rz-cream-muted')
+            : (c.gold ? 'text-rz-gold' : 'text-rz-cream')
+          return (
+            <div
+              key={i}
+              className={`bg-rz-green rounded px-2 py-1.5 ${c.span === 2 ? 'col-span-2' : ''} ${cellInteractive}`}
+              onClick={cellIsClickable ? () => onDrill(c.metric) : undefined}
+            >
+              <div className="text-[10px] text-rz-cream-muted uppercase">{c.label}</div>
+              <div className={`text-base font-semibold ${valueCls}`}>{c.value}</div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -597,9 +619,10 @@ const BREAKDOWN_COLS = [
 
 function BreakdownSheet({ drilldown, data, loading, error, onClose, onSort, onRetry }) {
   const sheetDim = drilldown.dimension === 'manager' ? 'agency' : 'manager'
+  const prefix = drilldown.value || 'Все'
   const title = drilldown.dimension === 'manager'
-    ? `${drilldown.value} · По агентствам`
-    : `${drilldown.value} · По менеджерам`
+    ? `${prefix} · По агентствам`
+    : `${prefix} · По менеджерам`
   const nameLabel = sheetDim === 'agency' ? 'Агентство' : 'Менеджер'
   const rows = data && data.ok ? data.stats : null
 
