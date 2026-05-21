@@ -82,6 +82,8 @@ Nginx: `/api/` → backend, `/` → frontend/dist (SPA fallback), `/webhook` →
 Клиент: OpenAI SDK с `base_url=https://llm.api.cloud.yandex.net/v1`, header `x-folder-id`.
 Модель: `gpt-oss-120b/latest` (без модерации, function calling, streaming).
 
+`build_system_prompt()` собирает system prompt в порядке **project_knowledge + finance + instructions** (фундамент о продукте → цифры → стиль). Источники: `config/project_knowledge.txt` (фундаментальные бизнес-правила продукта — верхний слой, всегда читается), `data/rizalta_finance.json` (цены/программы) и `config/instructions.txt` (стиль/поведение). Загрузка — через `services/data_loader.py` (`load_project_knowledge` / `load_finance` / `load_instructions`, кэш). В agentic-пути сверху добавляется `ADVISOR_INSTRUCTION`.
+
 **services/tool_definitions.py** — 5 инструментов:
 - `search_lots` — поиск по code/building/area/price/status
 - `get_lot_details` — детали лота
@@ -193,6 +195,7 @@ Nginx: `/api/` → backend, `/` → frontend/dist (SPA fallback), `/webhook` →
 - **SSE streaming headers:** nginx должен пропускать (proxy_buffering off)
 - **RFC 5987 filename:** для кириллицы в Content-Disposition (lot_summary_pdf_generator.py)
 - **Нормализация лот-кодов:** Latin → Cyrillic (A→А, B→В) в tool_definitions.py
+- **Инцидент 09.05.2026 (проживание):** AI ответил «можно жить» на вопрос о самостоятельном проживании, потому что правило существовало только в `ddu.pdf`, а RAG не триггерится на такие вопросы. Решение — отдельный файл `config/project_knowledge.txt` с фундаментальными правилами продукта, подключённый ПЕРВЫМ в system prompt (`build_system_prompt`). Существующие источники (`instructions.txt`, finance JSON) остались, добавили верхний слой. Урок: для критичных бизнес-правил нужен явный «всегда читаемый» источник, а не RAG-гейт.
 
 ## DevOps
 
