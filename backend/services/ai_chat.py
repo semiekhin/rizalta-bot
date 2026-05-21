@@ -146,7 +146,6 @@ def build_system_prompt() -> str:
     finance = load_finance()
     context = build_finance_system_context(finance)
     # Порядок приоритета: фундамент о продукте → цифры → стиль/поведение
-    print(f"[AI] system prompt: knowledge={len(knowledge)} finance={len(context)} instructions={len(instructions)} chars")
     return knowledge + context + "\n\n" + instructions
 
 
