@@ -673,6 +673,8 @@ def stream_portfolio_report(budget: int):
 
 def _needs_tools(message: str) -> bool:
     """Check if message likely needs GPT-5.2 tools (lot lookup, calculations)."""
+    return True  # routing disabled: всегда agentic loop, AI сама решает звать tools или нет
+    # существующая логика ниже оставлена как fallback для отката одной строкой
     # Has lot code (А210, В712, К3-А101) → needs get_lot_details
     if extract_lot_code(message):
         return True
