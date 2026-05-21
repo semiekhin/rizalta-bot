@@ -9,6 +9,7 @@ CONFIG_DIR = os.path.join(BASE_DIR, "config")
 
 _finance_cache = None
 _instructions_cache = None
+_knowledge_cache = None
 
 
 def load_finance() -> dict:
@@ -45,3 +46,21 @@ def load_instructions() -> str:
         _instructions_cache = f.read().strip()
     print(f"[AI] Loaded instructions: {len(_instructions_cache)} chars")
     return _instructions_cache
+
+
+def load_project_knowledge() -> str:
+    """Load fundamental product knowledge for AI chat (cached after first read)."""
+    global _knowledge_cache
+    if _knowledge_cache is not None:
+        return _knowledge_cache
+
+    path = os.path.join(CONFIG_DIR, "project_knowledge.txt")
+    if not os.path.exists(path):
+        print(f"[AI] Warning: {path} not found")
+        _knowledge_cache = ""
+        return _knowledge_cache
+
+    with open(path, "r", encoding="utf-8") as f:
+        _knowledge_cache = f.read().strip()
+    print(f"[AI] Loaded project knowledge: {len(_knowledge_cache)} chars")
+    return _knowledge_cache

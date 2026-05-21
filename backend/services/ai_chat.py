@@ -7,7 +7,7 @@ import sqlite3
 import logging
 from openai import OpenAI
 
-from services.data_loader import load_finance, load_instructions
+from services.data_loader import load_finance, load_instructions, load_project_knowledge
 from services.tool_definitions import TOOLS, execute_tool
 from services.intent_router import extract_lot_code
 from services.rag_service import search_documents
@@ -140,11 +140,14 @@ def build_finance_system_context(finance: dict) -> str:
 
 
 def build_system_prompt() -> str:
-    """Build full system prompt = instructions + finance context."""
+    """Build full system prompt = project knowledge + finance context + instructions."""
+    knowledge = load_project_knowledge()
     instructions = load_instructions()
     finance = load_finance()
     context = build_finance_system_context(finance)
-    return instructions + context
+    # Порядок приоритета: фундамент о продукте → цифры → стиль/поведение
+    print(f"[AI] system prompt: knowledge={len(knowledge)} finance={len(context)} instructions={len(instructions)} chars")
+    return knowledge + context + "\n\n" + instructions
 
 
 ADVISOR_INSTRUCTION = """
